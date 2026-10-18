@@ -21,6 +21,7 @@
   color-scheme: dark;
 }
 html, body { height: 100%; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--night); color: var(--ink); font-family: var(--f-ui); font-size: 14px; overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 #app { position: fixed; inset: 0; }
 #gl, #tr, #ov { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
@@ -1582,8 +1583,10 @@ function endTour() { tour.on = false; clearTimeout(tour.timer); $('tourCard').hi
 function buildChips() {
   const up = bodies.filter(b => b.e[2] > 0 && b.b !== 'Sun' && b.mag < 5);
   const box = $('chips');
-  box.innerHTML = '<button class="chip" id="tonightChip" style="border-color:rgba(227,194,126,.55);color:var(--gilt)">Bu gece ▸</button><button class="chip" id="tourChip" style="border-color:rgba(140,220,255,.5);color:#9fdcff">Gök turu ▸</button>' + (up.length ? '<span class="lead">Şu an gökte</span>' : '') + up.map(b => '<button class="chip" data-b="' + b.b + '"><i style="background:' + b.col + '"></i>' + b.tr + '</button>').join('');
+  const shifted = Math.abs(S.offset) > 10*60000;
+  box.innerHTML = (shifted ? '<button class="chip" id="nowChip" style="border-color:rgba(255,139,107,.6);color:#ffb39e">⟲ Şimdiye dön</button>' : '') + '<button class="chip" id="tonightChip" style="border-color:rgba(227,194,126,.55);color:var(--gilt)">Bu gece ▸</button><button class="chip" id="tourChip" style="border-color:rgba(140,220,255,.5);color:#9fdcff">Gök turu ▸</button>' + (up.length ? '<span class="lead">Şu an gökte</span>' : '') + up.map(b => '<button class="chip" data-b="' + b.b + '"><i style="background:' + b.col + '"></i>' + b.tr + '</button>').join('');
   $('tonightChip').addEventListener('click', openTonight);
+  if (shifted) $('nowChip').addEventListener('click', () => { if (trails.on) setTrails(false); S.offset = 0; S.speed = 1; updateAstro(true); buildChips(); toast('Şu anki gökyüzüne dönüldü.'); });
   $('tourChip').addEventListener('click', startTour);
   box.querySelectorAll('[data-b]').forEach(c => c.addEventListener('click', () => select({ kind: 'body', ref: bodies.find(b => b.b === c.dataset.b) }, true)));
 }
@@ -1634,15 +1637,35 @@ function refreshPos() {
 
 $('locName').textContent = S.loc.name;
 updateAstro(true); updateCam(); buildChips();
-// open facing the brightest planet above the horizon, else south
+// opened in daylight or twilight: show tonight's dark sky instead, with a one-tap way back to now
+let autoNight = null;
+if (dayness > 0.15) {
+  const dusk = rs('Sun', -1, atime, 1.2, -18);
+  if (dusk) { const t = new Date(dusk.getTime() + 70*60000); S.offset = t - Date.now(); updateAstro(true); buildChips(); autoNight = t; }
+}
+// open facing the brightest stretch of the Milky Way that is well up, else the brightest planet, else south
+function bestView() {
+  const GNP = [-0.8676, -0.1981, 0.4560], GC = [-0.0549, -0.8734, -0.4838], U2 = crs3(GNP, GC);
+  let best = null;
+  for (let l = 0; l < 360; l += 5) {
+    const c = Math.cos(l*D2R), sn = Math.sin(l*D2R), e = mul(M, [GC[0]*c + U2[0]*sn, GC[1]*c + U2[1]*sn, GC[2]*c + U2[2]*sn]);
+    const alt = Math.asin(e[2])*R2D; if (alt < 18 || alt > 72) continue;
+    const score = alt*0.6 + Math.max(0, c)*40 + 10;
+    if (!best || score > best.score) best = { score, e };
+  }
+  return best;
+}
 const showcase = bodies.filter(b => b.b !== 'Sun' && b.e[2] > 0.15 && b.mag < 1).sort((a, b) => a.mag - b.mag)[0];
 let tAz = S.az, tAlt = S.alt;
-const HOME = { fov: 92*D2R };
-if (showcase) { const l = lookAtE(showcase.e); tAz = l.az; tAlt = Math.min(l.alt + 8*D2R, 60*D2R); }
-$('introSub').textContent = S.loc.name + ' · şu anki gerçek gökyüzü';
+const HOME = { fov: 96*D2R };
+const bv = dayness < 0.3 ? bestView() : null;
+if (bv) { const l = lookAtE(bv.e); tAz = l.az; tAlt = Math.min(Math.max(l.alt - 6*D2R, 22*D2R), 55*D2R); }
+else if (showcase) { const l = lookAtE(showcase.e); tAz = l.az; tAlt = Math.min(l.alt + 8*D2R, 60*D2R); }
+$('introSub').textContent = S.loc.name + (autoNight ? ' · bu gece ' + hm(autoNight) : ' · şu anki gerçek gökyüzü');
+if (autoNight) setTimeout(() => toast('Şu an gökyüzü aydınlık; sana bu gecenin karanlık gökyüzünü gösteriyorum.'), 4200);
 HOME.az = tAz; HOME.alt = tAlt;
 if (matchMedia('(prefers-reduced-motion: reduce)').matches) { S.az = tAz; S.alt = tAlt; }
-else { S.az = tAz - 0.9; S.alt = 86*D2R; S.fov = 118*D2R; S.fly = { t: 0, az0: S.az, alt0: S.alt, fov0: S.fov, daz: 0.9, alt1: tAlt, fov1: 92*D2R, dur: 4.6 }; }
+else { S.az = tAz - 0.9; S.alt = 86*D2R; S.fov = 118*D2R; S.fly = { t: 0, az0: S.az, alt0: S.alt, fov0: S.fov, daz: 0.9, alt1: tAlt, fov1: 96*D2R, dur: 4.6 }; }
 /* return-to-start view */
 const homeBtn = $('homeBtn');
 function goHome() {
