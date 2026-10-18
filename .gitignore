@@ -1,0 +1,7 @@
+# ham kataloglar ve yerel ayarlar siteye gitmez
+_kaynak/
+.claude/
+.DS_Store
+# veri dosyalarının yayınlanan kopyaları docs/ içinde
+/gokyuzu-veri.js
+/gokyuzu-veri-derin.js

@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="tr">
+<meta charset="utf-8">
+<title>Kara Deliğin Anatomisi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed real-time render; caption card bottom-left, chapter rail along the bottom edge. Deliberately single dark theme (deep space). */
+:root {
+  --void: #030306;
+  --ink: #ece7df;
+  --dim: #918a93;
+  --ember: #ffb066;
+  --jet: #9cc0ff;
+  --glass: rgba(8, 8, 14, 0.62);
+  --line: rgba(236, 231, 223, 0.14);
+  --f-display: "Unbounded", "Avenir Next", "Segoe UI", sans-serif;
+  --f-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--void); color: var(--ink); font-family: var(--f-body); overflow: hidden; }
+#app { position: fixed; inset: 0; }
+canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+canvas.drag { cursor: grabbing; }
+
+.top {
+  position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+  padding-top: max(18px, env(safe-area-inset-top, 0px));
+  padding-left: max(22px, env(safe-area-inset-left, 0px)); padding-right: max(22px, env(safe-area-inset-right, 0px));
+  pointer-events: none;
+}
+.brand { font-family: var(--f-display); font-weight: 600; font-size: 13px; letter-spacing: .18em; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+.brand i { width: 14px; height: 14px; border-radius: 50%; background: #000; box-shadow: 0 0 0 2px var(--ember), 0 0 14px 2px rgba(255,176,102,.55); }
+.hint { font-family: var(--f-mono); font-size: 11px; color: var(--dim); letter-spacing: .04em; text-align: right; }
+
+.card {
+  position: absolute; left: max(22px, env(safe-area-inset-left, 0px)); bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+  width: min(430px, calc(100% - 44px)); padding: 22px 24px 20px;
+  background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line); border-radius: 4px;
+  display: grid; gap: 10px; transition: opacity .35s ease, transform .35s ease;
+}
+.card.swap { opacity: 0; transform: translateY(6px); }
+.meta { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; color: var(--ember); text-transform: uppercase; }
+.meta span:last-child { color: var(--dim); }
+.card h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(21px, 2.3vw, 28px); line-height: 1.15; text-wrap: balance; }
+.card p { margin: 0; font-size: 14.5px; line-height: 1.6; color: #cfc9c1; }
+.stat { display: flex; align-items: baseline; gap: 12px; padding-top: 12px; margin-top: 4px; border-top: 1px solid var(--line); }
+.stat b { font-family: var(--f-mono); font-weight: 500; font-size: 22px; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12.5px; color: var(--dim); line-height: 1.4; }
+
+.rail {
+  position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 14px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom, 0px)); padding-top: 14px;
+  padding-left: max(22px, env(safe-area-inset-left, 0px)); padding-right: max(22px, env(safe-area-inset-right, 0px));
+}
+.play { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--glass); color: var(--ink); display: grid; place-items: center; cursor: pointer; }
+.play:hover { border-color: var(--ember); }
+.play:focus-visible, .chap:focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
+.chaps { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.chap { appearance: none; background: none; border: 0; padding: 6px 0 0; text-align: left; cursor: pointer; color: var(--dim); font-family: var(--f-mono); font-size: 11px; letter-spacing: .06em; min-width: 0; }
+.chap .bar { display: block; height: 2px; background: var(--line); position: relative; overflow: hidden; margin-bottom: 8px; }
+.chap .bar i { position: absolute; inset: 0; width: 0; background: var(--ember); }
+.chap.on { color: var(--ink); }
+.chap .nm { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+#labels { position: absolute; inset: 0; pointer-events: none; }
+.lbl { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 8px; font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .04em; color: var(--ink); white-space: nowrap; opacity: 0; transition: opacity .6s ease; text-shadow: 0 1px 6px #000; }
+.lbl.on { opacity: 1; }
+.lbl i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--jet); flex: none; }
+.lbl em { font-style: normal; display: block; height: 1px; width: 26px; background: rgba(156,192,255,.6); }
+
+.err { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--dim); }
+
+@media (max-width: 700px) {
+  .hint { display: none; }
+  .card { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); padding: 16px 18px; gap: 8px; }
+  .card p { font-size: 13.5px; line-height: 1.5; }
+  .chap .nm { font-size: 0; }
+  .chap.on .nm { font-size: 10.5px; }
+  .lbl { font-size: 10.5px; }
+}
+</style>
+
+<div id="app">
+  <canvas id="c" aria-label="Kara deliğin gerçek zamanlı ışın izlemeli görüntüsü"></canvas>
+  <div id="labels"></div>
+  <header class="top">
+    <div class="brand"><i></i>Kara Deliğin Anatomisi</div>
+    <div class="hint">Sürükle: açıyı değiştir · Boşluk: oynat / duraklat · ← →: bölüm<br>Model: dönmeyen (Schwarzschild) kara delik, birim rₛ</div>
+  </header>
+  <section class="card" id="card" aria-live="polite">
+    <div class="meta"><span id="tag"></span><span id="idx"></span></div>
+    <h1 id="title"></h1>
+    <p id="body"></p>
+    <div class="stat"><b id="sv"></b><span id="sl"></span></div>
+  </section>
+  <nav class="rail" aria-label="Bölümler">
+    <button class="play" id="play" aria-label="Duraklat"></button>
+    <div class="chaps" id="chaps"></div>
+  </nav>
+</div>
+
+<script>
+(() => {
+const ICON_PAUSE = '<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/></svg>';
+const ICON_PLAY = '<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1 L13 7 L3 13 Z"/></svg>';
+
+const S = [
+  { nm: 'Genel', tag: 'Genel bakış', title: 'Işığın bile kaçamadığı yer',
+    body: 'Kara delik, kütlesi çok küçük bir hacme sıkışmış bir cisimdir. Çevresinde uzay-zaman o kadar bükülür ki ışık bile kaçamaz. Bu görüntü bir video değil: her pikselin ışını, bükülen yolu boyunca anlık olarak hesaplanıyor.',
+    sv: '2019', sl: 'Event Horizon Teleskobu, M87* kara deliğinin gölgesini ilk kez görüntüledi',
+    cam: { d: 26, el: 13, az: -0.35, drift: 0.035, fov: 48 }, disk: 1, jets: 0.35, guide: 0, dur: 11, labels: [] },
+  { nm: 'Çöküş', tag: 'Doğum', title: 'Bir yıldızın ölümü',
+    body: 'Yakıtı biten dev bir yıldızın çekirdeği kendi ağırlığı altında bir saniyeden kısa sürede çöker. Yarıçapı Schwarzschild yarıçapının (rₛ) altına indiği anda olay ufku oluşur ve yıldız görüş alanımızdan silinir.',
+    sv: '≈ 20+ M☉', sl: 'kara deliğe dönüşebilecek yıldızların başlangıç kütlesi',
+    cam: { d: 22, el: 22, az: 0.5, drift: 0.02, fov: 50 }, disk: 0, jets: 0, guide: 0, dur: 11, collapse: true,
+    labels: [{ t: 'Çöken yıldız', p: () => [0, Math.max(starR, 1) + 0.6, 0], when: () => starR > 1.05 }] },
+  { nm: 'Olay ufku', tag: 'Sınır', title: 'Geri dönüşü olmayan çizgi',
+    body: 'Olay ufkunun içinden hiçbir sinyal dışarı çıkamaz. Gördüğümüz siyah gölge ufuktan büyüktür: ışık 1,5 rₛ\'de yörüngeye girer, bu yüzden gölge yaklaşık 2,6 rₛ görünür. Arkadaki yıldızların bükülüp halka oluşturduğuna bak.',
+    sv: 'rₛ = 2GM/c²', sl: 'Güneş kütlesinde bir kara delik için yaklaşık 3 km',
+    cam: { d: 8.5, el: 9, az: 0.9, drift: 0.05, fov: 62 }, disk: 0, jets: 0, guide: 0, dur: 11,
+    labels: [{ t: 'Gölge sınırı ≈ 2,6 rₛ', p: () => side(2.62, 0) }] },
+  { nm: 'Disk', tag: 'Yığılma diski', title: 'Dönen, kızgın gaz',
+    body: 'Düşen gaz doğrudan içeri girmez; dönerek bir disk oluşturur ve sürtünmeyle milyonlarca dereceye ısınır. Kararlı yörüngeler 3 rₛ\'de biter. Bize doğru dönen taraf Doppler etkisiyle daha parlak ve mavi, uzaklaşan taraf sönük ve kızıl görünür.',
+    sv: '≈ 10⁷ K', sl: 'yıldız kütleli bir kara deliğin iç diskindeki sıcaklık',
+    cam: { d: 15, el: 34, az: 1.6, drift: 0.04, fov: 50 }, disk: 1, jets: 0, guide: 1, dur: 12,
+    labels: [
+      { t: 'En içteki kararlı yörünge · 3 rₛ', p: () => toward(3.0) },
+      { t: 'Bize yaklaşan taraf', p: () => approaching(true) },
+      { t: 'Uzaklaşan taraf', p: () => approaching(false) } ] },
+  { nm: 'Mercek', tag: 'Kütleçekimsel mercek', title: 'Bükülen ışık',
+    body: 'Diskin kara deliğin arkasında kalan kısmını da görüyoruz: oradan çıkan ışık deliğin üstünden ve altından bükülerek bize ulaşır. Interstellar\'daki Gargantua görüntüsü de bu etki hesaplanarak çizilmişti.',
+    sv: '1,5 rₛ', sl: 'foton küresi: ışığın kara deliğin çevresinde yörüngeye girdiği yarıçap',
+    cam: { d: 11.5, el: 4, az: 2.4, drift: 0.03, fov: 54 }, disk: 1, jets: 0, guide: 0, dur: 12,
+    labels: [{ t: 'Diskin arka yüzü, üstten bükülmüş', p: () => [0, 4.4, 0] }] },
+  { nm: 'Jetler', tag: 'Jetler', title: 'Kutuplardan fışkıran madde',
+    body: 'Dönen kara deliklerde manyetik alanlar, maddenin bir kısmını kutuplardan ışık hızına yakın bir hızla dışarı fırlatır. Bu jetler, ev sahibi galaksiden bile büyük olabilir.',
+    sv: '5.000 ışık yılı', sl: 'M87 galaksisindeki jetin uzunluğu',
+    cam: { d: 34, el: 20, az: 3.2, drift: 0.03, fov: 50 }, disk: 1, jets: 1, guide: 0, dur: 11,
+    labels: [{ t: 'Relativistik jet', p: () => [0, 13, 0] }] },
+];
+
+/* ---------- WebGL ---------- */
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'high-performance' });
+if (!gl) { document.getElementById('app').insertAdjacentHTML('beforeend', '<div class="err">Bu tarayıcıda WebGL açılamadı.</div>'); return; }
+
+const VS = 'attribute vec2 a; void main(){ gl_Position = vec4(a,0.,1.); }';
+const FS = `
+precision highp float;
+uniform vec2 uRes; uniform vec2 uOff; uniform float uT;
+uniform vec3 uCam; uniform mat3 uCamM; uniform float uTan;
+uniform float uDisk, uJets, uGuide, uStarR, uHeat, uFlash;
+
+float hash(vec3 p){ p = fract(p*0.3183099 + 0.1); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+float noise(vec3 x){ vec3 i = floor(x), f = fract(x); f = f*f*(3.0-2.0*f);
+  return mix(mix(mix(hash(i), hash(i+vec3(1,0,0)), f.x), mix(hash(i+vec3(0,1,0)), hash(i+vec3(1,1,0)), f.x), f.y),
+             mix(mix(hash(i+vec3(0,0,1)), hash(i+vec3(1,0,1)), f.x), mix(hash(i+vec3(0,1,1)), hash(i+vec3(1,1,1)), f.x), f.y), f.z); }
+float fbm(vec3 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a*noise(p); p = p*2.03 + 1.7; a *= 0.5; } return s; }
+
+vec3 bb(float t){
+  vec3 c = mix(vec3(0.75,0.08,0.01), vec3(1.0,0.45,0.10), smoothstep(0.0,0.45,t));
+  c = mix(c, vec3(1.0,0.86,0.66), smoothstep(0.4,0.95,t));
+  c = mix(c, vec3(0.72,0.83,1.0), smoothstep(1.0,1.7,t));
+  return c;
+}
+
+vec3 sky(vec3 d){
+  vec3 col = vec3(0.0);
+  for (int L = 0; L < 2; L++) {
+    float sc = L == 0 ? 70.0 : 170.0;
+    vec3 q = d*sc; vec3 c = floor(q); vec3 f = fract(q) - 0.5;
+    float h = hash(c);
+    if (h > 0.955) {
+      vec3 o = vec3(hash(c+1.3), hash(c+2.7), hash(c+4.1)) - 0.5;
+      float dd = length(f - o*0.6);
+      float b = (h - 0.955)/0.045;
+      vec3 tint = mix(vec3(1.0,0.78,0.58), vec3(0.68,0.82,1.0), hash(c+7.0));
+      col += tint*b*b*exp(-dd*dd*(L == 0 ? 90.0 : 160.0))*(L == 0 ? 2.6 : 1.2);
+    }
+  }
+  float band = exp(-pow(dot(d, normalize(vec3(0.35,1.0,0.25)))*2.6, 2.0));
+  float n = fbm(d*2.2 + 3.0);
+  col += vec3(0.32,0.20,0.48)*pow(n,2.6)*band*0.55;
+  col += vec3(0.10,0.16,0.30)*pow(fbm(d*4.5 + 9.0),3.0)*0.35;
+  col += vec3(1.0,0.85,0.7)*pow(fbm(d*14.0),6.0)*band*0.5;
+  return col;
+}
+
+vec4 disk(vec3 hp, vec3 rd){
+  float r = length(hp.xz);
+  if (r < 2.6 || r > 14.5) return vec4(0.0);
+  float rin = 3.0;
+  float T = pow(rin/max(r,rin), 0.75)*pow(max(1.0 - sqrt(rin/max(r,rin)), 0.0), 0.25)*2.05;
+  T += 0.18*smoothstep(3.0, 2.6, r);
+  float beta = sqrt(0.5/(r - 1.0));
+  float gam = 1.0/sqrt(1.0 - beta*beta);
+  vec3 tang = normalize(vec3(hp.z, 0.0, -hp.x));
+  float D = 1.0/(gam*(1.0 - beta*dot(tang, -rd)));
+  float g = sqrt(1.0 - 1.0/r);
+  float f = D*g;
+  float a = atan(hp.z, hp.x) + uT*2.2/pow(r, 1.5);
+  vec3 q = vec3(cos(a)*3.5, sin(a)*3.5, r*2.4);
+  float n = fbm(q) * 0.65 + fbm(q*vec3(2.2, 2.2, 3.5) + 4.0)*0.55;
+  float dens = smoothstep(2.6, 3.4, r)*(1.0 - smoothstep(8.5, 14.5, r));
+  float lane = 0.75 + 0.25*sin(r*3.1 + n*9.0);
+  float clump = smoothstep(0.25, 0.85, n);
+  vec3 e = bb(T*f*0.8)*pow(f, 4.0)*T*T*0.75*(0.1 + 1.7*clump*lane);
+  float al = clamp(dens*(0.2 + 1.1*clump), 0.0, 1.0);
+  vec3 col = e*dens;
+  if (uGuide > 0.0) {
+    float ring = 1.0 - smoothstep(0.0, 0.05, abs(r - 3.0));
+    float dash = step(0.5, fract(atan(hp.z, hp.x)*6.0/3.14159));
+    col += vec3(0.45, 0.85, 1.0)*ring*dash*uGuide*1.6;
+  }
+  return vec4(col*uDisk, al*uDisk);
+}
+
+vec3 aces(vec3 x){ return clamp((x*(2.51*x + 0.03))/(x*(2.43*x + 0.59) + 0.14), 0.0, 1.0); }
+
+void main(){
+  vec2 uv = (gl_FragCoord.xy - 0.5*uRes)/uRes.y + uOff;
+  vec3 v = normalize(uCamM*vec3(uv*2.0*uTan, -1.0));
+  vec3 p = uCam;
+  vec3 h = cross(p, v); float h2 = dot(h, h);
+  vec3 col = vec3(0.0); float A = 0.0; bool hit = false;
+  for (int i = 0; i < 240; i++) {
+    float r = length(p);
+    if (r < 1.0) { hit = true; break; }
+    if (r < uStarR) {
+      vec3 nn = normalize(p);
+      float gr = fbm(nn*7.0 + uT*0.15);
+      float limb = 0.35 + 0.65*pow(max(dot(nn, -normalize(v)), 0.0), 0.6);
+      vec3 sc = bb(0.55 + uHeat*1.1)*(0.25 + gr*0.9)*(1.0 + uHeat*2.0)*limb;
+      col += (1.0 - A)*sc; A = 1.0; hit = true; break;
+    }
+    float dt = clamp(0.06*r, 0.02, 1.6);
+    if (uJets > 0.0) {
+      float ay = abs(p.y);
+      if (ay > 1.2 && ay < 40.0) {
+        float w = 0.12 + ay*0.05;
+        float qq = length(p.xz);
+        float j = exp(-qq*qq/(w*w))*exp(-ay*0.06)*smoothstep(1.2, 3.5, ay);
+        if (j > 0.003) {
+          float k = 0.45 + 1.1*noise(vec3(p.xz*1.5, ay*0.45 - uT*4.0));
+          col += (1.0 - A)*vec3(0.42, 0.62, 1.0)*j*k*k*dt*uJets*0.9;
+        }
+      }
+    }
+    vec3 acc = -1.5*h2*p/pow(r, 5.0);
+    vec3 vn = v + acc*dt;
+    vec3 pn = p + vn*dt;
+    if (p.y*pn.y < 0.0) {
+      float t = p.y/(p.y - pn.y);
+      vec4 d = disk(mix(p, pn, t), normalize(vn));
+      col += (1.0 - A)*d.rgb; A += (1.0 - A)*d.a;
+      if (A > 0.985) { hit = true; break; }
+    }
+    p = pn; v = vn;
+    if (r > 70.0 && dot(p, v) > 0.0) break;
+  }
+  if (!hit) col += (1.0 - A)*sky(normalize(v));
+  col += uFlash*vec3(1.0, 0.9, 0.78)*(0.15 + 3.0*exp(-length(uv - uOff)*4.0));
+  col = aces(col*0.95);
+  col = pow(col, vec3(1.0/2.2));
+  vec2 q = gl_FragCoord.xy/uRes;
+  col *= 1.0 - 0.5*smoothstep(0.35, 1.0, length((q - 0.5)*vec2(1.25, 1.0)));
+  col += (hash(vec3(gl_FragCoord.xy, uT*60.0)) - 0.5)*0.022;
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+function sh(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+const prog = gl.createProgram();
+try { gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog); }
+catch (e) { console.error(e); document.getElementById('app').insertAdjacentHTML('beforeend', '<div class="err">Gölgelendirici derlenemedi.</div>'); return; }
+gl.useProgram(prog);
+const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+const aLoc = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(aLoc); gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
+const U = {}; ['uRes','uOff','uT','uCam','uCamM','uTan','uDisk','uJets','uGuide','uStarR','uHeat','uFlash'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+
+/* ---------- sizing (adaptive resolution) ---------- */
+let scale = 0.75, W = 0, H = 0, cssW = 0, cssH = 0;
+const off = [0, 0];
+function resize() {
+  cssW = innerWidth; cssH = innerHeight;
+  const dpr = Math.min(devicePixelRatio || 1, 1.5);
+  const nw = Math.max(2, Math.round(cssW*dpr*scale)), nh = Math.max(2, Math.round(cssH*dpr*scale));
+  if (nw !== W || nh !== H) { W = canvas.width = nw; H = canvas.height = nh; gl.viewport(0, 0, W, H); }
+  const narrow = cssW < 700;
+  off[0] = narrow ? 0 : -Math.min(0.24, (440/cssW)*(cssW/cssH)*0.36);
+  off[1] = narrow ? -0.17 : -0.02;
+}
+addEventListener('resize', resize); resize();
+
+/* ---------- camera ---------- */
+const cam = { d: 26, el: 13, az: -0.35, fov: 48 };
+const mix = { disk: 1, jets: 0.55, guide: 0 };
+let yaw = 0, pitch = 0, dragging = false, lx = 0, ly = 0;
+let basis = { p: [0,0,0], r: [1,0,0], u: [0,1,0], f: [0,0,-1], tan: 0.4 };
+const norm = v => { const l = Math.hypot(v[0], v[1], v[2]); return [v[0]/l, v[1]/l, v[2]/l]; };
+const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+const dot = (a, b) => a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+
+canvas.addEventListener('pointerdown', e => { dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); canvas.classList.add('drag'); });
+canvas.addEventListener('pointermove', e => { if (!dragging) return; yaw -= (e.clientX - lx)*0.005; pitch += (e.clientY - ly)*0.004; pitch = Math.max(-1.1, Math.min(1.1, pitch)); lx = e.clientX; ly = e.clientY; });
+const up = () => { dragging = false; canvas.classList.remove('drag'); };
+canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+
+/* ---------- timeline ---------- */
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let cur = 0, st = 0, playing = !reduce, starR = 0, heat = 0, flash = 0;
+const $ = id => document.getElementById(id);
+const chaps = $('chaps');
+S.forEach((s, i) => {
+  const b = document.createElement('button'); b.className = 'chap'; b.id = 'chap' + i;
+  b.innerHTML = '<span class="bar"><i></i></span><span class="nm">' + s.nm + '</span>';
+  b.addEventListener('click', () => go(i)); chaps.appendChild(b);
+});
+const playBtn = $('play');
+function setPlay(v) { playing = v; playBtn.innerHTML = v ? ICON_PAUSE : ICON_PLAY; playBtn.setAttribute('aria-label', v ? 'Duraklat' : 'Oynat'); }
+playBtn.addEventListener('click', () => setPlay(!playing)); setPlay(playing);
+addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); setPlay(!playing); }
+  else if (e.key === 'ArrowRight') go((cur + 1) % S.length);
+  else if (e.key === 'ArrowLeft') go((cur - 1 + S.length) % S.length);
+});
+
+const labelsEl = $('labels');
+let labelEls = [];
+function buildLabels() {
+  labelsEl.innerHTML = '';
+  labelEls = S[cur].labels.map(l => { const el = document.createElement('div'); el.className = 'lbl'; el.innerHTML = '<i></i><em></em><span>' + l.t + '</span>'; labelsEl.appendChild(el); return el; });
+  requestAnimationFrame(() => labelEls.forEach(el => el.classList.add('on')));
+}
+function fillCard(first) {
+  const s = S[cur], card = $('card');
+  const put = () => {
+    $('tag').textContent = s.tag; $('idx').textContent = String(cur + 1).padStart(2, '0') + ' / ' + String(S.length).padStart(2, '0');
+    $('title').textContent = s.title; $('body').textContent = s.body; $('sv').textContent = s.sv; $('sl').textContent = s.sl;
+    card.classList.remove('swap');
+  };
+  if (first) put(); else { card.classList.add('swap'); setTimeout(put, 300); }
+}
+function go(i) { cur = i; st = 0; yaw *= 0.3; pitch *= 0.3; fillCard(false); buildLabels(); }
+fillCard(true); buildLabels();
+
+/* label anchor helpers (world space, rₛ = 1) */
+function side(rad, upAmt) { return [basis.r[0]*rad + basis.u[0]*upAmt, basis.r[1]*rad + basis.u[1]*upAmt, basis.r[2]*rad + basis.u[2]*upAmt]; }
+function toward(rad) { const c = basis.p; const l = Math.hypot(c[0], c[2]) || 1; return [c[0]/l*rad, 0, c[2]/l*rad]; }
+function approaching(yes) {
+  const r = norm([basis.r[0], 0, basis.r[2]]);
+  for (const sgn of [1, -1]) {
+    const p = [r[0]*7.5*sgn, 0, r[2]*7.5*sgn];
+    const tang = [p[2], 0, -p[0]];
+    const toCam = [basis.p[0]-p[0], basis.p[1]-p[1], basis.p[2]-p[2]];
+    if ((dot(tang, toCam) > 0) === yes) return p;
+  }
+  return [0, 0, 0];
+}
+function project(w) {
+  const rel = [w[0]-basis.p[0], w[1]-basis.p[1], w[2]-basis.p[2]];
+  const z = dot(rel, basis.f); if (z < 0.1) return null;
+  const ux = dot(rel, basis.r)/(z*2*basis.tan) - off[0];
+  const uy = dot(rel, basis.u)/(z*2*basis.tan) - off[1];
+  return [cssW/2 + ux*cssH, cssH/2 - uy*cssH];
+}
+
+/* ---------- loop ---------- */
+let last = performance.now(), T = 0, avg = 16, frames = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last)/1000); last = now;
+  T += dt;
+  const s = S[cur];
+  if (playing) { st += dt; if (st > s.dur) go((cur + 1) % S.length); }
+
+  // adaptive resolution
+  avg = avg*0.92 + dt*1000*0.08; frames++;
+  if (frames > 30 && frames % 20 === 0) {
+    if (avg > 26 && scale > 0.36) { scale *= 0.88; resize(); }
+    else if (avg < 15 && scale < 1) { scale = Math.min(1, scale*1.06); resize(); }
+  }
+
+  // collapse sequence
+  if (s.collapse) {
+    const k = Math.min(1, Math.max(0, (st - 1.2)/4.6));
+    const e = k*k*k;
+    starR = 6.0 - 5.6*e; heat = e;
+    flash = st > 5.8 ? Math.exp(-(st - 5.8)*3.5)*Math.min(1, (st - 5.8)*12) : 0;
+    if (st > 5.8) starR = 0;
+  } else { starR = 0; heat = 0; flash = 0; }
+
+  // camera smoothing
+  const tc = s.cam, kk = 1 - Math.exp(-dt*1.4);
+  const tgt = { d: tc.d - (s.collapse ? 0 : st*0.12), el: tc.el, az: tc.az + tc.drift*st, fov: tc.fov };
+  cam.d += (tgt.d - cam.d)*kk; cam.el += (tgt.el - cam.el)*kk; cam.az += (tgt.az - cam.az)*kk; cam.fov += (tgt.fov - cam.fov)*kk;
+  ['disk', 'jets', 'guide'].forEach(n => mix[n] += (s[n] - mix[n])*(1 - Math.exp(-dt*(s[n] < mix[n] ? 3.0 : 1.2))));
+  if (!dragging) { yaw *= Math.exp(-dt*0.25); pitch *= Math.exp(-dt*0.25); }
+
+  const el = Math.max(-1.45, Math.min(1.45, cam.el*Math.PI/180 + pitch)), az = cam.az + yaw;
+  const P = [cam.d*Math.cos(el)*Math.sin(az), cam.d*Math.sin(el), cam.d*Math.cos(el)*Math.cos(az)];
+  const f = norm([-P[0], -P[1], -P[2]]);
+  const r = norm(cross(f, [0, 1, 0]));
+  const u = cross(r, f);
+  basis = { p: P, r, u, f, tan: Math.tan(cam.fov*Math.PI/360) };
+
+  gl.uniform2f(U.uRes, W, H); gl.uniform2f(U.uOff, off[0], off[1]); gl.uniform1f(U.uT, T);
+  gl.uniform3fv(U.uCam, P); gl.uniformMatrix3fv(U.uCamM, false, [...r, ...u, -f[0], -f[1], -f[2]]);
+  gl.uniform1f(U.uTan, basis.tan);
+  gl.uniform1f(U.uDisk, mix.disk); gl.uniform1f(U.uJets, mix.jets); gl.uniform1f(U.uGuide, mix.guide);
+  gl.uniform1f(U.uStarR, starR); gl.uniform1f(U.uHeat, heat); gl.uniform1f(U.uFlash, flash);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  // labels + chapter bars
+  S[cur].labels.forEach((l, i) => {
+    const elx = labelEls[i]; if (!elx) return;
+    const show = !l.when || l.when();
+    const sp = show ? project(l.p()) : null;
+    if (!sp) { elx.style.opacity = 0; return; }
+    elx.style.opacity = '';
+    elx.style.transform = 'translate(' + (sp[0] - 4).toFixed(1) + 'px,' + (sp[1] - 8).toFixed(1) + 'px)';
+  });
+  S.forEach((x, i) => {
+    const b = chaps.children[i];
+    b.classList.toggle('on', i === cur);
+    b.firstChild.firstChild.style.width = (i < cur ? 100 : i === cur ? Math.min(100, st/x.dur*100) : 0) + '%';
+  });
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
