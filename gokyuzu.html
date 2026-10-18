@@ -24,6 +24,10 @@ html, body { height: 100%; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--night); color: var(--ink); font-family: var(--f-ui); font-size: 14px; overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 #app { position: fixed; inset: 0; }
+#cam { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.campill { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(max(12px, env(safe-area-inset-bottom, 0px)) + 96px); }
+.campill.on { border-color: var(--gilt); color: var(--gilt); }
+.ar .chips, .ar .hud { display: none !important; }
 #gl, #tr, #ov { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #tr { pointer-events: none; }
 #ov { touch-action: none; cursor: grab; }
@@ -186,6 +190,7 @@ input[type="range"] { accent-color: var(--gilt); }
 </style>
 
 <div id="app">
+  <video id="cam" playsinline muted hidden></video>
   <canvas id="gl"></canvas>
   <canvas id="tr"></canvas>
   <canvas id="ov" aria-label="Gökyüzü haritası. Sürükleyerek etrafa bak, yakınlaştırmak için iki parmakla sıkıştır, bilgi için bir cisme dokun."></canvas>
@@ -213,6 +218,7 @@ input[type="range"] { accent-color: var(--gilt); }
   <div class="toast hide" id="toast"></div>
   <section class="tourcard" id="tourCard" hidden aria-live="polite"></section>
   <div class="hud" id="hud" aria-hidden="true"></div>
+  <button class="pill campill" id="camBtn" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span id="camTxt">Kamera</span></button>
   <button class="pill homebtn" id="homeBtn" hidden><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg>Geri dön</button>
   <div class="intro" id="intro" aria-hidden="true"><div class="it">Gökyüzü Atlası</div><div class="is" id="introSub"></div></div>
 
@@ -883,7 +889,7 @@ const S = {
 
 /* ---------------- WebGL ---------------- */
 const glc = $('gl'), ov = $('ov'), ctx = ov.getContext('2d');
-const gl = glc.getContext('webgl', { antialias: false, alpha: false, premultipliedAlpha: false });
+const gl = glc.getContext('webgl', { antialias: false, alpha: true, premultipliedAlpha: true });
 if (!gl) { app.insertAdjacentHTML('beforeend', T('<div class="err">Bu tarayıcıda WebGL açılamadı.</div>')); return; }
 function prog(vs, fs) {
   const mk = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
@@ -1172,7 +1178,8 @@ let cam = { R: [1,0,0], U: [0,0,1], F: [0,1,0], tx: 1, ty: 1 };
 function updateCam() {
   const ca = Math.cos(S.alt), F = [Math.sin(S.az)*ca, Math.cos(S.az)*ca, Math.sin(S.alt)];
   let R = [F[1], -F[0], 0]; const rl = Math.hypot(R[0], R[1]) || 1; R = [R[0]/rl, R[1]/rl, 0];
-  const U = [R[1]*F[2] - R[2]*F[1], R[2]*F[0] - R[0]*F[2], R[0]*F[1] - R[1]*F[0]];
+  let U = [R[1]*F[2] - R[2]*F[1], R[2]*F[0] - R[0]*F[2], R[0]*F[1] - R[1]*F[0]];
+  if (S.gyro && gyroRoll) { const c = Math.cos(gyroRoll), s2 = Math.sin(gyroRoll), R2 = [R[0]*c + U[0]*s2, R[1]*c + U[1]*s2, R[2]*c + U[2]*s2]; U = [U[0]*c - R[0]*s2, U[1]*c - R[1]*s2, U[2]*c - R[2]*s2]; R = R2; }
   const tl = Math.tan(S.fov/2);
   cam = W >= H ? { R, U, F, tx: tl, ty: tl*H/W } : { R, U, F, tx: tl*W/H, ty: tl };
 }
@@ -1189,11 +1196,12 @@ let picks = [], T0 = performance.now(), seeThrough = 0;
 function render() {
   const t = (performance.now() - T0)/1000;
   // sky
+  const Mi = [M[0][0], M[1][0], M[2][0], M[0][1], M[1][1], M[2][1], M[0][2], M[1][2], M[2][2]]; // M in column-major order for GLSL
+  if (AR.on) { gl.disable(gl.BLEND); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); } else {
   gl.disable(gl.BLEND);
   gl.useProgram(skyP.p);
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
   const la = gl.getAttribLocation(skyP.p, 'a'); gl.enableVertexAttribArray(la); gl.vertexAttribPointer(la, 2, gl.FLOAT, false, 0, 0);
-  const Mi = [M[0][0], M[1][0], M[2][0], M[0][1], M[1][1], M[2][1], M[0][2], M[1][2], M[2][2]]; // M in column-major order for GLSL
   gl.uniform2f(skyP.u.uRes, glc.width, glc.height);
   gl.uniform3fv(skyP.u.uR, cam.R); gl.uniform3fv(skyP.u.uU, cam.U); gl.uniform3fv(skyP.u.uF, cam.F);
   gl.uniform2f(skyP.u.uTan, cam.tx, cam.ty);
@@ -1203,6 +1211,7 @@ function render() {
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, mwTex); gl.uniform1i(skyP.u.uMW, 0);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   gl.disableVertexAttribArray(la);
+  }
   // stars
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
   gl.useProgram(starP.p);
@@ -1216,7 +1225,7 @@ function render() {
   const fovDeg = S.fov*R2D;
   gl.uniform1f(starP.u.uLim, magLimit(fovDeg));
   gl.uniform1f(starP.u.uPx, dpr*(0.85 + Math.max(0, (90 - fovDeg)/90)*0.5));
-  gl.uniform1f(starP.u.uDay, SET.realDay ? dayness : dayness*0.45); gl.uniform1f(starP.u.uT, t); gl.uniform1f(starP.u.uSee, seeThrough); gl.uniform1f(starP.u.uLand, SET.land ? 1 : 0); gl.uniform1f(starP.u.uGround, GROUND[SET.ground]); gl.uniform1f(starP.u.uBright, SET.starB*(1 - SET.lp*0.35)); gl.uniform1f(starP.u.uSize, SET.starS); gl.uniform1f(starP.u.uSpike, SET.spikes); gl.uniform1f(starP.u.uSpikeF, Math.max(SET.spikes, 0.0001));
+  gl.uniform1f(starP.u.uDay, SET.realDay ? dayness : dayness*0.45); gl.uniform1f(starP.u.uT, t); gl.uniform1f(starP.u.uSee, seeThrough); gl.uniform1f(starP.u.uLand, SET.land ? 1 : 0); gl.uniform1f(starP.u.uGround, AR.on ? 0 : GROUND[SET.ground]); gl.uniform1f(starP.u.uBright, SET.starB*(1 - SET.lp*0.35)*(AR.on ? 1.8 : 1)); gl.uniform1f(starP.u.uSize, SET.starS); gl.uniform1f(starP.u.uSpike, SET.spikes); gl.uniform1f(starP.u.uSpikeF, Math.max(SET.spikes, 0.0001));
   gl.drawArrays(gl.POINTS, 0, STARS.length);
   [ap, am, ac].forEach(l => gl.disableVertexAttribArray(l));
 
@@ -1670,10 +1679,11 @@ bindToggle('tCons', 'cons'); bindToggle('tNames', 'names'); bindToggle('tDso', '
 bindToggle('tAtmo', 'atmo', () => toast(S.atmo ? T('Atmosfer açık: gündüz ve alacakaranlık hafif bir ışıkla gösterilir.') : T('Atmosfer kapalı: gökyüzü her saatte gece gibi görünür.')));
 bindToggle('tRed', 'red', () => { $('red').hidden = !S.red; if (S.red) toast(T('Gece modu: kırmızı ışık gözünün karanlığa alışmasını bozmaz.')); });
 const gyroBtn = $('tGyro');
+$('camBtn').addEventListener('click', () => setAR(!AR.on));
 gyroBtn.addEventListener('click', () => setGyro(!S.gyro));
 
 /* device orientation */
-let gyroGot = false, gyroTimer = 0, gyroAz = null, gyroAlt = null;
+let gyroGot = false, gyroTimer = 0, gyroAz = null, gyroAlt = null, gyroRoll = null;
 function onOrient(ev) {
   if (ev.alpha == null && ev.webkitCompassHeading == null) return;
   gyroGot = true;
@@ -1685,6 +1695,15 @@ function onOrient(ev) {
     // iOS: heading already refers to the top edge; correct for tilt using the same formula with alpha from the heading
   }
   gyroAz = az; gyroAlt = alt;
+  // roll: where the screen's right edge points, compared with a level horizon
+  const th = ((screen.orientation && screen.orientation.angle) || window.orientation || 0)*D2R;
+  const X = [ca*cg - sa*sb*sg, sa*cg + ca*sb*sg, -cb*sg], Y = [-sa*cb, ca*cb, sb];
+  const Rd = [X[0]*Math.cos(th) + Y[0]*Math.sin(th), X[1]*Math.cos(th) + Y[1]*Math.sin(th), X[2]*Math.cos(th) + Y[2]*Math.sin(th)];
+  const Fh = [Math.sin(az)*Math.cos(alt), Math.cos(az)*Math.cos(alt), Math.sin(alt)];
+  let Rl = [Fh[1], -Fh[0], 0]; const rl = Math.hypot(Rl[0], Rl[1]) || 1; Rl = [Rl[0]/rl, Rl[1]/rl, 0];
+  const Ul = [Rl[1]*Fh[2] - Rl[2]*Fh[1], Rl[2]*Fh[0] - Rl[0]*Fh[2], Rl[0]*Fh[1] - Rl[1]*Fh[0]];
+  const roll = Math.atan2(dot(Rd, Ul), dot(Rd, Rl));
+  gyroRoll = gyroRoll == null ? roll : gyroRoll + Math.atan2(Math.sin(roll - gyroRoll), Math.cos(roll - gyroRoll))*0.25;
 }
 async function setGyro(on) {
   if (on) {
@@ -1695,13 +1714,13 @@ async function setGyro(on) {
     } catch (e) { toast(T('Hareket sensörüne izin verilmedi. Parmağınla sürükleyerek bakabilirsin.')); return; }
     gyroGot = false;
     addEventListener('deviceorientationabsolute', onOrient); addEventListener('deviceorientation', onOrient);
-    S.gyro = true; gyroBtn.setAttribute('aria-pressed', 'true');
+    S.gyro = true; gyroBtn.setAttribute('aria-pressed', 'true'); $('camBtn').hidden = false;
     toast(T('Telefonu göğe doğru tut.'));
     clearTimeout(gyroTimer);
     gyroTimer = setTimeout(() => { if (!gyroGot) { setGyro(false); toast(T('Bu cihaz ya da sayfa hareket sensörüne erişemiyor. Sürükleyerek bakabilirsin.')); } }, 2500);
   } else {
     removeEventListener('deviceorientationabsolute', onOrient); removeEventListener('deviceorientation', onOrient);
-    S.gyro = false; gyroBtn.setAttribute('aria-pressed', 'false');
+    S.gyro = false; gyroBtn.setAttribute('aria-pressed', 'false'); gyroRoll = null; $('camBtn').hidden = true; if (AR.on) setAR(false);
   }
 }
 
@@ -2294,7 +2313,8 @@ function openTonight() {
   evs.forEach((e, i) => { h += '<button class="item" data-ev="' + i + '"><b>' + esc(e.t) + '</b><span>' + e.d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' }) + '</span></button><p class="note" style="margin:-4px 4px 6px">' + esc(e.sub) + '</p>'; });
   h += T('</div><p class="note">Bir olaya dokununca zaman o ana gider; gökyüzünü o gün nasıl görüneceğiyle izlersin.</p>');
   openSheet(h, 'tonight');
-  fillWeather(); bindPasses();
+  { const wx = $('wxBox'); if (wx) wx.insertAdjacentHTML('afterend', '<div class="rows" id="aurBox" style="margin-top:8px"></div>'); }
+  fillWeather(); fillAurora(); bindPasses();
   sheet.querySelectorAll('[data-comet]').forEach(b => b.addEventListener('click', () => select({ kind: 'comet', ref: COMETS[+b.dataset.comet] }, true)));
   sheet.querySelectorAll('[data-pl]').forEach(b => b.addEventListener('click', () => select({ kind: 'body', ref: bodies[+b.dataset.pl] }, true)));
   sheet.querySelectorAll('[data-sh]').forEach(b => b.addEventListener('click', () => select({ kind: 'shower', ref: SHOWERS.find(x => x.n === b.dataset.sh) }, true)));
@@ -3079,6 +3099,51 @@ function cometCard(c) {
   return h;
 }
 
+/* ---------------- camera AR: the real sky behind the chart (needs the motion sensor) ---------------- */
+const AR = { on: false, stream: null, prevFov: null };
+async function setAR(on) {
+  const v = $('cam'), en = LANG === 'en';
+  if (on) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast(en ? 'This browser cannot open the camera.' : 'Bu tarayıcı kamerayı açamıyor.'); return; }
+    if (!S.gyro) { await setGyro(true); if (!S.gyro) return; }
+    try { AR.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }); }
+    catch (e) { toast(en ? 'Camera permission was not given.' : 'Kamera izni verilmedi.'); return; }
+    v.srcObject = AR.stream; v.hidden = false; try { await v.play(); } catch (e) {}
+    AR.on = true; AR.prevFov = S.fov; S.fov = 64*D2R; app.classList.add('ar');
+    toast(en ? 'Point your phone at the sky; names and lines sit on the real stars.' : 'Telefonu göğe tut; isimler ve çizgiler gerçek yıldızların üstüne biner.');
+  } else {
+    if (AR.stream) AR.stream.getTracks().forEach(t => t.stop()); AR.stream = null;
+    v.srcObject = null; v.hidden = true; AR.on = false; app.classList.remove('ar'); if (AR.prevFov) S.fov = AR.prevFov;
+  }
+  const b = $('camBtn'); if (b) b.classList.toggle('on', AR.on);
+}
+
+/* ---------------- aurora outlook from NOAA's planetary Kp forecast ---------------- */
+const MAG_POLE = [80.8*D2R, -72.7*D2R];
+function magLat(lat, lon) { const p = lat*D2R, l = lon*D2R; return Math.asin(Math.sin(p)*Math.sin(MAG_POLE[0]) + Math.cos(p)*Math.cos(MAG_POLE[0])*Math.cos(l - MAG_POLE[1]))*R2D; }
+async function loadKp() {
+  try { const c = store.get('kp', null); if (c && Date.now() - c.at < 3600000) return c.d; } catch (e) {}
+  try { const d = await (await fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json')).json(); store.set('kp', { at: Date.now(), d }); return d; } catch (e) { return null; }
+}
+async function fillAurora() {
+  const box = $('aurBox'); if (!box) return;
+  const d = await loadKp(); if (!$('aurBox')) return;
+  const en = LANG === 'en';
+  if (!d || !d.length) { box.innerHTML = row(en ? 'Aurora' : 'Kutup ışığı', '—', en ? 'Space-weather data is unavailable in this view; it works on the site.' : 'Uzay havası verisi bu görünümde alınamıyor; sitede çalışır.', true); return; }
+  const t0 = Date.now(), rows2 = (Array.isArray(d[0]) ? d.slice(1).map(r => ({ time_tag: r[0], kp: +r[1] })) : d);
+  const next = rows2.filter(r => { const t = new Date(r.time_tag + 'Z').getTime(); return t >= t0 - 3*3600000 && t <= t0 + 24*3600000; });
+  const kp = next.length ? Math.max(...next.map(r => +r.kp)) : +rows2[rows2.length - 1].kp;
+  const ml = Math.abs(magLat(S.loc.lat, S.loc.lon)), view = 67 - 2.2*kp, north = S.loc.lat >= 0;
+  const dir = en ? (north ? 'northern' : 'southern') : (north ? 'kuzey' : 'güney');
+  let lvl, note;
+  if (ml >= view + 5) { lvl = en ? 'Likely overhead' : 'Tepende görülebilir'; note = en ? 'Get away from city lights after dark.' : 'Hava kararınca şehir ışıklarından uzaklaş.'; }
+  else if (ml >= view) { lvl = en ? 'Possible on the ' + dir + ' horizon' : dir[0].toUpperCase() + dir.slice(1) + ' ufkunda mümkün'; note = en ? 'Look low towards the ' + dir + ' horizon from a dark site.' : 'Karanlık bir yerden alçak ' + dir + ' ufkuna bak.'; }
+  else if (ml >= view - 4) { lvl = en ? 'Unlikely' : 'Düşük ihtimal'; note = en ? 'Only a strong storm would bring it this far.' : 'Ancak güçlü bir fırtına buraya kadar getirir.'; }
+  else { lvl = en ? 'Not expected' : 'Beklenmiyor'; note = (en ? 'It would take Kp ' : 'Buradan görmek için Kp ') + fmtN(Math.min(9, (67 - ml)/2.2), 0) + (en ? ' or more to see it from here.' : ' veya üstü bir fırtına gerekir.'); }
+  const word = kp >= 7 ? (en ? 'severe storm' : 'şiddetli fırtına') : kp >= 5 ? (en ? 'storm' : 'fırtına') : kp >= 4 ? (en ? 'active' : 'hareketli') : (en ? 'quiet' : 'sakin');
+  box.innerHTML = row(en ? 'Aurora' : 'Kutup ışığı', lvl, 'Kp ' + fmtN(kp, 1) + ' (' + word + ') · ' + note + ' · NOAA SWPC', true);
+}
+
 /* chips: what's up right now */
 function buildChips() {
   const up = bodies.filter(b => b.e[2] > 0 && b.b !== 'Sun' && b.mag < 5);
@@ -3198,7 +3263,7 @@ if ('serviceWorker' in navigator && /github\.io$/.test(location.hostname)) navig
 
 /* static interface text in the chosen language */
 if (LANG === 'en') {
-  document.title = 'Sky Atlas';
+  document.title = 'Sky Atlas'; $('camTxt').textContent = 'Camera';
   const lab = { tCons: 'Lines', tNames: 'Names', tDso: 'Galaxies', tMw: 'Milky Way', tAtmo: 'Atmosphere', tRed: 'Night', tGyro: 'Point' };
   Object.entries(lab).forEach(([id, t]) => { const el = $(id); if (el && el.lastChild) el.lastChild.textContent = t; });
   const hb = document.querySelector('#hubBtn span'); if (hb) hb.textContent = 'Explore';
