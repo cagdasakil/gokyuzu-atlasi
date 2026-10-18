@@ -864,9 +864,10 @@ const LINES = SKY.lines.map(l => ({ con: l[0], pts: l[1].map(p => eqv(p[0], p[1]
 const DSOS = SKY.dso.map(d => { const tr = DSO_TR[d[0]]; return { id: d[0], v: eqv(d[1], d[2]), type: d[3], mag: d[4], dim: d[5], alt: d[6], desig: d[7], tr: tr ? tr[0] : '', ly: tr ? tr[1] : 0, fact: tr ? tr[2] : '', trk: tr ? tr[3] : '' }; });
 
 /* ---------------- settings ---------------- */
-const SET_DEF = { starB: 1, starS: 1, spikes: 1, mwB: 1, depth: 0, lines: 1, labels: 1, ground: 'solid', land: true, lp: 0, gridAz: false, gridEq: false, ecl: false, meteors: true, bounds: false, realDay: false, figures: true };
+const SET_DEF = { starB: 1, starS: 1, spikes: 1, mwB: 1, depth: 0, lines: 1, labels: 1, ground: 'solid', land: true, lp: 0, gridAz: false, gridEq: false, ecl: false, meteors: true, bounds: false, realDay: false, figures: false };
 const SET = Object.assign({}, SET_DEF, store.get('set', {}));
 SET.sound = false;
+if (store.get('setv', 0) < 2) { SET.figures = false; store.set('setv', 2); store.set('set', SET); }
 const GROUND = { solid: 1, glass: 0.55, off: 0 };
 const saveSet = () => store.set('set', SET);
 
@@ -949,10 +950,10 @@ void main(){
   float grain = n3(eq*140.0);
   float dust = smoothstep(0.42, 0.72, fbm(eq*9.0 + 3.0))*exp(-pow(b/0.06, 2.0))*(0.55 + 0.45*toC);
   float bulge = pow(toC, 6.0)*exp(-pow(b/0.12, 2.0));
-  float I = mw*(0.25 + 2.2*cloud*fine*(0.6 + 0.8*grain)) + bulge*1.1*cloud*fine*2.0 + band*0.05*cloud;
-  I *= 1.0 - dust*0.9;
+  float I = mw*(0.55 + 0.9*cloud*(0.8 + 0.4*fine)) + bulge*0.9*(0.6 + 0.6*cloud) + band*0.03;
+  I *= 1.0 - dust*0.6;
   vec3 mc = mix(vec3(0.50, 0.58, 0.85), vec3(1.0, 0.80, 0.58), pow(toC, 2.5));
-  vec3 mwc = mc*I*0.5 + vec3(0.75, 0.18, 0.32)*smoothstep(0.66, 0.86, fine)*band*mw*0.22;
+  vec3 mwc = mc*I*0.42 + vec3(0.75, 0.18, 0.32)*smoothstep(0.72, 0.9, fine)*band*mw*0.08;
   sky += mwc*uMWOn*uMWB*vis;
   // unresolved faint stars, denser along the galactic plane
   float sf = field(eq, uGrid, 0.972 - 0.02*band*uMWOn) + 0.6*field(eq, uGrid*2.0, 0.965 - 0.025*band*uMWOn);
@@ -1263,11 +1264,11 @@ function drawOverlay(t) {
       const dm = String(d.dim || '5').split('x').map(Number);
       const a1 = Math.max(dm[0] || 5, 3)/60*D2R*ppr*0.5, a2 = Math.max(dm[1] || dm[0] || 5, 2)/60*D2R*ppr*0.5;
       // at wide view only the famous objects glow; the rest appear once they are big enough to mean something
-      const famous = FAMOUS_DSO.has(d.id); if (!famous && a1 < 5) return;
+      const famous = FAMOUS_DSO.has(d.id); if (a1 < (famous ? 6 : 10)) return;
       const rad = Math.max(a1*2.6, famous ? 10 : 6);
       if (p[0] < -rad || p[0] > W + rad || p[1] < -rad || p[1] > H + rad) return;
       const col = DSO_GLOW[d.type] || [200, 210, 255];
-      const br = Math.max(0.04, Math.min(0.5, (10 - d.mag)/11))*night*(e[2] < 0 ? 0.4 : 1)*Math.min(1, a1/(famous ? 4 : 12));
+      const br = Math.max(0.04, Math.min(0.5, (10 - d.mag)/11))*night*(e[2] < 0 ? 0.4 : 1)*Math.min(1, (a1 - (famous ? 6 : 10))/12);
       ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(-0.6); ctx.scale(1, Math.max(0.25, a2/a1));
       const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rad);
       g.addColorStop(0, rgbS(col, br)); g.addColorStop(0.22, rgbS(col, br*0.5)); g.addColorStop(1, rgbS(col, 0));
