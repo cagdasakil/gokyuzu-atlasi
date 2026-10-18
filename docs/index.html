@@ -299,7 +299,7 @@ const LINES = SKY.lines.map(l => ({ con: l[0], pts: l[1].map(p => eqv(p[0], p[1]
 const DSOS = SKY.dso.map(d => { const tr = DSO_TR[d[0]]; return { id: d[0], v: eqv(d[1], d[2]), type: d[3], mag: d[4], dim: d[5], alt: d[6], desig: d[7], tr: tr ? tr[0] : '', ly: tr ? tr[1] : 0, fact: tr ? tr[2] : '', trk: tr ? tr[3] : '' }; });
 
 /* ---------------- settings ---------------- */
-const SET_DEF = { starB: 1, starS: 1, spikes: 1, mwB: 1, depth: 0, lines: 1, labels: 1, ground: 'solid', land: true, lp: 0, gridAz: false, gridEq: false, ecl: false, meteors: true, bounds: false };
+const SET_DEF = { starB: 1, starS: 1, spikes: 1, mwB: 1, depth: 0, lines: 1, labels: 1, ground: 'solid', land: true, lp: 0, gridAz: false, gridEq: false, ecl: false, meteors: true, bounds: false, realDay: false };
 const SET = Object.assign({}, SET_DEF, store.get('set', {}));
 const GROUND = { solid: 1, glass: 0.55, off: 0 };
 const saveSet = () => store.set('set', SET);
@@ -511,7 +511,7 @@ let M = [[1,0,0],[0,1,0],[0,0,1]];       // J2000 equatorial -> local East/North
 let observer = new A.Observer(S.loc.lat, S.loc.lon, 0);
 let now = new Date(), atime = A.MakeTime(now);
 const bodies = PLANETS.map(p => ({ ...p, v: [1,0,0], e: [1,0,0], dist: 0, mag: 0, phase: 1 }));
-let sunE = [0,0,-1], dayness = 0, lastBodies = 0;
+let sunE = [0,0,-1], dayness = 0, dayReal = 0, lastBodies = 0;
 const mul = (m, v) => [m[0][0]*v[0] + m[0][1]*v[1] + m[0][2]*v[2], m[1][0]*v[0] + m[1][1]*v[1] + m[1][2]*v[2], m[2][0]*v[0] + m[2][1]*v[1] + m[2][2]*v[2]];
 function updateAstro(force) {
   now = new Date(Date.now() + S.offset);
@@ -533,7 +533,9 @@ function updateAstro(force) {
   bodies.forEach(b => { b.e = mul(M, b.v); });
   sunE = bodies[0].e;
   const sunAlt = Math.asin(sunE[2])*R2D;
-  dayness = S.atmo ? smooth(-16, 1, sunAlt) : 0;
+  dayReal = smooth(-16, 1, sunAlt);
+  // by default daylight is only hinted with a soft glow so the sky stays readable; "realistic day" washes it out like the real sky
+  dayness = S.atmo ? dayReal*(SET.realDay ? 1 : 0.24) : 0;
 }
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a)/(b - a))); return t*t*(3 - 2*t); };
 
@@ -586,7 +588,7 @@ function render() {
   const fovDeg = S.fov*R2D;
   gl.uniform1f(starP.u.uLim, magLimit(fovDeg));
   gl.uniform1f(starP.u.uPx, dpr*(0.85 + Math.max(0, (90 - fovDeg)/90)*0.5));
-  gl.uniform1f(starP.u.uDay, dayness); gl.uniform1f(starP.u.uT, t); gl.uniform1f(starP.u.uSee, seeThrough); gl.uniform1f(starP.u.uLand, SET.land ? 1 : 0); gl.uniform1f(starP.u.uGround, GROUND[SET.ground]); gl.uniform1f(starP.u.uBright, SET.starB*(1 - SET.lp*0.35)); gl.uniform1f(starP.u.uSize, SET.starS); gl.uniform1f(starP.u.uSpike, SET.spikes); gl.uniform1f(starP.u.uSpikeF, Math.max(SET.spikes, 0.0001));
+  gl.uniform1f(starP.u.uDay, SET.realDay ? dayness : dayness*0.45); gl.uniform1f(starP.u.uT, t); gl.uniform1f(starP.u.uSee, seeThrough); gl.uniform1f(starP.u.uLand, SET.land ? 1 : 0); gl.uniform1f(starP.u.uGround, GROUND[SET.ground]); gl.uniform1f(starP.u.uBright, SET.starB*(1 - SET.lp*0.35)); gl.uniform1f(starP.u.uSize, SET.starS); gl.uniform1f(starP.u.uSpike, SET.spikes); gl.uniform1f(starP.u.uSpikeF, Math.max(SET.spikes, 0.0001));
   gl.drawArrays(gl.POINTS, 0, STARS.length);
   [ap, am, ac].forEach(l => gl.disableVertexAttribArray(l));
 
@@ -917,7 +919,7 @@ function bindToggle(id, key, after) {
   b.addEventListener('click', () => { S[key] = !S[key]; b.setAttribute('aria-pressed', String(S[key])); if (key !== 'red' && key !== 'gyro') store.set(key, S[key]); after && after(); });
 }
 bindToggle('tCons', 'cons'); bindToggle('tNames', 'names'); bindToggle('tDso', 'dso'); bindToggle('tMw', 'mw');
-bindToggle('tAtmo', 'atmo', () => toast(S.atmo ? 'Atmosfer açık: gündüz yıldızlar görünmez.' : 'Atmosfer kapalı: yıldızlar gündüz de görünür.'));
+bindToggle('tAtmo', 'atmo', () => toast(S.atmo ? 'Atmosfer açık: gündüz ve alacakaranlık hafif bir ışıkla gösterilir.' : 'Atmosfer kapalı: gökyüzü her saatte gece gibi görünür.'));
 bindToggle('tRed', 'red', () => { $('red').hidden = !S.red; if (S.red) toast('Gece modu: kırmızı ışık gözünün karanlığa alışmasını bozmaz.'); });
 const gyroBtn = $('tGyro');
 gyroBtn.addEventListener('click', () => setGyro(!S.gyro));
@@ -1275,7 +1277,8 @@ function openSettings() {
     SLIDERS.map(([k, t, mn, mx, st, f]) => '<div class="set"><label for="s_' + k + '">' + t + '</label><output id="o_' + k + '">' + f(SET[k]) + '</output><input type="range" id="s_' + k + '" min="' + mn + '" max="' + mx + '" step="' + st + '" value="' + SET[k] + '"></div>').join('') +
     '<div class="sect">Zemin</div>' + seg('ground', [['solid', 'Opak'], ['glass', 'Yarı saydam'], ['off', 'Kapalı']]) +
     '<p class="note">Zemini kapatınca aşağı bakabilirsin: ayaklarının altındaki, Dünya\'nın öbür yüzünden görünen yıldızlar ortaya çıkar.</p>' +
-    '<div class="btns">' + tog('land', 'Dağ silüeti') + '</div>' +
+    '<div class="btns">' + tog('land', 'Dağ silüeti') + tog('realDay', 'Gerçekçi gündüz') + '</div>' +
+    '<p class="note">Gerçekçi gündüz açıkken gökyüzü gerçekteki gibi maviye döner ve yıldızlar kaybolur. Kapalıyken gündüz yalnızca hafif bir aydınlıkla belli olur, yıldızlar görünmeye devam eder.</p>' +
     '<div class="sect">Gökyüzü koşulları</div>' +
     '<div class="set"><label for="s_lp">Işık kirliliği</label><output id="o_lp">' + lpName(SET.lp) + '</output><input type="range" id="s_lp" min="0" max="1" step="0.01" value="' + SET.lp + '"></div>' +
     '<p class="note">Şehir ışıkları sönük yıldızları ve Samanyolu\'nu siler. Kaydırarak kendi bulunduğun yerin gerçekte ne kadarını gösterdiğini görebilirsin.</p>' +
@@ -1379,7 +1382,7 @@ function spawnMeteor(sh) {
 }
 function updateMeteors(dt) {
   meteors.forEach(m => m.t += dt); meteors = meteors.filter(m => m.t < m.dur);
-  if (!SET.meteors || dayness > 0.35 || S.speed !== 1 || trails.on) return;
+  if (!SET.meteors || dayReal > 0.35 || S.speed !== 1 || trails.on) return;
   let rate = 1/28;
   const act = [];
   SHOWERS.forEach(sh => { const a = showerAct(sh, now); if (a.a > 0.02 && mul(M, sh.v)[2] > -0.05) { const r = a.a*sh.zhr/60*0.5 + a.a*0.12; act.push([sh, r]); rate += r; } });
@@ -1554,7 +1557,7 @@ function drawBounds(night) {
 const tour = { on: false, stops: [], i: 0, timer: 0 };
 function tourStops() {
   const out = [], up = e => e[2] > 0.12;
-  const moon = bodies[1]; if (up(moon.e) && dayness < 0.6) out.push({ obj: { kind: 'body', ref: moon }, fov: 3.2, t: 'Ay · %' + Math.round(moon.phase*100) + ' aydınlık', f: 'Kraterlerin gölgeleri en iyi aydınlık ile karanlığın sınırında görünür.' });
+  const moon = bodies[1]; if (up(moon.e)) out.push({ obj: { kind: 'body', ref: moon }, fov: 3.2, t: 'Ay · %' + Math.round(moon.phase*100) + ' aydınlık', f: 'Kraterlerin gölgeleri en iyi aydınlık ile karanlığın sınırında görünür.' });
   ['Jupiter', 'Saturn', 'Venus', 'Mars'].forEach(n => { const b = bodies.find(x => x.b === n); if (up(b.e) && Math.acos(Math.max(-1, Math.min(1, dot(b.e, sunE))))*R2D > 18) out.push({ obj: { kind: 'body', ref: b }, fov: n === 'Jupiter' ? 0.45 : n === 'Saturn' ? 0.14 : n === 'Mars' ? 0.06 : 0.12, t: b.tr, f: n === 'Jupiter' ? 'Yanındaki dört nokta, Galileo\'nun 1610\'da keşfettiği uydular: Io, Europa, Ganymede, Callisto.' : b.fact }); });
   const dsoStop = (id, fov) => { const d = DSOS.find(x => x.id === id); if (d && up(mul(M, d.v))) out.push({ obj: { kind: 'dso', ref: d }, fov, t: d.tr, f: d.fact || DSO_TYPE[d.type] }); };
   dsoStop('M31', 7); dsoStop('M45', 5); dsoStop('M42', 4); dsoStop('M13', 1.6); dsoStop('M8', 4); dsoStop('M44', 4);
@@ -1563,7 +1566,6 @@ function tourStops() {
   return out.slice(0, 8);
 }
 function startTour() {
-  if (dayness > 0.6) { toast('Şu an gündüz; tur için zamanı geceye al ya da atmosferi kapat.'); }
   tour.stops = tourStops(); if (!tour.stops.length) { toast('Şu an turda gösterecek bir şey yok.'); return; }
   closeSheet(); tour.on = true; tour.i = -1; nextStop(1);
 }
@@ -1641,12 +1643,7 @@ function refreshPos() {
 
 $('locName').textContent = S.loc.name;
 updateAstro(true); updateCam(); buildChips();
-// opened in daylight or twilight: show tonight's dark sky instead, with a one-tap way back to now
 let autoNight = null;
-if (dayness > 0.15) {
-  const dusk = rs('Sun', -1, atime, 1.2, -18);
-  if (dusk) { const t = new Date(dusk.getTime() + 70*60000); S.offset = t - Date.now(); updateAstro(true); buildChips(); autoNight = t; }
-}
 // open facing the brightest stretch of the Milky Way that is well up, else the brightest planet, else south
 function bestView() {
   const GNP = [-0.8676, -0.1981, 0.4560], GC = [-0.0549, -0.8734, -0.4838], U2 = crs3(GNP, GC);
@@ -1662,7 +1659,7 @@ function bestView() {
 const showcase = bodies.filter(b => b.b !== 'Sun' && b.e[2] > 0.15 && b.mag < 1).sort((a, b) => a.mag - b.mag)[0];
 let tAz = S.az, tAlt = S.alt;
 const HOME = { fov: 96*D2R };
-const bv = dayness < 0.3 ? bestView() : null;
+const bv = bestView();
 if (bv) { const l = lookAtE(bv.e); tAz = l.az; tAlt = Math.min(Math.max(l.alt - 6*D2R, 22*D2R), 55*D2R); }
 else if (showcase) { const l = lookAtE(showcase.e); tAz = l.az; tAlt = Math.min(l.alt + 8*D2R, 60*D2R); }
 $('introSub').textContent = S.loc.name + (autoNight ? ' · bu gece ' + hm(autoNight) : ' · şu anki gerçek gökyüzü');
