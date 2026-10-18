@@ -163,6 +163,8 @@ input[type="range"] { accent-color: var(--gilt); }
 .onbc .dots { display: flex; gap: 6px; justify-content: center; margin: 16px 0 12px; } .onbc .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); } .onbc .dots i.on { background: var(--gilt); }
 .onbc .btns { justify-content: center; }
 @media (max-width: 420px) { .hubbtn span { display: none; } .hubbtn { width: 36px; padding: 0; justify-content: center; } }
+.tourcard .tb3 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+.journey .rail, .journey .chips, .journey .hud, .journey #homeBtn { display: none !important; }
 .err { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; color: var(--dim); text-align: center; }
 
 @media (min-width: 760px) {
@@ -217,6 +219,7 @@ input[type="range"] { accent-color: var(--gilt); }
   </nav>
 
   <section class="tourcard" id="quizCard" hidden aria-live="polite"></section>
+  <section class="tourcard" id="jrCard" hidden aria-live="polite"></section>
   <div class="onb" id="onb" hidden><div class="onbc" id="onbc"></div></div>
   <section class="sheet closed" id="sheet" aria-live="polite"></section>
 </div>
@@ -896,7 +899,7 @@ float ridge(vec3 d){
 const SKY_FS = `
 precision highp float;
 uniform vec2 uRes; uniform vec3 uR, uU, uF; uniform vec2 uTan; uniform mat3 uMi; uniform sampler2D uMW;
-uniform float uMWOn, uDay, uSee, uLand, uGrid, uFieldA, uGround, uMWB, uLp; uniform vec3 uSun;
+uniform float uMWOn, uDay, uSee, uLand, uGrid, uFieldA, uGround, uMWB, uLp, uSpace; uniform vec3 uSun;
 ` + GLSL_NOISE + `
 float fbm(vec3 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 5; i++) { s += a*n3(p); p = p*2.07 + 1.3; a *= 0.5; } return s; }
 float field(vec3 eq, float sc, float th){
@@ -912,7 +915,7 @@ void main(){
   float alt = d.z, up = max(alt, 0.0);
   float sa = uSun.z, cosS = dot(d, uSun);
   float tw = smoothstep(-0.32, -0.02, sa)*(1.0 - smoothstep(0.02, 0.22, sa));
-  vec3 night = vec3(0.004, 0.006, 0.016) + vec3(0.020, 0.030, 0.055)*pow(1.0 - up, 5.0);
+  vec3 night = vec3(0.004, 0.006, 0.016) + vec3(0.020, 0.030, 0.055)*pow(1.0 - up, 5.0)*(1.0 - uSpace);
   vec3 day = mix(vec3(0.62, 0.76, 0.93), vec3(0.14, 0.34, 0.78), pow(up, 0.5));
   vec3 sky = mix(night, day, uDay);
   sky += vec3(1.0, 0.40, 0.12)*tw*pow(max(cosS, 0.0)*0.5 + 0.5, 6.0)*pow(1.0 - up, 5.0)*0.85;
@@ -921,9 +924,9 @@ void main(){
 
   vec3 eq = uMi*d;
   float dark = (1.0 - uDay);
-  float ext = smoothstep(-0.02, 0.32, alt);
+  float ext = mix(smoothstep(-0.02, 0.32, alt), 1.0, uSpace);
   float open = max(uSee*0.6, 1.0 - uGround);
-  float vis = mix(ext, 0.75, open*step(alt, 0.05))*dark*(1.0 - 0.8*uLp);
+  float vis = mix(mix(ext, 0.75, open*step(alt, 0.05)), 1.0, uSpace)*dark*(1.0 - 0.8*uLp);
   // Milky Way: catalogue outline x procedural dust and star clouds, oriented by galactic coordinates
   const vec3 GNP = vec3(-0.8676, -0.1981, 0.4560);
   const vec3 GC = vec3(-0.0549, -0.8734, -0.4838);
@@ -948,9 +951,9 @@ void main(){
   // light pollution: orange dome toward the horizon plus a general grey veil
   sky += (vec3(0.12, 0.08, 0.045)*pow(1.0 - up, 3.0) + vec3(0.028, 0.025, 0.024))*uLp*(1.0 - uDay*0.7);
   // horizon: landscape silhouette with a faint glow on the ridge
-  float hz = ridge(d);
+  float hz = uSpace > 0.5 ? -2.0 : ridge(d);
   float rim = exp(-abs(alt - hz)*260.0);
-  sky += vec3(0.25, 0.30, 0.45)*rim*0.25*(0.3 + tw*2.0);
+  sky += vec3(0.25, 0.30, 0.45)*rim*0.25*(0.3 + tw*2.0)*(1.0 - uSpace);
   if (alt < hz) {
     vec3 g = mix(vec3(0.006, 0.008, 0.010), vec3(0.05, 0.07, 0.06), uDay);
     g += vec3(0.6, 0.25, 0.1)*tw*pow(max(cosS, 0.0), 8.0)*0.04;
@@ -1556,6 +1559,7 @@ ov.addEventListener('pointermove', e => {
   if (!pointers.has(e.pointerId)) return;
   const prev = pointers.get(e.pointerId), cur = [e.clientX, e.clientY]; pointers.set(e.pointerId, cur);
   if (pointers.size === 2 && pinch0) { const [a, b] = [...pointers.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); setFov(pinch0.fov*pinch0.d/d); moved += 10; return; }
+  if (JR.on) { const k2 = 2*Math.tan(S.fov/2)/W; JR.yaw += (cur[0] - prev[0])*k2; JR.pitch = Math.max(-1.4, Math.min(1.4, JR.pitch + (cur[1] - prev[1])*k2)); moved += 10; return; }
   if (S.gyro) return;
   const dx = cur[0] - prev[0], dy = cur[1] - prev[1]; moved += Math.abs(dx) + Math.abs(dy);
   const k = 2*cam.tx/W;
@@ -1564,6 +1568,7 @@ ov.addEventListener('pointermove', e => {
 const endP = e => {
   if (!pointers.has(e.pointerId)) return;
   pointers.delete(e.pointerId); if (pointers.size < 2) pinch0 = null;
+  if (JR.on) return;
   if (e.type === 'pointerup' && moved < 8 && performance.now() - downAt < 450 && pointers.size === 0) tap(e.clientX, e.clientY);
 };
 ov.addEventListener('pointerup', endP); ov.addEventListener('pointercancel', endP);
@@ -1763,8 +1768,11 @@ function renderInfo() {
     if (top.length) h += '<div class="list">' + top.map(s => '<button class="item" data-star="' + s.i + '"><b>' + esc(starTitle(s)) + '</b><span>' + fmtN(s.mag, 1) + T(' kadir') + (s.ly ? ' · ' + fmtLy(s.ly) : '') + '</span></button>').join('') + '</div>';
   }
   if (o.kind === 'iss') h = issCard();
+  const canFly = (o.kind === 'star' && o.ref.ly > 0 && o.ref.ly < 30000) || (o.kind === 'dso' && o.ref.ly > 0 && o.ref.ly < 30000 && !'sei'.includes(o.ref.type));
+  if (canFly) h += '<div class="btns"><button class="btn on" id="goBtn">✦ ' + (LANG === 'en' ? 'Fly there in 3D' : '3D olarak oraya git') + '</button></div>';
   h += logButton(o);
   openSheet(h, 'info');
+  const gb = $('goBtn'); if (gb) gb.addEventListener('click', () => startJourney(o));
   if (o.kind !== 'iss') drawPortrait(o); else bindPasses();
   const lb = $('logBtn'); if (lb) lb.addEventListener('click', () => { logToggle(o); renderInfo(); });
   sheet.querySelectorAll('[data-star]').forEach(b => b.addEventListener('click', () => select({ kind: 'star', ref: STARS[+b.dataset.star] }, true)));
@@ -2720,6 +2728,111 @@ function perfTick(dtMs) {
     if (avg > 42 && (window.devicePixelRatio || 1) > 1) { PERF.reduced = true; DPR_CAP = 1; resize(); toast(T('Akıcılık için görüntü çözünürlüğü düşürüldü.')); } }
 }
 
+/* ---------------- 3D journey: fly through the real star positions ---------------- */
+const SPACE_VS = `
+attribute vec3 aPos; attribute float aAbs; attribute vec3 aCol;
+uniform vec3 uCamP, uR, uU, uF; uniform vec2 uTan; uniform float uPx, uLim;
+varying vec3 vCol; varying float vA, vSp;
+void main(){
+  vec3 rel = aPos - uCamP; float z = dot(rel, uF);
+  vCol = aCol; vSp = 0.0;
+  if (z < 0.0003) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; vA = 0.0; return; }
+  gl_Position = vec4(dot(rel, uR)/z/uTan.x, dot(rel, uU)/z/uTan.y, 0.0, 1.0);
+  float d = max(length(rel), 0.0005);
+  float m = aAbs + 5.0*log(d/32.6156)/2.302585;
+  float v = clamp((uLim - m)/(uLim + 5.0), 0.0, 1.0);
+  vA = smoothstep(0.0, 0.05, v)*(0.5 + 0.5*v);
+  vSp = smoothstep(0.3, 0.85, v);
+  gl_PointSize = min(240.0, (4.0 + 26.0*pow(v, 1.15))*uPx*(1.0 + vSp*4.5));
+}`;
+let spaceP = null;
+try { spaceP = prog(SPACE_VS, STAR_FS); } catch (e) { console.error(e); }
+const JR = { on: false, buf: null, n: 0, nStars: 0, phase: '', t: 0, dur: 8, L: 0, stop: 0, dir: [1, 0, 0], tgt: [0, 0, 0], P: [0, 0, 0], F: [1, 0, 0], R: [0, 1, 0], U: [0, 0, 1], yaw: 0, pitch: 0, look: 'target', name: '', trav: 0, named: [] };
+function buildSpaceBuf() {
+  const arr = []; let n = 0; JR.named = [];
+  const push = (p, absm, rgb) => { arr.push(p[0], p[1], p[2], absm, rgb[0], rgb[1], rgb[2]); n++; };
+  push([0, 0, 0], 4.83, bvToRgb(0.65));
+  STARS.forEach(st => { if (!st.ly || st.ly > 30000) return; const v = st.v0 || st.v, absm = st.mag - 5*Math.log10(st.ly/32.6156);
+    const p = [v[0]*st.ly, v[1]*st.ly, v[2]*st.ly]; push(p, absm, st.rgb); if (st.name) JR.named.push({ st, p, absm }); });
+  JR.buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, JR.buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW); JR.n = n; JR.nStars = STARS.length;
+}
+function basisFrom(F) {
+  const up = Math.abs(F[2]) > 0.97 ? [1, 0, 0] : [0, 0, 1];
+  const R = nrm3(crs3(F, up)), U = crs3(R, F); return { R, U };
+}
+function startJourney(obj) {
+  const ref = obj.ref, ly = obj.kind === 'star' ? ref.ly : ref.ly;
+  if (!ly || ly > 30000) return;
+  if (!JR.buf || JR.nStars !== STARS.length) buildSpaceBuf();
+  const v = obj.kind === 'star' ? (ref.v0 || ref.v) : ref.v;
+  JR.dir = v.slice(); JR.tgt = [v[0]*ly, v[1]*ly, v[2]*ly]; JR.L = ly; JR.stop = Math.max(0.25, ly*0.012);
+  JR.name = obj.kind === 'star' ? starTitle(ref) : (ref.tr || ref.id); JR.kind = obj.kind;
+  JR.phase = 'go'; JR.t = 0; JR.dur = 6 + Math.log10(1 + ly)*1.6; JR.yaw = 0; JR.pitch = 0; JR.look = 'target'; JR.trav = 0; JR.on = true;
+  if (tour.on) endTour(); closeSheet(); app.classList.add('journey'); renderJourneyCard();
+}
+function endJourney() { JR.on = false; app.classList.remove('journey'); $('jrCard').hidden = true; }
+function jrBack() { if (JR.phase === 'back') return; JR.phase = 'back'; JR.t = 0; JR.from = JR.trav; JR.dur = 4 + Math.log10(1 + JR.trav)*1.2; JR.look = 'sun'; renderJourneyCard(); }
+function fmtYears(y) {
+  const en = LANG === 'en';
+  if (y >= 1e9) return fmtN(y/1e9, 1) + (en ? ' billion years' : ' milyar yıl'); if (y >= 1e6) return fmtN(y/1e6, 1) + (en ? ' million years' : ' milyon yıl');
+  if (y >= 1e3) return fmtN(y/1e3, 0) + (en ? ' thousand years' : ' bin yıl'); return fmtN(y, y < 10 ? 1 : 0) + (en ? ' years' : ' yıl');
+}
+function renderJourneyCard() {
+  const c = $('jrCard'), en = LANG === 'en';
+  c.innerHTML = '<div class="tk">' + (en ? '3D journey' : '3D yolculuk') + ' · ' + esc(JR.name) + '</div><div class="tt" id="jrDist">…</div><div class="tf" id="jrInfo"></div>' +
+    '<div class="tb3"><button class="btn" id="jrLook">' + (JR.look === 'sun' ? (en ? 'Look at the target' : 'Hedefe bak') : (en ? 'Look back at the Sun' : 'Güneş\'e dön bak')) + '</button><button class="btn on" id="jrBack">' + (en ? 'Back to Earth' : 'Dünya\'ya dön') + '</button></div>';
+  c.hidden = false;
+  $('jrLook').onclick = () => { JR.look = JR.look === 'sun' ? 'target' : 'sun'; JR.yaw = 0; JR.pitch = 0; renderJourneyCard(); };
+  $('jrBack').onclick = jrBack;
+}
+function updateJourney(dt) {
+  const ease = x => x < 0.5 ? 4*x*x*x : 1 - Math.pow(-2*x + 2, 3)/2;
+  const Lstop = JR.L - JR.stop;
+  if (JR.phase === 'go') { JR.t = Math.min(1, JR.t + dt/JR.dur); const e = ease(JR.t); JR.trav = (Math.pow(1 + Lstop/0.02, e) - 1)*0.02; if (JR.t >= 1) { JR.phase = 'arrive'; renderJourneyCard(); } }
+  else if (JR.phase === 'back') { JR.t = Math.min(1, JR.t + dt/JR.dur); const e = 1 - ease(JR.t); JR.trav = (Math.pow(1 + JR.from/0.02, e) - 1)*0.02; if (JR.t >= 1) { endJourney(); toast(LANG === 'en' ? 'Back on Earth.' : 'Dünya\'ya dönüldü.'); return; } }
+  else if (JR.phase === 'arrive' && !pointers.size) JR.yaw += dt*0.06;
+  JR.P = [JR.dir[0]*JR.trav, JR.dir[1]*JR.trav, JR.dir[2]*JR.trav];
+  let F = JR.look === 'sun' && JR.trav > 0.01 ? nrm3([-JR.P[0], -JR.P[1], -JR.P[2]]) : JR.dir.slice();
+  if (JR.phase === 'arrive' && JR.look === 'target') F = nrm3([JR.tgt[0] - JR.P[0], JR.tgt[1] - JR.P[1], JR.tgt[2] - JR.P[2]]);
+  // user / idle rotation
+  const b0 = basisFrom(F), cy = Math.cos(JR.yaw), sy = Math.sin(JR.yaw), cp = Math.cos(JR.pitch), sp = Math.sin(JR.pitch);
+  let F2 = nrm3(comb(comb(F, cy, b0.R, sy), cp, b0.U, sp));
+  const b = basisFrom(F2); JR.F = F2; JR.R = b.R; JR.U = b.U;
+  const en = LANG === 'en', dEl = $('jrDist'), iEl = $('jrInfo');
+  if (dEl) {
+    dEl.textContent = (en ? '' : 'Dünya\'dan ') + fmtN(JR.trav, JR.trav < 10 ? 2 : JR.trav < 1000 ? 1 : 0) + (en ? ' light-years from Earth' : ' ışık yılı');
+    iEl.textContent = (JR.phase === 'arrive' ? (en ? 'You have arrived. Drag to look around.' : 'Vardın. Sürükleyerek etrafına bak.') + ' ' : '') +
+      (en ? 'At light speed: ' : 'Işık hızıyla: ') + fmtYears(JR.trav) + ' · Voyager 1: ' + fmtYears(JR.trav*17635);
+  }
+}
+function renderSpace() {
+  const tl = Math.tan(S.fov/2), tx = W >= H ? tl : tl*W/H, ty = W >= H ? tl*H/W : tl;
+  gl.disable(gl.BLEND); gl.useProgram(skyP.p); gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  const la = gl.getAttribLocation(skyP.p, 'a'); gl.enableVertexAttribArray(la); gl.vertexAttribPointer(la, 2, gl.FLOAT, false, 0, 0);
+  gl.uniform2f(skyP.u.uRes, glc.width, glc.height); gl.uniform3fv(skyP.u.uR, JR.R); gl.uniform3fv(skyP.u.uU, JR.U); gl.uniform3fv(skyP.u.uF, JR.F); gl.uniform2f(skyP.u.uTan, tx, ty);
+  gl.uniformMatrix3fv(skyP.u.uMi, false, [1, 0, 0, 0, 1, 0, 0, 0, 1]);
+  gl.uniform1f(skyP.u.uMWOn, S.mw ? 1 : 0); gl.uniform1f(skyP.u.uDay, 0); gl.uniform1f(skyP.u.uSee, 1); gl.uniform1f(skyP.u.uLand, 0); gl.uniform1f(skyP.u.uGround, 0); gl.uniform1f(skyP.u.uMWB, SET.mwB*Math.max(0.25, 1 - JR.trav/3000)); gl.uniform1f(skyP.u.uLp, 0); gl.uniform1f(skyP.u.uGrid, 420); gl.uniform1f(skyP.u.uFieldA, 0.5); gl.uniform1f(skyP.u.uSpace, 1);
+  gl.uniform3fv(skyP.u.uSun, [0, 0, -1]); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, mwTex); gl.uniform1i(skyP.u.uMW, 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3); gl.disableVertexAttribArray(la); gl.uniform1f(skyP.u.uSpace, 0);
+  if (!spaceP) return;
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.useProgram(spaceP.p); gl.bindBuffer(gl.ARRAY_BUFFER, JR.buf);
+  const ap = gl.getAttribLocation(spaceP.p, 'aPos'), am = gl.getAttribLocation(spaceP.p, 'aAbs'), ac = gl.getAttribLocation(spaceP.p, 'aCol');
+  [ap, am, ac].forEach(l => gl.enableVertexAttribArray(l));
+  gl.vertexAttribPointer(ap, 3, gl.FLOAT, false, 28, 0); gl.vertexAttribPointer(am, 1, gl.FLOAT, false, 28, 12); gl.vertexAttribPointer(ac, 3, gl.FLOAT, false, 28, 16);
+  gl.uniform3fv(spaceP.u.uCamP, JR.P); gl.uniform3fv(spaceP.u.uR, JR.R); gl.uniform3fv(spaceP.u.uU, JR.U); gl.uniform3fv(spaceP.u.uF, JR.F); gl.uniform2f(spaceP.u.uTan, tx, ty);
+  gl.uniform1f(spaceP.u.uPx, dpr); gl.uniform1f(spaceP.u.uLim, 6.8); gl.uniform1f(spaceP.u.uSpikeF, 1);
+  gl.drawArrays(gl.POINTS, 0, JR.n); [ap, am, ac].forEach(l => gl.disableVertexAttribArray(l));
+  // labels
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H); placed.length = 0;
+  const pr = p => { const rel = [p[0] - JR.P[0], p[1] - JR.P[1], p[2] - JR.P[2]], z = dot(rel, JR.F); if (z < 0.0005) return null; return [W/2 + dot(rel, JR.R)/z/tx*W/2, H/2 - dot(rel, JR.U)/z/ty*H/2, Math.hypot(...rel)]; };
+  const sp = pr([0, 0, 0]);
+  if (sp && JR.trav > 0.05) { label((LANG === 'en' ? 'Sun' : 'Güneş') + ' · ' + fmtN(sp[2], sp[2] < 10 ? 2 : 0) + (LANG === 'en' ? ' ly' : ' ışık yılı'), sp[0] + 8, sp[1] - 8, '700 13px Manrope, sans-serif', '#ffe9b0', { force: true });
+    ctx.strokeStyle = 'rgba(255,233,176,.7)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(sp[0], sp[1], 9, 0, Math.PI*2); ctx.stroke(); }
+  const tp = pr(JR.tgt); if (tp) { label(JR.name, tp[0] + 12, tp[1] - 10, 'italic 600 18px "Cormorant Garamond", Georgia, serif', '#e3c27e', { force: true }); ctx.strokeStyle = 'rgba(227,194,126,.9)'; ctx.lineWidth = 1.4; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(tp[0], tp[1], 16, k*Math.PI/2 + 0.25, k*Math.PI/2 + Math.PI/2 - 0.25); ctx.stroke(); } }
+  JR.named.forEach(o => { const p = pr(o.p); if (!p || p[0] < 0 || p[0] > W || p[1] < 0 || p[1] > H) return; const m = o.absm + 5*Math.log10(Math.max(p[2], 0.001)/32.6156); if (m > 1.6 || o.st.name === JR.name) return;
+    label(starTitle(o.st), p[0] + 7, p[1] - 6, 'italic 600 15px "Cormorant Garamond", Georgia, serif', 'rgba(240,236,226,.85)'); });
+}
+
 /* chips: what's up right now */
 function buildChips() {
   const up = bodies.filter(b => b.e[2] > 0 && b.b !== 'Sun' && b.mag < 5);
@@ -2741,6 +2854,7 @@ function frame(nowT) {
   const dt = Math.min(0.1, (nowT - last)/1000); last = nowT;
   if (S.speed !== 1) S.offset += dt*1000*(S.speed - 1);
   updateAstro(false);
+  if (JR.on) { updateJourney(dt); if (JR.on) { renderSpace(); requestAnimationFrame(frame); return; } }
   if (S.fly) {
     S.fly.t = Math.min(1, S.fly.t + dt/(S.fly.dur || 1.3));
     const k = S.fly.t < 0.5 ? 4*S.fly.t**3 : 1 - Math.pow(-2*S.fly.t + 2, 3)/2;
