@@ -107,6 +107,8 @@ input[type="range"] { accent-color: var(--gilt); }
 .btn { height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,.04); cursor: pointer; font-size: 13px; }
 .btn.on { border-color: var(--gilt); color: var(--gilt); }
 .list { margin-top: 10px; display: grid; }
+.itemrow { display: flex; align-items: stretch; } .itemrow .item { flex: 1; min-width: 0; }
+.cal { flex: none; width: 44px; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--gilt); cursor: pointer; font-size: 15px; }
 .item { display: flex; align-items: baseline; gap: 10px; padding: 11px 4px; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left; cursor: pointer; width: 100%; }
 .item b { font-weight: 500; font-size: 15px; }
 .item span { color: var(--dim); font-size: 12px; margin-left: auto; white-space: nowrap; }
@@ -1405,6 +1407,7 @@ function drawOverlay(t) {
     } else if (b.b === 'Moon') {
       const r = Math.max(11, 0.0045*ppr);
       drawMoon(p, r, b, dim);
+      if (r > 70) drawMoonAtlas(p, r);
       picks.push({ x: p[0], y: p[1], r: r + 14, pri: 0, obj: { kind: 'body', ref: b } });
       label(b.tr + ' · ' + pct(Math.round(b.phase*100)), p[0] + r + 7, p[1] + 4, '700 14px Manrope, sans-serif', 'rgba(233,230,220,.95)');
     } else {
@@ -1575,6 +1578,25 @@ function moonTex() {
   };
   im.src = 'foto/moon.jpg';
   return null;
+}
+/* Moon atlas: seas, craters and the six Apollo landing sites (selenographic lat, lon) */
+const MOON_FEATURES = [
+  ['Mare Tranquillitatis', 8.5, 31.4, 'm'], ['Mare Serenitatis', 28.0, 17.5, 'm'], ['Mare Imbrium', 32.8, -15.6, 'm'], ['Mare Crisium', 17.0, 59.1, 'm'],
+  ['Mare Fecunditatis', -7.8, 51.3, 'm'], ['Mare Nubium', -21.3, -16.6, 'm'], ['Oceanus Procellarum', 18.4, -57.4, 'm'], ['Mare Frigoris', 56.0, 1.4, 'm'], ['Mare Nectaris', -15.2, 35.5, 'm'],
+  ['Tycho', -43.3, -11.4, 'c'], ['Copernicus', 9.6, -20.1, 'c'], ['Kepler', 8.1, -38.0, 'c'], ['Plato', 51.6, -9.4, 'c'], ['Aristarchus', 23.7, -47.4, 'c'], ['Clavius', -58.4, -14.4, 'c'], ['Grimaldi', -5.2, -68.6, 'c'],
+  ['Apollo 11 · 1969', 0.67, 23.47, 'a'], ['Apollo 12 · 1969', -3.01, -23.42, 'a'], ['Apollo 14 · 1971', -3.65, -17.47, 'a'], ['Apollo 15 · 1971', 26.13, 3.63, 'a'], ['Apollo 16 · 1972', -8.97, 15.50, 'a'], ['Apollo 17 · 1972', 20.19, 30.77, 'a']
+];
+function drawMoonAtlas(p, r) {
+  const a = Math.min(1, (r - 70)/60);
+  ctx.save();
+  MOON_FEATURES.forEach(([n, la, lo, k]) => {
+    if (k === 'c' && r < 110) return; if (k === 'a' && r < 140) return;
+    const cl = Math.cos(la*D2R), x = p[0] + cl*Math.sin(lo*D2R)*r, y = p[1] - Math.sin(la*D2R)*r;
+    if (k === 'a') { ctx.fillStyle = 'rgba(255,214,120,' + a + ')'; ctx.beginPath(); ctx.moveTo(x, y - 6); ctx.lineTo(x + 4, y); ctx.lineTo(x, y + 6); ctx.lineTo(x - 4, y); ctx.closePath(); ctx.fill(); }
+    else { ctx.strokeStyle = k === 'm' ? 'rgba(160,210,255,' + 0.7*a + ')' : 'rgba(255,255,255,' + 0.8*a + ')'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, k === 'm' ? 3 : 2, 0, Math.PI*2); ctx.stroke(); }
+    label(n, x + 6, y + 4, (k === 'm' ? 'italic 600 13px "Cormorant Garamond", Georgia, serif' : '600 11px Manrope, sans-serif'), k === 'a' ? 'rgba(255,214,120,' + a + ')' : k === 'm' ? 'rgba(190,225,255,' + a + ')' : 'rgba(240,240,240,' + a + ')');
+  });
+  ctx.restore();
 }
 function moonShadowPath(g, r, f) {
   const rx = r*Math.abs(2*f - 1);
@@ -2310,10 +2332,12 @@ function openTonight() {
   }
   h += T('<div class="sect">Yaklaşan olaylar</div><div class="list">');
   const evs = upcomingEvents();
-  evs.forEach((e, i) => { h += '<button class="item" data-ev="' + i + '"><b>' + esc(e.t) + '</b><span>' + e.d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' }) + '</span></button><p class="note" style="margin:-4px 4px 6px">' + esc(e.sub) + '</p>'; });
+  LAST_EVS = evs;
+  evs.forEach((e, i) => { h += '<div class="itemrow"><button class="item" data-ev="' + i + '"><b>' + esc(e.t) + '</b><span>' + e.d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' }) + '</span></button><button class="cal" data-cal="ev:' + i + '" aria-label="' + (LANG === 'en' ? 'Add to calendar' : 'Takvime ekle') + '" title="' + (LANG === 'en' ? 'Add to calendar' : 'Takvime ekle') + '">＋🗓</button></div><p class="note" style="margin:-4px 4px 6px">' + esc(e.sub) + '</p>'; });
   h += T('</div><p class="note">Bir olaya dokununca zaman o ana gider; gökyüzünü o gün nasıl görüneceğiyle izlersin.</p>');
   openSheet(h, 'tonight');
-  { const wx = $('wxBox'); if (wx) wx.insertAdjacentHTML('afterend', '<div class="rows" id="aurBox" style="margin-top:8px"></div>'); }
+  { const wx = $('wxBox'); if (wx) { wx.insertAdjacentHTML('afterend', '<div class="rows" id="aurBox" style="margin-top:8px"></div><div id="bestBox"></div>'); try { $('bestBox').innerHTML = bestHtml(); } catch (e) { console.error(e); } } }
+  sheet.querySelectorAll('[data-best]').forEach(b => b.addEventListener('click', () => { const c = window.BEST[+b.dataset.best]; S.offset = c.when.getTime() - Date.now(); S.speed = 1; updateAstro(true); updateComets(true); buildChips(); select(c.obj, true); }));
   fillWeather(); fillAurora(); bindPasses();
   sheet.querySelectorAll('[data-comet]').forEach(b => b.addEventListener('click', () => select({ kind: 'comet', ref: COMETS[+b.dataset.comet] }, true)));
   sheet.querySelectorAll('[data-pl]').forEach(b => b.addEventListener('click', () => select({ kind: 'body', ref: bodies[+b.dataset.pl] }, true)));
@@ -2707,7 +2731,7 @@ function passList(list = SATS) {
   if (!list.some(s => s.rec)) return T('<p class="note">Uzay istasyonu verisi yükleniyor…</p>');
   const vis = [].concat(...list.map(s => s.passes.filter(p => p.visible))).sort((a, b) => a.start - b.start).slice(0, 6);
   if (!vis.length) return T('<p class="note">Önümüzdeki 3 günde ') + esc(S.loc.name) + T('\'dan çıplak gözle görülebilecek bir geçiş yok.</p>');
-  return T('<div class="sect">Görünür geçişler</div><div class="list">') + vis.map(p => '<button class="item" data-pass="' + SATS.indexOf(p.sat) + ':' + p.sat.passes.indexOf(p) + '"><b>' + (list.length > 1 ? p.sat.n + ' · ' : '') + dayHm(p.start) + '</b><span>' + Math.round((p.end - p.start)/60000) + T(' dk · en yüksek ') + Math.round(p.maxEl*R2D) + '° · ' + COMPASS[Math.round(((p.az0*R2D) % 360 + 360) % 360/45) % 8] + ' → ' + COMPASS[Math.round(((p.az1*R2D) % 360 + 360) % 360/45) % 8] + '</span></button>').join('') + T('</div><p class="note">Bir geçişe dokununca zaman o ana gider ve istasyonun yolunu izlersin.</p>');
+  return T('<div class="sect">Görünür geçişler</div><div class="list">') + vis.map(p => '<div class="itemrow"><button class="item" data-pass="' + SATS.indexOf(p.sat) + ':' + p.sat.passes.indexOf(p) + '"><b>' + (list.length > 1 ? p.sat.n + ' · ' : '') + dayHm(p.start) + '</b><span>' + Math.round((p.end - p.start)/60000) + T(' dk · en yüksek ') + Math.round(p.maxEl*R2D) + '° · ' + COMPASS[Math.round(((p.az0*R2D) % 360 + 360) % 360/45) % 8] + ' → ' + COMPASS[Math.round(((p.az1*R2D) % 360 + 360) % 360/45) % 8] + '</span></button><button class="cal" data-cal="pass:' + SATS.indexOf(p.sat) + ':' + p.sat.passes.indexOf(p) + '" aria-label="' + (LANG === 'en' ? 'Add to calendar' : 'Takvime ekle') + '">＋🗓</button></div>').join('') + T('</div><p class="note">Bir geçişe dokununca zaman o ana gider ve istasyonun yolunu izlersin.</p>');
 }
 function bindPasses() {
   sheet.querySelectorAll('[data-pass]').forEach(b => b.addEventListener('click', () => {
@@ -3142,6 +3166,70 @@ async function fillAurora() {
   else { lvl = en ? 'Not expected' : 'Beklenmiyor'; note = (en ? 'It would take Kp ' : 'Buradan görmek için Kp ') + fmtN(Math.min(9, (67 - ml)/2.2), 0) + (en ? ' or more to see it from here.' : ' veya üstü bir fırtına gerekir.'); }
   const word = kp >= 7 ? (en ? 'severe storm' : 'şiddetli fırtına') : kp >= 5 ? (en ? 'storm' : 'fırtına') : kp >= 4 ? (en ? 'active' : 'hareketli') : (en ? 'quiet' : 'sakin');
   box.innerHTML = row(en ? 'Aurora' : 'Kutup ışığı', lvl, 'Kp ' + fmtN(kp, 1) + ' (' + word + ') · ' + note + ' · NOAA SWPC', true);
+}
+
+/* ---------------- calendar export (.ics) so phones remind people ---------------- */
+let LAST_EVS = [];
+function icsDate(d) { return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); }
+function icsEscape(t) { return String(t).replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\;'); }
+async function addToCalendar(title, start, end, desc) {
+  const en = LANG === 'en';
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Gokyuzu Atlasi//TR', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT',
+    'UID:' + start.getTime() + '-' + Math.random().toString(36).slice(2) + '@gokyuzu-atlasi', 'DTSTAMP:' + icsDate(new Date()),
+    'DTSTART:' + icsDate(start), 'DTEND:' + icsDate(end), 'SUMMARY:' + icsEscape(title), 'DESCRIPTION:' + icsEscape(desc + '\n' + 'https://cagdasakil.github.io/gokyuzu-atlasi/'),
+    'LOCATION:' + icsEscape(S.loc.name), 'BEGIN:VALARM', 'TRIGGER:-PT15M', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEscape(title), 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+  const blob = new Blob([ics], { type: 'text/calendar' }), name = 'gokyuzu-' + start.toISOString().slice(0, 10) + '.ics';
+  if (window.claude && typeof window.claude.use === 'function') { toast(en ? 'Calendar files work on the site (github.io).' : 'Takvim dosyası sitede (github.io) çalışır.'); return; }
+  try { const file = new File([blob], name, { type: 'text/calendar' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast(en ? 'Calendar file ready; open it to add the reminder.' : 'Takvim dosyası hazır; açınca hatırlatıcı olarak eklenir.');
+}
+function calForEvent(e) {
+  const en = LANG === 'en'; let s = new Date(e.d), en2;
+  if (e.act && e.act.shower) { s = new Date(e.d); s.setHours(23, 0, 0, 0); en2 = new Date(s.getTime() + 6*3600000); }
+  else { s = new Date(e.d.getTime() - 3600000); en2 = new Date(e.d.getTime() + 3600000); }
+  addToCalendar(e.t, s, en2, e.sub + (en ? ' · Sky Atlas' : ' · Gökyüzü Atlası'));
+}
+function calForPass(p) {
+  const en = LANG === 'en', d = COMPASS[Math.round(((p.az0*R2D) % 360 + 360) % 360/45) % 8] + ' → ' + COMPASS[Math.round(((p.az1*R2D) % 360 + 360) % 360/45) % 8];
+  addToCalendar(p.sat.n + (en ? ' pass' : ' geçişi'), new Date(p.start.getTime() - 60000), new Date(p.end.getTime() + 60000),
+    (en ? 'Max altitude ' : 'En yüksek ') + Math.round(p.maxEl*R2D) + '° · ' + d);
+}
+sheet.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-cal]'); if (!b) return; ev.stopPropagation();
+  const [k, x, y] = b.dataset.cal.split(':');
+  if (k === 'ev' && LAST_EVS[+x]) calForEvent(LAST_EVS[+x]);
+  if (k === 'pass') { const sat = SATS[+x], p = sat && sat.passes[+y]; if (p) calForPass(p); }
+}, true);
+
+/* ---------------- tonight's best targets ---------------- */
+function bestTonight() {
+  const t0 = atime, dusk = rs('Sun', -1, t0, 1.2, -18) || rs('Sun', -1, t0, 1.2, -6) || now, dawn = rs('Sun', +1, A.MakeTime(dusk), 1, -18) || new Date(dusk.getTime() + 8*3600000);
+  const from = Math.max(now.getTime(), dusk.getTime()), to = Math.max(from + 3600000, dawn.getTime());
+  const steps = []; for (let t = from; t <= to && steps.length < 24; t += Math.max(1800000, (to - from)/20)) steps.push(new Date(t));
+  const mats = steps.map(d => { const tt = A.MakeTime(d), r = A.Rotation_EQJ_HOR(tt, observer).rot; return { d, tt, M: [[-r[0][1], -r[1][1], -r[2][1]], [r[0][0], r[1][0], r[2][0]], [r[0][2], r[1][2], r[2][2]]] }; });
+  const cands = [];
+  bodies.forEach(b => { if (b.b === 'Sun' || b.mag > 6) return; cands.push({ obj: { kind: 'body', ref: b }, name: b.tr, kind: b.b === 'Moon' ? T('Uydu') : T('Gezegen'), base: b.b === 'Moon' ? 5 : 6 - b.mag*0.6, body: b.b }); });
+  STARS.slice(0, 40).forEach(st => { if (st.name && st.mag < 1.0) cands.push({ obj: { kind: 'star', ref: st }, name: starTitle(st), kind: T('Yıldız'), base: 3 - st.mag, v: st.v }); });
+  DSOS.forEach(d => { if (FAMOUS_DSO.has(d.id)) cands.push({ obj: { kind: 'dso', ref: d }, name: d.tr || d.id, kind: DSO_TYPE[d.type] || '', base: 4.2 - d.mag*0.25, v: d.v }); });
+  COMETS.forEach(c => { if (c.mag < 10) cands.push({ obj: { kind: 'comet', ref: c }, name: c.name, kind: LANG === 'en' ? 'Comet' : 'Kuyruklu yıldız', base: 4 - (c.mag - 6)*0.35, v: c.v }); });
+  SHOWERS.forEach(sh => { const a = showerAct(sh, now); if (a.a > 0.3) cands.push({ obj: { kind: 'shower', ref: sh }, name: sh.n, kind: LANG === 'en' ? 'Meteor shower' : 'Meteor yağmuru', base: 3 + 3*a.a, v: sh.v }); });
+  cands.forEach(c => {
+    c.best = -90; c.when = null;
+    mats.forEach(m => {
+      let alt;
+      if (c.body) { const eq = A.Equator(c.body, m.tt, observer, true, true); alt = A.Horizon(m.tt, observer, eq.ra, eq.dec, 'normal').altitude; }
+      else { const e = mul(m.M, c.v); alt = Math.asin(Math.max(-1, Math.min(1, e[2])))*R2D; }
+      if (alt > c.best) { c.best = alt; c.when = m.d; }
+    });
+    c.score = c.base + c.best/30;
+  });
+  return cands.filter(c => c.best >= 15).sort((a, b) => b.score - a.score).slice(0, 10);
+}
+function bestHtml() {
+  const list = bestTonight(), en = LANG === 'en'; window.BEST = list;
+  if (!list.length) return '';
+  return '<div class="sect">' + (en ? 'Best of tonight' : 'Bu gecenin en iyileri') + '</div><div class="list">' + list.map((c, i) => '<button class="item" data-best="' + i + '"><b>' + (i + 1) + '. ' + esc(c.name) + '</b><span>' + esc(c.kind) + ' · ' + (en ? 'best ' : 'en iyi ') + hm(c.when) + ' · ' + Math.round(c.best) + '°</span></button>').join('') + '</div>';
 }
 
 /* chips: what's up right now */
