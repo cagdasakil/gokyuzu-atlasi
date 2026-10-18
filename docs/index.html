@@ -1434,6 +1434,35 @@ function photoCanvas(id) {
   return null;
 }
 function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a.toFixed(3) + ')'; }
+/* Moon: NASA LRO colour map projected onto a sphere once, then shaded by the real phase */
+const MOONTEX = { cv: null, loading: false };
+function moonTex() {
+  if (MOONTEX.cv || MOONTEX.loading) return MOONTEX.cv;
+  MOONTEX.loading = true;
+  const im = new Image(); im.onload = () => {
+    const tw = im.naturalWidth, th = im.naturalHeight, tc = document.createElement('canvas'); tc.width = tw; tc.height = th;
+    const tg = tc.getContext('2d'); tg.drawImage(im, 0, 0); const src = tg.getImageData(0, 0, tw, th).data;
+    const N = 256, cv = document.createElement('canvas'); cv.width = cv.height = N; const g = cv.getContext('2d'), out = g.createImageData(N, N);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const nx = (x + 0.5)/N*2 - 1, ny = (y + 0.5)/N*2 - 1, rr = nx*nx + ny*ny; if (rr > 1) continue;
+      const nz = Math.sqrt(1 - rr), lon = Math.atan2(nx, nz), lat = Math.asin(-ny);
+      const u = Math.min(tw - 1, Math.floor((lon/(2*Math.PI) + 0.5)*tw)), v = Math.min(th - 1, Math.floor((0.5 - lat/Math.PI)*th));
+      const si = (v*tw + u)*4, di = (y*N + x)*4, limb = 0.55 + 0.45*Math.pow(nz, 0.5);
+      out.data[di] = src[si]*limb*1.15; out.data[di + 1] = src[si + 1]*limb*1.12; out.data[di + 2] = src[si + 2]*limb*1.08;
+      out.data[di + 3] = rr > 0.985 ? 255*(1 - (rr - 0.985)/0.015) : 255;
+    }
+    g.putImageData(out, 0, 0); MOONTEX.cv = cv;
+  };
+  im.src = 'foto/moon.jpg';
+  return null;
+}
+function moonShadowPath(g, r, f) {
+  const rx = r*Math.abs(2*f - 1);
+  g.beginPath(); g.arc(0, 0, r + 0.5, Math.PI/2, Math.PI*1.5, false);
+  if (f >= 0.5) g.ellipse(0, 0, rx, r + 0.5, 0, Math.PI*1.5, Math.PI/2, true);
+  else g.ellipse(0, 0, rx, r + 0.5, 0, -Math.PI/2, Math.PI/2, false);
+  g.closePath();
+}
 function drawMoon(p, r, b, dim) {
   const m = b.e, s = sunE;
   const k = dot(s, m); let tdir = [s[0] - m[0]*k, s[1] - m[1]*k, s[2] - m[2]*k];
@@ -1443,14 +1472,22 @@ function drawMoon(p, r, b, dim) {
   const g = ctx.createRadialGradient(p[0], p[1], r*0.8, p[0], p[1], r*3.5);
   g.addColorStop(0, 'rgba(233,230,220,' + 0.25*b.phase*dim + ')'); g.addColorStop(1, 'rgba(233,230,220,0)');
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p[0], p[1], r*3.5, 0, Math.PI*2); ctx.fill();
-  ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(ang);
-  ctx.fillStyle = 'rgba(40,42,52,' + 0.9*dim + ')'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
-  const f = b.phase, rx = r*Math.abs(2*f - 1);
-  ctx.fillStyle = 'rgba(240,236,224,' + dim + ')'; ctx.beginPath();
-  ctx.arc(0, 0, r, -Math.PI/2, Math.PI/2, false);
-  if (f >= 0.5) ctx.ellipse(0, 0, rx, r, 0, Math.PI/2, Math.PI*1.5, false);
-  else ctx.ellipse(0, 0, rx, r, 0, Math.PI/2, -Math.PI/2, true);
-  ctx.fill(); ctx.restore();
+  const tex = moonTex();
+  ctx.save(); ctx.translate(p[0], p[1]);
+  if (tex) {
+    ctx.globalAlpha = dim; ctx.drawImage(tex, -r, -r, r*2, r*2); ctx.globalAlpha = 1;
+    ctx.rotate(ang); ctx.fillStyle = 'rgba(3,4,10,' + 0.86*dim + ')'; moonShadowPath(ctx, r, b.phase); ctx.fill();
+  } else {
+    ctx.rotate(ang);
+    ctx.fillStyle = 'rgba(40,42,52,' + 0.9*dim + ')'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+    const f = b.phase, rx = r*Math.abs(2*f - 1);
+    ctx.fillStyle = 'rgba(240,236,224,' + dim + ')'; ctx.beginPath();
+    ctx.arc(0, 0, r, -Math.PI/2, Math.PI/2, false);
+    if (f >= 0.5) ctx.ellipse(0, 0, rx, r, 0, Math.PI/2, Math.PI*1.5, false);
+    else ctx.ellipse(0, 0, rx, r, 0, Math.PI/2, -Math.PI/2, true);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 function selE(sel) {
   if (!sel) return null;
@@ -1752,6 +1789,7 @@ function drawPortrait(o) {
       g.restore();
       [[-1.8, -0.1], [-1.4, 0.05], [1.5, -0.05], [2.1, 0.08]].forEach(([k, d]) => { g.fillStyle = '#eee'; g.beginPath(); g.arc(cx + k*R, cy + d*R, 1.6, 0, Math.PI*2); g.fill(); });
     } else if (b.b === 'Moon' || b.b === 'Mercury') {
+      if (b.b === 'Moon' && moonTex()) { g.drawImage(moonTex(), cx - R, cy - R, R*2, R*2); g.save(); g.translate(cx, cy); g.fillStyle = 'rgba(2,3,10,.86)'; moonShadowPath(g, R, b.phase); g.fill(); g.restore(); caption(g, LANG === 'en' ? 'NASA LRO map · today\'s phase' : 'NASA LRO haritası · bugünkü evre', w, h); g.restore(); return; }
       sphere(g, cx, cy, R, b.b === 'Moon' ? [205, 202, 194] : [170, 158, 145], false);
       g.save(); g.beginPath(); g.arc(cx, cy, R, 0, Math.PI*2); g.clip();
       for (let i = 0; i < 70; i++) { const a = r()*Math.PI*2, d = Math.sqrt(r())*R, s2 = R*(0.02 + r()*r()*0.18); g.fillStyle = 'rgba(60,60,70,' + (0.12 + r()*0.2).toFixed(2) + ')'; g.beginPath(); g.arc(cx + Math.cos(a)*d, cy + Math.sin(a)*d, s2, 0, Math.PI*2); g.fill(); }
