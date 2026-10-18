@@ -196,6 +196,12 @@ input[type="range"] { accent-color: var(--gilt); }
 .ssvbar { position: absolute; left: 0; right: 0; bottom: calc(max(14px, env(safe-area-inset-bottom, 0px)) + 34px); display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .ssvbar .btn { background: rgba(10,13,24,.8); }
 .ssvnote { position: absolute; left: 0; right: 0; bottom: max(8px, env(safe-area-inset-bottom, 0px)); margin: 0; text-align: center; font-size: 11px; color: var(--dim); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.lays { display: grid; gap: 0; margin-top: 10px; }
+.lay { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 4px; border: 0; border-bottom: 1px solid var(--line); background: none; cursor: pointer; text-align: left; font-size: 14.5px; }
+.lay .sw { flex: none; width: 38px; height: 22px; border-radius: 11px; background: rgba(255,255,255,.1); position: relative; transition: background .2s; }
+.lay .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--dim); transition: transform .2s, background .2s; }
+.lay[aria-pressed="true"] .sw { background: rgba(227,194,126,.35); } .lay[aria-pressed="true"] .sw::after { transform: translateX(16px); background: var(--gilt); }
+.rail .tool { width: 66px; } .rail .tool span { display: block; }
 .err { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; color: var(--dim); text-align: center; }
 
 @media (min-width: 760px) {
@@ -225,10 +231,6 @@ input[type="range"] { accent-color: var(--gilt); }
       <span class="t" id="timeTxt">—</span>
     </button>
     <span class="grow"></span>
-    <button class="pill hubbtn" id="hubBtn" aria-label="Keşfet"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.2 6.3L20.5 12l-6.3 2.2L12 21l-2.2-6.8L3.5 12l6.3-2.7z"/></svg><span>Keşfet</span></button>
-    <button class="pill iconbtn" id="setBtn" aria-label="Ayarlar">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>
-    </button>
     <button class="pill iconbtn" id="searchBtn" aria-label="Ara">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
     </button>
@@ -241,14 +243,12 @@ input[type="range"] { accent-color: var(--gilt); }
   <button class="pill homebtn" id="homeBtn" hidden><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg>Geri dön</button>
   <div class="intro" id="intro" aria-hidden="true"><div class="it">Gökyüzü Atlası</div><div class="is" id="introSub"></div></div>
 
-  <nav class="rail" aria-label="Görünüm">
-    <button class="tool" id="tCons" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 18l5-7 4 3 7-9"/><circle cx="4" cy="18" r="1.6" fill="currentColor"/><circle cx="9" cy="11" r="1.6" fill="currentColor"/><circle cx="13" cy="14" r="1.6" fill="currentColor"/><circle cx="20" cy="5" r="1.6" fill="currentColor"/></svg>Çizgiler</button>
-    <button class="tool" id="tNames" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 19L10.5 5h1L17 19M7.5 13.5h7"/></svg>İsimler</button>
-    <button class="tool" id="tDso" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(-25 12 12)"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/></svg>Galaksi</button>
-    <button class="tool" id="tMw" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 17c4-1 6-6 9-8s6-3 9-3" stroke-dasharray="2 2.5"/><path d="M3 20c5-1 8-7 11-9s5-2 7-2"/></svg>Samanyolu</button>
-    <button class="tool" id="tAtmo" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 16h18M6 20h12"/><path d="M7 16a5 5 0 0 1 10 0"/><path d="M12 5v2M5.5 8.5l1.4 1.4M18.5 8.5l-1.4 1.4"/></svg>Atmosfer</button>
-    <button class="tool" id="tRed" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>Gece</button>
-    <button class="tool" id="tGyro" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M12 7l2 4h-4z" fill="currentColor"/></svg>Göğe tut</button>
+  <nav class="rail" aria-label="Menü">
+    <button class="tool" id="tTonight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 14.5A6.5 6.5 0 1 1 9.5 4a5 5 0 0 0 6 10.5z"/><path d="M18 3l.6 1.6L20 5l-1.4.6L18 7l-.6-1.4L16 5l1.4-.4z" fill="currentColor"/></svg><span>Bu gece</span></button>
+    <button class="tool" id="tExplore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l2.2 6.3L20.5 12l-6.3 2.2L12 21l-2.2-6.8L3.5 12l6.3-2.7z"/></svg><span>Keşfet</span></button>
+    <button class="tool" id="tGyro" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M12 7l2 4h-4z" fill="currentColor"/></svg><span>Göğe tut</span></button>
+    <button class="tool" id="tLayers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4l9 4.5-9 4.5-9-4.5z"/><path d="M3 12.5l9 4.5 9-4.5M3 16.5l9 4.5 9-4.5"/></svg><span>Katmanlar</span></button>
+    <button class="tool" id="tSet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg><span>Ayarlar</span></button>
   </nav>
 
   <section class="tourcard" id="quizCard" hidden aria-live="polite"></section>
@@ -435,7 +435,7 @@ var EN = {
   'Beyaz cüce': 'White dwarf',
   'Bir gök cismini gözlem günlüğüne ekle': 'Add an object to your observing log',
   'Bir meteor yağmurunu izle': 'Watch a meteor shower',
-  'Bir yıldıza, gezegene ya da takımyıldıza dokun; hikâyesi açılır. Sağ üstteki "Keşfet"te gök turu, doğduğun gecenin gökyüzü ve oyun var.': 'Tap a star, planet or constellation to read its story. "Explore" in the top right has the sky tour, your birth-night sky and a game.',
+  'Bir yıldıza, gezegene ya da takımyıldıza dokun; hikâyesi açılır. Alttaki "Keşfet"te gök turu, doğduğun gecenin gökyüzü ve oyun var.': 'Tap a star, planet or constellation to read its story. "Explore" at the bottom has the sky tour, your birth-night sky and a game.',
   'Birbirine çok yakın dönen iki sıcak mavi yıldız; aralarındaki çekim ikisini de yumurta şekline sokar.': 'Two hot blue stars orbiting so close that their gravity pulls both into egg shapes.',
   'Bize en yakın yıldız. Uyarı: Güneş\'e asla doğrudan ya da dürbünle bakma.': 'Our nearest star. Warning: never look at the Sun directly or through binoculars.',
   'Boötes ile Draco arasından': 'between Boötes and Draco',
@@ -1714,9 +1714,26 @@ function bindToggle(id, key, after) {
   const b = $(id); b.setAttribute('aria-pressed', String(S[key]));
   b.addEventListener('click', () => { S[key] = !S[key]; b.setAttribute('aria-pressed', String(S[key])); if (key !== 'red' && key !== 'gyro') store.set(key, S[key]); after && after(); });
 }
-bindToggle('tCons', 'cons'); bindToggle('tNames', 'names'); bindToggle('tDso', 'dso'); bindToggle('tMw', 'mw');
-bindToggle('tAtmo', 'atmo', () => toast(S.atmo ? T('Atmosfer açık: gündüz ve alacakaranlık hafif bir ışıkla gösterilir.') : T('Atmosfer kapalı: gökyüzü her saatte gece gibi görünür.')));
-bindToggle('tRed', 'red', () => { $('red').hidden = !S.red; if (S.red) toast(T('Gece modu: kırmızı ışık gözünün karanlığa alışmasını bozmaz.')); });
+// all display layers live in one panel
+function openLayers() {
+  const en = LANG === 'en';
+  const L = [['S', 'cons', en ? 'Constellation lines' : 'Takımyıldız çizgileri'], ['S', 'names', en ? 'Names' : 'İsimler'], ['S', 'dso', en ? 'Galaxies and nebulae' : 'Galaksiler ve bulutsular'],
+    ['S', 'mw', en ? 'Milky Way' : 'Samanyolu'], ['S', 'atmo', en ? 'Atmosphere (day, twilight)' : 'Atmosfer (gündüz, alacakaranlık)'], ['S', 'red', en ? 'Night mode (red screen)' : 'Gece modu (kırmızı ekran)'],
+    ['SET', 'figures', en ? 'Constellation art' : 'Mitolojik figürler'], ['SET', 'meteors', en ? 'Shooting stars' : 'Kayan yıldızlar'], ['SET', 'bounds', en ? 'Constellation boundaries' : 'Takımyıldız sınırları'],
+    ['SET', 'gridAz', en ? 'Horizon grid' : 'Ufuk ızgarası'], ['SET', 'gridEq', en ? 'Equatorial grid' : 'Ekvator ızgarası'], ['SET', 'ecl', en ? 'Ecliptic (path of the planets)' : 'Ekliptik (gezegenlerin yolu)']];
+  const on = ([w, k]) => w === 'S' ? !!S[k] : !!SET[k];
+  openSheet('<div class="shead"><div class="grow"><div class="kind">' + (en ? 'Layers' : 'Katmanlar') + '</div><h2>' + (en ? 'What to show' : 'Gökyüzünde neler görünsün?') + '</h2></div>' + closeX + '</div><div class="lays">' +
+    L.map((it, i) => '<button class="lay" data-lay="' + i + '" aria-pressed="' + on(it) + '"><span>' + it[2] + '</span><i class="sw"></i></button>').join('') + '</div>', 'layers');
+  sheet.querySelectorAll('[data-lay]').forEach(b => b.addEventListener('click', () => {
+    const it = L[+b.dataset.lay], [w, k] = it;
+    if (w === 'S') { S[k] = !S[k]; if (k !== 'red') store.set(k, S[k]); } else { SET[k] = !SET[k]; saveSet(); }
+    if (k === 'red') $('red').hidden = !S.red;
+    if (k === 'atmo') toast(S.atmo ? T('Atmosfer açık: gündüz ve alacakaranlık hafif bir ışıkla gösterilir.') : T('Atmosfer kapalı: gökyüzü her saatte gece gibi görünür.'));
+    b.setAttribute('aria-pressed', String(on(it)));
+  }));
+}
+$('tLayers').addEventListener('click', openLayers);
+$('tTonight').addEventListener('click', openTonight);
 const gyroBtn = $('tGyro');
 $('camBtn').addEventListener('click', () => setAR(!AR.on));
 gyroBtn.addEventListener('click', () => setGyro(!S.gyro));
@@ -2132,7 +2149,7 @@ function openSettings() {
   sheet.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click', () => { if (b.dataset.lang === LANG) return; store.set('lang', b.dataset.lang); location.reload(); }));
   $('setReset').addEventListener('click', () => { Object.assign(SET, SET_DEF); saveSet(); openSettings(); toast(T('Ayarlar varsayılana döndü.')); });
 }
-$('setBtn').addEventListener('click', openSettings);
+$('tSet').addEventListener('click', openSettings);
 
 
 /* location */
@@ -3254,10 +3271,8 @@ function buildChips() {
   const up = bodies.filter(b => b.e[2] > 0 && b.b !== 'Sun' && b.mag < 5);
   const box = $('chips');
   const shifted = Math.abs(S.offset) > 10*60000;
-  box.innerHTML = (shifted ? T('<button class="chip" id="nowChip" style="border-color:rgba(255,139,107,.6);color:#ffb39e">⟲ Şimdiye dön</button>') : '') + T('<button class="chip" id="tonightChip" style="border-color:rgba(227,194,126,.55);color:var(--gilt)">Bu gece ▸</button><button class="chip" id="tourChip" style="border-color:rgba(140,220,255,.5);color:#9fdcff">Gök turu ▸</button>') + (up.length ? T('<span class="lead">Şu an gökte</span>') : '') + up.map(b => '<button class="chip" data-b="' + b.b + '"><i style="background:' + b.col + '"></i>' + b.tr + '</button>').join('');
-  $('tonightChip').addEventListener('click', openTonight);
+  box.innerHTML = (shifted ? T('<button class="chip" id="nowChip" style="border-color:rgba(255,139,107,.6);color:#ffb39e">⟲ Şimdiye dön</button>') : '') + (up.length ? T('<span class="lead">Şu an gökte</span>') : '') + up.map(b => '<button class="chip" data-b="' + b.b + '"><i style="background:' + b.col + '"></i>' + b.tr + '</button>').join('');
   if (shifted) $('nowChip').addEventListener('click', () => { if (trails.on) setTrails(false); S.offset = 0; S.speed = 1; updateAstro(true); buildChips(); toast(T('Şu anki gökyüzüne dönüldü.')); });
-  $('tourChip').addEventListener('click', startTour);
   box.querySelectorAll('[data-b]').forEach(c => c.addEventListener('click', () => select({ kind: 'body', ref: bodies.find(b => b.b === c.dataset.b) }, true)));
 }
 
@@ -3369,23 +3384,22 @@ if ('serviceWorker' in navigator && /github\.io$/.test(location.hostname)) navig
 /* static interface text in the chosen language */
 if (LANG === 'en') {
   document.title = 'Sky Atlas'; $('camTxt').textContent = 'Camera';
-  const lab = { tCons: 'Lines', tNames: 'Names', tDso: 'Galaxies', tMw: 'Milky Way', tAtmo: 'Atmosphere', tRed: 'Night', tGyro: 'Point' };
+  const lab = { tTonight: 'Tonight', tExplore: 'Explore', tGyro: 'Point', tLayers: 'Layers', tSet: 'Settings' };
   Object.entries(lab).forEach(([id, t]) => { const el = $(id); if (el && el.lastChild) el.lastChild.textContent = t; });
-  const hb = document.querySelector('#hubBtn span'); if (hb) hb.textContent = 'Explore';
   if (homeBtn.lastChild) homeBtn.lastChild.textContent = 'Back';
   const it = document.querySelector('#intro .it'); if (it) it.textContent = 'Sky Atlas';
-  [['locBtn', 'Change location'], ['timeBtn', 'Change time'], ['searchBtn', 'Search'], ['setBtn', 'Settings'], ['hubBtn', 'Explore'], ['play', 'Pause']].forEach(([id, t]) => { const el = $(id); if (el) el.setAttribute('aria-label', t); });
+  [['locBtn', 'Change location'], ['timeBtn', 'Change time'], ['searchBtn', 'Search'], ['play', 'Pause']].forEach(([id, t]) => { const el = $(id); if (el) el.setAttribute('aria-label', t); });
   ov.setAttribute('aria-label', 'Sky map. Drag to look around, pinch to zoom, tap an object for details.');
 }
 
 /* hub, ISS, first-run guide */
-$('hubBtn').addEventListener('click', openHub);
+$('tExplore').addEventListener('click', openHub);
 setTimeout(loadISS, 1800);
 setTimeout(loadComets, 2200);
 const ONB = [
   ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 40V20a4 4 0 0 1 8 0v14"/><path d="M30 32v-4a4 4 0 0 1 8 0v6"/><path d="M38 33a4 4 0 0 1 8 0v8c0 9-6 15-14 15s-12-5-15-11l-4-8a4 4 0 0 1 7-4l2 4"/><path d="M8 14h10M46 14h10M13 9l-5 5 5 5M51 9l5 5-5 5"/></svg>', T('Etrafa bak'), T('Ekranı parmağınla sürükle; gökyüzünün her yönüne dönebilirsin. Telefonu göğe tutmak için alttaki "Göğe tut"a bas.')],
   ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="28" cy="28" r="14"/><path d="M38 38l14 14M22 28h12M28 22v12"/></svg>', T('Yakınlaş'), T('İki parmakla aç-kapa ya da fare tekerleğini kullan. Yakınlaştıkça sönük yıldızlar, galaksiler ve Jupiter\'in uyduları ortaya çıkar.')],
-  ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 6l5 15 16 1-12 10 4 16-13-9-13 9 4-16L11 22l16-1z"/></svg>', T('Dokun ve keşfet'), T('Bir yıldıza, gezegene ya da takımyıldıza dokun; hikâyesi açılır. Sağ üstteki "Keşfet"te gök turu, doğduğun gecenin gökyüzü ve oyun var.')]
+  ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 6l5 15 16 1-12 10 4 16-13-9-13 9 4-16L11 22l16-1z"/></svg>', T('Dokun ve keşfet'), T('Bir yıldıza, gezegene ya da takımyıldıza dokun; hikâyesi açılır. Alttaki "Keşfet"te gök turu, doğduğun gecenin gökyüzü ve oyun var.')]
 ];
 function showOnb(i) {
   const o = $('onb'), c = $('onbc'); if (i >= ONB.length) { o.hidden = true; store.set('onb', 1); return; }
