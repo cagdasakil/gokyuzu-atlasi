@@ -174,6 +174,14 @@ input[type="range"] { accent-color: var(--gilt); }
 @media (max-width: 420px) { .hubbtn span { display: none; } .hubbtn { width: 36px; padding: 0; justify-content: center; } }
 .tourcard .tb3 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
 .journey .rail, .journey .chips, .journey .hud, .journey #homeBtn { display: none !important; }
+#ssv { position: absolute; inset: 0; background: #020309; touch-action: none; }
+#ssvc { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+.ssvtop { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; align-items: flex-start; padding-top: max(14px, env(safe-area-inset-top, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); pointer-events: none; }
+.ssvtop > * { pointer-events: auto; }
+.ssvdate { font-family: var(--f-name); font-weight: 600; font-size: 26px; margin-top: 2px; }
+.ssvbar { position: absolute; left: 0; right: 0; bottom: calc(max(14px, env(safe-area-inset-bottom, 0px)) + 34px); display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.ssvbar .btn { background: rgba(10,13,24,.8); }
+.ssvnote { position: absolute; left: 0; right: 0; bottom: max(8px, env(safe-area-inset-bottom, 0px)); margin: 0; text-align: center; font-size: 11px; color: var(--dim); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .err { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; color: var(--dim); text-align: center; }
 
 @media (min-width: 760px) {
@@ -238,6 +246,7 @@ input[type="range"] { accent-color: var(--gilt); }
 <script src="gokyuzu-exo.js"></script>
 <script src="gokyuzu-foto.js"></script>
 <script src="gokyuzu-hareket.js"></script>
+<script src="gokyuzu-figur.js"></script>
 <script>
 (() => {
 'use strict';
@@ -864,7 +873,7 @@ const LINES = SKY.lines.map(l => ({ con: l[0], pts: l[1].map(p => eqv(p[0], p[1]
 const DSOS = SKY.dso.map(d => { const tr = DSO_TR[d[0]]; return { id: d[0], v: eqv(d[1], d[2]), type: d[3], mag: d[4], dim: d[5], alt: d[6], desig: d[7], tr: tr ? tr[0] : '', ly: tr ? tr[1] : 0, fact: tr ? tr[2] : '', trk: tr ? tr[3] : '' }; });
 
 /* ---------------- settings ---------------- */
-const SET_DEF = { starB: 1, starS: 1, spikes: 1, mwB: 1, depth: 0, lines: 1, labels: 1, ground: 'solid', land: true, lp: 0, gridAz: false, gridEq: false, ecl: false, meteors: true, bounds: false, realDay: false };
+const SET_DEF = { starB: 1, starS: 1, spikes: 1, mwB: 1, depth: 0, lines: 1, labels: 1, ground: 'solid', land: true, lp: 0, gridAz: false, gridEq: false, ecl: false, meteors: true, bounds: false, realDay: false, figures: true };
 const SET = Object.assign({}, SET_DEF, store.get('set', {}));
 SET.sound = false;
 const GROUND = { solid: 1, glass: 0.55, off: 0 };
@@ -1275,6 +1284,9 @@ function drawOverlay(t) {
     ctx.restore();
   }
 
+  // constellation artwork (Johan Meuris, Stellarium), pinned to three real stars each
+  if (window.FIG && (SET.figures || (S.sel && S.sel.kind === 'con'))) drawFigures(night);
+
   // constellation lines
   if (S.cons) {
     ctx.lineWidth = 1; ctx.lineCap = 'round';
@@ -1496,6 +1508,37 @@ function photoCanvas(id) {
   };
   im.src = 'foto/' + id + '.jpg';
   return null;
+}
+const FIGC = {}; let HIPMAP = null;
+function figCanvas(id, file) {
+  const c = FIGC[id]; if (c) return c.ready ? c.cv : null;
+  const e = FIGC[id] = { ready: false }, im = new Image();
+  im.onload = () => { const cv = document.createElement('canvas'); cv.width = im.naturalWidth; cv.height = im.naturalHeight; const g = cv.getContext('2d');
+    g.drawImage(im, 0, 0); g.globalCompositeOperation = 'multiply'; g.fillStyle = '#e8c98a'; g.fillRect(0, 0, cv.width, cv.height); e.cv = cv; e.ready = true; };
+  im.src = 'figur/' + file; return null;
+}
+function drawFigures(night) {
+  if (!HIPMAP || HIPMAP.n !== STARS.length) { HIPMAP = new Map(); STARS.forEach(st => { if (st.hip && !HIPMAP.has(st.hip)) HIPMAP.set(st.hip, st); }); HIPMAP.n = STARS.length; }
+  const selCon = S.sel && S.sel.kind === 'con' ? S.sel.ref.id : (S.sel && S.sel.kind === 'star' ? S.sel.ref.con : null);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const id in FIG) {
+    const hi = id === selCon; if (!SET.figures && !hi) continue;
+    const c = CONS[id]; if (c) { const ce = mul(M, c.v); if (dot(ce, cam.F) < Math.cos(Math.min(1.5, S.fov*0.9 + 0.5))) continue; if (SET.ground === 'solid' && ce[2] < -0.15 && !seeThrough) continue; }
+    const [file, an] = FIG[id], sp = [];
+    for (const a of an) { const st = HIPMAP.get(a[2]); if (!st) break; const e = mul(M, st.v); const p = proj(e); if (!p) break; sp.push(p); }
+    if (sp.length < 3) continue;
+    const img = figCanvas(id, file); if (!img) continue;
+    // solve the affine map image pixels -> screen from the three anchors
+    const [x1, y1] = an[0], [x2, y2] = an[1], [x3, y3] = an[2];
+    const det = (x1 - x3)*(y2 - y3) - (x2 - x3)*(y1 - y3); if (Math.abs(det) < 1e-6) continue;
+    const solve = (u1, u2, u3) => { const a = ((u1 - u3)*(y2 - y3) - (u2 - u3)*(y1 - y3))/det, b = ((x1 - x3)*(u2 - u3) - (x2 - x3)*(u1 - u3))/det; return [a, b, u3 - a*x3 - b*y3]; };
+    const [a, cc, e] = solve(sp[0][0], sp[1][0], sp[2][0]), [b, d, f] = solve(sp[0][1], sp[1][1], sp[2][1]);
+    const scale = Math.sqrt(Math.abs(a*d - b*cc)); if (scale*img.width > 6*Math.max(W, H) || scale*img.width < 30) continue;
+    ctx.globalAlpha = (hi ? 0.55 : 0.2)*night;
+    ctx.setTransform(dpr*a, dpr*b, dpr*cc, dpr*d, dpr*e, dpr*f);
+    ctx.drawImage(img, 0, 0);
+  }
+  ctx.restore(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a.toFixed(3) + ')'; }
 /* Moon: NASA LRO colour map projected onto a sphere once, then shaded by the real phase */
@@ -2013,9 +2056,9 @@ function openSettings() {
     T('<div class="sect">Gökyüzü koşulları</div>') +
     T('<div class="set"><label for="s_lp">Işık kirliliği</label><output id="o_lp">') + lpName(SET.lp) + '</output><input type="range" id="s_lp" min="0" max="1" step="0.01" value="' + SET.lp + '"></div>' +
     T('<p class="note">Şehir ışıkları sönük yıldızları ve Samanyolu\'nu siler. Kaydırarak kendi bulunduğun yerin gerçekte ne kadarını gösterdiğini görebilirsin.</p>') +
-    T('<div class="sect">Yardımcı çizgiler</div><div class="btns">') + tog('gridAz', T('Ufuk ızgarası')) + tog('gridEq', T('Ekvator ızgarası')) + tog('ecl', T('Ekliptik')) + tog('meteors', T('Kayan yıldızlar')) + tog('bounds', T('Takımyıldız sınırları')) + '</div>' +
+    T('<div class="sect">Yardımcı çizgiler</div><div class="btns">') + tog('gridAz', T('Ufuk ızgarası')) + tog('gridEq', T('Ekvator ızgarası')) + tog('ecl', T('Ekliptik')) + tog('meteors', T('Kayan yıldızlar')) + tog('figures', LANG === 'en' ? 'Constellation art' : 'Mitolojik figürler') + tog('bounds', T('Takımyıldız sınırları')) + '</div>' +
     T('<p class="note">Ekliptik, Güneş\'in yıl boyunca izlediği yol; gezegenler hep bu çizginin yakınında bulunur.</p>') +
-    '<div class="sect">' + (LANG === 'en' ? 'Sources' : 'Kaynaklar') + '</div><p class="note">' + (LANG === 'en' ? 'Stars: HYG Database v4.1 by D. Nash (CC BY-SA 4.0). Constellations, Milky Way, Messier: d3-celestial by O. Frohn (BSD). Planets, Moon, eclipses: astronomy-engine by D. Cross (MIT). ISS orbit: CelesTrak. Weather: Open-Meteo. Exoplanets: Open Exoplanet Catalogue. Moon map: NASA SVS / LRO. Photos: NASA, ESA, ESO and Wikimedia Commons authors (credited in each card).' : 'Yıldızlar: HYG Database v4.1, D. Nash (CC BY-SA 4.0). Takımyıldızlar, Samanyolu, Messier: d3-celestial, O. Frohn (BSD). Gezegenler, Ay, tutulmalar: astronomy-engine, D. Cross (MIT). ISS yörüngesi: CelesTrak. Hava durumu: Open-Meteo. Ötegezegenler: Open Exoplanet Catalogue. Ay haritası: NASA SVS / LRO. Fotoğraflar: NASA, ESA, ESO ve Wikimedia Commons yazarları (her kartta belirtilir).') + '</p>' +
+    '<div class="sect">' + (LANG === 'en' ? 'Sources' : 'Kaynaklar') + '</div><p class="note">' + (LANG === 'en' ? 'Stars: HYG Database v4.1 by D. Nash (CC BY-SA 4.0). Constellations, Milky Way, Messier: d3-celestial by O. Frohn (BSD). Planets, Moon, eclipses: astronomy-engine by D. Cross (MIT). ISS orbit: CelesTrak. Weather: Open-Meteo. Exoplanets: Open Exoplanet Catalogue. Moon map: NASA SVS / LRO. Constellation art: Johan Meuris, Stellarium (Free Art License). Photos: NASA, ESA, ESO and Wikimedia Commons authors (credited in each card).' : 'Yıldızlar: HYG Database v4.1, D. Nash (CC BY-SA 4.0). Takımyıldızlar, Samanyolu, Messier: d3-celestial, O. Frohn (BSD). Gezegenler, Ay, tutulmalar: astronomy-engine, D. Cross (MIT). ISS yörüngesi: CelesTrak. Hava durumu: Open-Meteo. Ötegezegenler: Open Exoplanet Catalogue. Ay haritası: NASA SVS / LRO. Takımyıldız çizimleri: Johan Meuris, Stellarium (Free Art License). Fotoğraflar: NASA, ESA, ESO ve Wikimedia Commons yazarları (her kartta belirtilir).') + '</p>' +
     T('<div class="btns"><button class="btn" id="setReset">Varsayılana dön</button></div>'), 'settings');
   SLIDERS.map(x => x[0]).concat('lp').forEach(k => {
     const el = $('s_' + k), out = $('o_' + k), sl = SLIDERS.find(x => x[0] === k);
@@ -2687,9 +2730,9 @@ function openHub() {
     card('hBirth', T('Doğduğun gece'), T('Doğum anının gökyüzü kartı'), '✦') + card('hTour', T('Gök turu'), T('Bu gecenin en güzel cisimleri'), '◎') +
     card('hTonight', T('Bu gece'), T('Saatler, olaylar, gözlem skoru'), '☾') + card('hIss', T('Uzay istasyonu'), T('Ne zaman üstünden geçecek?'), '⌁') +
     card('hQuiz', T('Takımyıldız oyunu'), T('Gökyüzünü ne kadar tanıyorsun?'), '?') + card('hLog', T('Koleksiyonum'), T('Gördüklerin ve rozetlerin'), '★') +
-    card('hTm', LANG === 'en' ? 'Time machine' : 'Zaman makinesi', LANG === 'en' ? 'Thousands of years back or ahead' : 'Binlerce yıl geriye ya da ileriye', '⧗') + card('hShare', T('Paylaş'), T('Görüntü ya da bağlantı gönder'), '↗') + card('hSet', T('Ayarlar'), T('Parlaklık, zemin, ses…'), '⚙') + '</div>', 'hub');
+    card('hSolar', LANG === 'en' ? 'Solar System' : 'Güneş Sistemi', LANG === 'en' ? 'Planets in their real orbits' : 'Gezegenler gerçek yörüngelerinde', '☉') + card('hTm', LANG === 'en' ? 'Time machine' : 'Zaman makinesi', LANG === 'en' ? 'Thousands of years back or ahead' : 'Binlerce yıl geriye ya da ileriye', '⧗') + card('hShare', T('Paylaş'), T('Görüntü ya da bağlantı gönder'), '↗') + card('hSet', T('Ayarlar'), T('Parlaklık, zemin, ses…'), '⚙') + '</div>', 'hub');
   $('hBirth').onclick = openBirth; $('hTour').onclick = startTour; $('hTonight').onclick = openTonight; $('hQuiz').onclick = startQuiz;
-  $('hTm').onclick = openTimeMachine; $('hLog').onclick = openCollection; $('hShare').onclick = openShare; $('hSet').onclick = openSettings;
+  $('hSolar').onclick = openSolar; $('hTm').onclick = openTimeMachine; $('hLog').onclick = openCollection; $('hShare').onclick = openShare; $('hSet').onclick = openSettings;
   $('hIss').onclick = () => { if (ISS.e) select({ kind: 'iss', ref: ISS }, true); else openSheet(issCard(), 'info'); bindPasses(); };
 }
 
@@ -2841,6 +2884,95 @@ function renderSpace() {
   const tp = pr(JR.tgt); if (tp) { label(JR.name, tp[0] + 12, tp[1] - 10, 'italic 600 18px "Cormorant Garamond", Georgia, serif', '#e3c27e', { force: true }); ctx.strokeStyle = 'rgba(227,194,126,.9)'; ctx.lineWidth = 1.4; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(tp[0], tp[1], 16, k*Math.PI/2 + 0.25, k*Math.PI/2 + Math.PI/2 - 0.25); ctx.stroke(); } }
   JR.named.forEach(o => { const p = pr(o.p); if (!p || p[0] < 0 || p[0] > W || p[1] < 0 || p[1] > H) return; const m = o.absm + 5*Math.log10(Math.max(p[2], 0.001)/32.6156); if (m > 1.6 || o.st.name === JR.name) return;
     label(starTitle(o.st), p[0] + 7, p[1] - 6, 'italic 600 15px "Cormorant Garamond", Georgia, serif', 'rgba(240,236,226,.85)'); });
+}
+
+/* ---------------- Solar System view: real heliocentric positions, orbits, time flow ---------------- */
+const SSV = { on: false, yaw: -0.5, tilt: 1.0, zoom: 1, t: null, speed: 0, orbits: null, raf: 0, last: 0, drag: null, picks: [] };
+const SS_BODIES = [
+  ['Mercury', 87.97, '#c9b9a4', 3.5], ['Venus', 224.7, '#fff4d6', 5], ['Earth', 365.256, '#6fb3ff', 5.5], ['Mars', 686.98, '#ff9a6b', 4.5],
+  ['Jupiter', 4332.6, '#ffe2b8', 10], ['Saturn', 10759.2, '#f3dca0', 9], ['Uranus', 30687, '#b9ecf0', 7], ['Neptune', 60190, '#9db8ff', 7]
+];
+const ECL = (() => { try { return A.Rotation_EQJ_ECL(); } catch (e) { return null; } })();
+function helio(name, date) { const v = A.HelioVector(name, A.MakeTime(date)); const r = ECL ? A.RotateVector(ECL, v) : v; return [r.x, r.y, r.z]; }
+function ssOrbits() {
+  if (SSV.orbits) return SSV.orbits;
+  const t0 = new Date(); SSV.orbits = SS_BODIES.map(([n, P]) => { const pts = []; for (let k = 0; k <= 160; k++) pts.push(helio(n, new Date(t0.getTime() + k/160*P*86400000))); return pts; });
+  return SSV.orbits;
+}
+function openSolar() {
+  closeSheet(); if (tour.on) endTour();
+  let el = $('ssv');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'ssv';
+    el.innerHTML = '<canvas id="ssvc"></canvas><div class="ssvtop"><div><div class="kind">' + (LANG === 'en' ? 'Solar System' : 'Güneş Sistemi') + '</div><div class="ssvdate" id="ssvDate"></div></div><button class="x" id="ssvX" aria-label="' + (LANG === 'en' ? 'Close' : 'Kapat') + '">✕</button></div>' +
+      '<div class="ssvbar" id="ssvBar"></div><p class="ssvnote">' + (LANG === 'en' ? 'Real positions today. Distances are compressed (square-root scale) so that Neptune and Mercury fit on one screen. Drag to turn, pinch to zoom, tap a planet.' : 'Bugünkü gerçek konumlar. Neptün ile Merkür aynı ekrana sığsın diye uzaklıklar sıkıştırıldı (karekök ölçek). Sürükleyerek çevir, sıkıştırarak yakınlaş, bir gezegene dokun.') + '</p>';
+    app.appendChild(el);
+    const sp = LANG === 'en' ? [['Pause', 0], ['1 day/s', 1], ['1 week/s', 7], ['1 month/s', 30], ['1 year/s', 365]] : [['Durdur', 0], ['1 gün/sn', 1], ['1 hafta/sn', 7], ['1 ay/sn', 30], ['1 yıl/sn', 365]];
+    $('ssvBar').innerHTML = sp.map(([t, v]) => '<button class="btn" data-ssp="' + v + '">' + t + '</button>').join('') + '<button class="btn" id="ssvToday">' + (LANG === 'en' ? 'Today' : 'Bugün') + '</button>';
+    $('ssvX').onclick = closeSolar;
+    el.querySelectorAll('[data-ssp]').forEach(b => b.onclick = () => { SSV.speed = +b.dataset.ssp; el.querySelectorAll('[data-ssp]').forEach(x => x.classList.toggle('on', x === b)); });
+    $('ssvToday').onclick = () => { SSV.t = new Date(now.getTime()); };
+    const c = $('ssvc'), pts = new Map(); let pinch = null, moved = 0;
+    c.addEventListener('pointerdown', e => { c.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); moved = 0; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: SSV.zoom }; } });
+    c.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; const p0 = pts.get(e.pointerId), p1 = [e.clientX, e.clientY]; pts.set(e.pointerId, p1);
+      if (pts.size === 2 && pinch) { const [a, b] = [...pts.values()]; SSV.zoom = Math.max(0.4, Math.min(8, pinch.z*Math.hypot(a[0] - b[0], a[1] - b[1])/pinch.d)); moved += 10; return; }
+      SSV.yaw += (p1[0] - p0[0])*0.006; SSV.tilt = Math.max(0.05, Math.min(1.5, SSV.tilt - (p1[1] - p0[1])*0.005)); moved += Math.abs(p1[0] - p0[0]) + Math.abs(p1[1] - p0[1]); });
+    const up = e => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if (pts.size < 2) pinch = null;
+      if (e.type === 'pointerup' && moved < 8) { const hit = SSV.picks.find(p => Math.hypot(p.x - e.clientX, p.y - e.clientY) < 22); if (hit && hit.name !== 'Earth') { const b = bodies.find(x => x.b === hit.name); closeSolar(); if (b) select({ kind: 'body', ref: b }, true); } } };
+    c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+    c.addEventListener('wheel', e => { e.preventDefault(); SSV.zoom = Math.max(0.4, Math.min(8, SSV.zoom*Math.exp(-e.deltaY*0.0012))); }, { passive: false });
+  }
+  SSV.t = new Date(now.getTime()); SSV.speed = 0; el.hidden = false; SSV.on = true; ssOrbits();
+  el.querySelectorAll('[data-ssp]').forEach(x => x.classList.toggle('on', +x.dataset.ssp === 0));
+  SSV.last = performance.now(); cancelAnimationFrame(SSV.raf); SSV.raf = requestAnimationFrame(ssFrame);
+}
+function closeSolar() { SSV.on = false; cancelAnimationFrame(SSV.raf); const el = $('ssv'); if (el) el.hidden = true; }
+function ssFrame(tm) {
+  if (!SSV.on) return;
+  const dt = Math.min(0.1, (tm - SSV.last)/1000); SSV.last = tm;
+  if (SSV.speed) SSV.t = new Date(SSV.t.getTime() + dt*SSV.speed*86400000);
+  if (!$('ssv').querySelector('#ssvc').matches(':active')) SSV.yaw += SSV.speed ? 0 : dt*0.02;
+  const c = $('ssvc'), w = innerWidth, h = innerHeight, pr = Math.min(2, devicePixelRatio || 1);
+  if (c.width !== Math.round(w*pr)) { c.width = Math.round(w*pr); c.height = Math.round(h*pr); }
+  const g = c.getContext('2d'); g.setTransform(pr, 0, 0, pr, 0, 0);
+  const bg = g.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.max(w, h)*0.7); bg.addColorStop(0, '#0a0d1c'); bg.addColorStop(1, '#020309'); g.fillStyle = bg; g.fillRect(0, 0, w, h);
+  const R = Math.min(w, h)*0.46*SSV.zoom, k = R/Math.sqrt(30.1), cx = w/2, cy = h*0.52;
+  const cyw = Math.cos(SSV.yaw), syw = Math.sin(SSV.yaw), ct = Math.cos(SSV.tilt), st = Math.sin(SSV.tilt);
+  const P = v => { const r = Math.hypot(v[0], v[1], v[2]) || 1e-9, s2 = Math.sqrt(r)*k/r, x = v[0]*s2, y = v[1]*s2, z = v[2]*s2;
+    const X = x*cyw - y*syw, Y = x*syw + y*cyw; return [cx + X, cy + Y*ct - z*st, Y*st + z*ct]; };
+  // faint background stars
+  g.fillStyle = 'rgba(220,228,255,.35)'; for (let i = 0; i < 140; i++) { const a = (i*137.508)%360, rr = ((i*7919)%1000)/1000; g.fillRect((a/360)*w, rr*h, 1, 1); }
+  // orbits
+  const orb = ssOrbits();
+  orb.forEach((pts, i) => { g.strokeStyle = i === 2 ? 'rgba(111,179,255,.45)' : 'rgba(227,194,126,.22)'; g.lineWidth = i === 2 ? 1.4 : 1; g.beginPath(); pts.forEach((v, j) => { const p = P(v); j ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); }); g.stroke(); });
+  // Sun
+  const sg = g.createRadialGradient(cx, cy, 0, cx, cy, 34*Math.min(1.6, SSV.zoom)); sg.addColorStop(0, 'rgba(255,248,220,1)'); sg.addColorStop(0.25, 'rgba(255,214,130,.8)'); sg.addColorStop(1, 'rgba(255,170,60,0)');
+  g.fillStyle = sg; g.beginPath(); g.arc(cx, cy, 34*Math.min(1.6, SSV.zoom), 0, Math.PI*2); g.fill();
+  // planets, back to front
+  const earth = helio('Earth', SSV.t);
+  const items = SS_BODIES.map(([n, , col, sz]) => { const v = helio(n, SSV.t); const p = P(v); return { n, v, p, col, sz }; }).sort((a, b) => a.p[2] - b.p[2]);
+  SSV.picks = []; const used = [];
+  items.forEach(it => {
+    let [x, y] = it.p; const r = it.sz*Math.min(1.8, Math.max(0.8, SSV.zoom*0.8));
+    const gl2 = g.createRadialGradient(x, y, 0, x, y, r*3); gl2.addColorStop(0, it.col); gl2.addColorStop(1, 'rgba(0,0,0,0)'); g.globalAlpha = 0.35; g.fillStyle = gl2; g.beginPath(); g.arc(x, y, r*3, 0, Math.PI*2); g.fill(); g.globalAlpha = 1;
+    if (it.n === 'Saturn') { g.strokeStyle = 'rgba(240,222,180,.8)'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(x, y, r*2, r*0.6, -0.3, 0, Math.PI*2); g.stroke(); }
+    const lg = g.createRadialGradient(x - r*0.4, y - r*0.4, r*0.1, x, y, r); lg.addColorStop(0, '#fff'); lg.addColorStop(0.5, it.col); lg.addColorStop(1, 'rgba(10,10,20,1)');
+    g.fillStyle = lg; g.beginPath(); g.arc(x, y, r, 0, Math.PI*2); g.fill();
+    const au = Math.hypot(...it.v), de = Math.hypot(it.v[0] - earth[0], it.v[1] - earth[1], it.v[2] - earth[2]);
+    const nm = it.n === 'Earth' ? (LANG === 'en' ? 'Earth · you are here' : 'Dünya · buradasın') : ((bodies.find(b => b.b === it.n) || {}).tr || it.n);
+    g.font = '700 13px Manrope, sans-serif'; g.lineJoin = 'round'; g.lineWidth = 3.5; g.strokeStyle = 'rgba(2,4,10,.85)';
+    const lw = Math.max(g.measureText(nm).width, 150), hit = yv => used.some(u => Math.abs(u[1] - yv) < 30 && x + r + 6 < u[0] + u[2] && u[0] < x + r + 6 + lw);
+    let ly = y + 4; for (const off of [0, -30, 30, -60, 60, -90, 90]) { if (!hit(y + 4 + off)) { ly = y + 4 + off; break; } }
+    used.push([x + r + 6, ly, lw]);
+    if (ly !== y + 4) { g.strokeStyle = 'rgba(233,228,216,.35)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x + r, y); g.lineTo(x + r + 4, ly - 4); g.stroke(); g.lineWidth = 3.5; g.strokeStyle = 'rgba(2,4,10,.85)'; }
+    const yy = y; y = ly - 4;
+    g.strokeText(nm, x + r + 6, y + 4); g.fillStyle = it.n === 'Earth' ? '#9fd0ff' : it.col; g.fillText(nm, x + r + 6, y + 4);
+    g.font = '500 10.5px "JetBrains Mono", monospace'; const sub = fmtN(au, au < 2 ? 2 : 1) + ' AU' + (it.n !== 'Earth' ? ' · ' + (LANG === 'en' ? 'from Earth ' : 'Dünya\'ya ') + fmtN(de, de < 2 ? 2 : 1) + ' AU' : '');
+    g.strokeText(sub, x + r + 6, y + 18); g.fillStyle = 'rgba(233,228,216,.7)'; g.fillText(sub, x + r + 6, y + 18);
+    SSV.picks.push({ x, y: yy, name: it.n });
+  });
+  $('ssvDate').textContent = (SSV.t.getUTCFullYear() !== new Date().getUTCFullYear() ? yearLabel(SSV.t.getUTCFullYear()) + ' · ' : '') + SSV.t.toLocaleDateString(LOCALE, { day: 'numeric', month: 'long', year: SSV.t.getUTCFullYear() > 0 ? 'numeric' : undefined });
+  SSV.raf = requestAnimationFrame(ssFrame);
 }
 
 /* chips: what's up right now */
