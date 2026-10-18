@@ -1499,6 +1499,11 @@ function drawPlanetDisc(p, R, b, dim) {
   const base = hexA(b.col, 1), g = ctx.createRadialGradient(p[0] - R*0.35, p[1] - R*0.35, R*0.1, p[0], p[1], R);
   g.addColorStop(0, '#fffaf0'); g.addColorStop(0.5, base); g.addColorStop(1, hexA(b.col, 0.35));
   ctx.globalAlpha = dim; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p[0], p[1], R, 0, Math.PI*2); ctx.fill();
+  if ((b.b === 'Venus' || b.b === 'Mercury' || b.b === 'Mars') && b.phase < 0.995) {
+    const m = b.e, s2 = sunE, k = dot(s2, m); let td = [s2[0] - m[0]*k, s2[1] - m[1]*k, s2[2] - m[2]*k]; const tl = Math.hypot(...td) || 1; td = td.map(v => v/tl);
+    const q = proj([m[0] + td[0]*0.0005, m[1] + td[1]*0.0005, m[2] + td[2]*0.0005]), ang = q ? Math.atan2(q[1] - p[1], q[0] - p[0]) : 0;
+    ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(ang); ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(3,4,10,.94)'; moonShadowPath(ctx, R, b.phase); ctx.fill(); ctx.restore();
+  }
   if (b.b === 'Jupiter' || b.b === 'Saturn') { ctx.save(); ctx.beginPath(); ctx.arc(p[0], p[1], R, 0, Math.PI*2); ctx.clip();
     [-0.55, -0.2, 0.15, 0.45].forEach((y, i) => { ctx.fillStyle = i % 2 ? 'rgba(120,80,50,.28)' : 'rgba(150,100,60,.32)'; ctx.fillRect(p[0] - R, p[1] + y*R, R*2, R*0.16); });
     if (b.b === 'Jupiter' && R > 9) { ctx.fillStyle = 'rgba(200,95,60,.7)'; ctx.beginPath(); ctx.ellipse(p[0] + R*0.3, p[1] + R*0.28, R*0.16, R*0.08, 0, 0, Math.PI*2); ctx.fill(); }
@@ -1691,7 +1696,18 @@ function tap(x, y) {
     const d = Math.hypot(p[0] - x, p[1] - y), r = 10 + Math.max(0, 3 - s.mag)*4;
     if (d < r) { const sc = d + (3 + s.mag*0.2)*6 - (lim - s.mag)*1.5; if (sc < bd) { bd = sc; best = { obj: { kind: 'star', ref: s } }; } }
   }
-  if (best) select(best.obj, false); else closeSheet();
+  if (best) { select(best.obj, false); return; }
+  if (!sheet.classList.contains('closed')) { closeSheet(); return; }
+  // nothing under the finger: which constellation is this patch of sky in?
+  try {
+    const nx = (x - W/2)/(W/2)*cam.tx, ny = -(y - H/2)/(H/2)*cam.ty;
+    const d = nrm3([cam.F[0] + nx*cam.R[0] + ny*cam.U[0], cam.F[1] + nx*cam.R[1] + ny*cam.U[1], cam.F[2] + nx*cam.R[2] + ny*cam.U[2]]);
+    if (d[2] < 0 && SET.ground === 'solid' && !seeThrough) return;
+    const eq = [M[0][0]*d[0] + M[1][0]*d[1] + M[2][0]*d[2], M[0][1]*d[0] + M[1][1]*d[1] + M[2][1]*d[2], M[0][2]*d[0] + M[1][2]*d[1] + M[2][2]*d[2]];
+    const ra = ((Math.atan2(eq[1], eq[0])*R2D + 360) % 360)/15, dec = Math.asin(Math.max(-1, Math.min(1, eq[2])))*R2D;
+    const cn = A.Constellation(ra, dec), c = CONS[cn.symbol];
+    if (c) select({ kind: 'con', ref: c }, false);
+  } catch (e) {}
 }
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
@@ -1815,7 +1831,7 @@ function lumClass(sp) {
 function select(obj, fly) {
   S.sel = obj;
   const e = selE(obj); seeThrough = e[2] < 0 ? 1 : 0;
-  if (fly) flyTo(e, obj.kind === 'body' && obj.ref.b === 'Jupiter' ? 0.45*D2R : obj.kind === 'body' && obj.ref.b === 'Saturn' ? 0.14*D2R : obj.kind === 'con' ? 60*D2R : obj.kind === 'shower' ? 75*D2R : obj.kind === 'dso' ? 35*D2R : undefined, obj);
+  if (fly) flyTo(e, obj.kind === 'body' && (obj.ref.b === 'Venus' || obj.ref.b === 'Mercury') ? 0.12*D2R : obj.kind === 'body' && obj.ref.b === 'Mars' ? 0.05*D2R : obj.kind === 'body' && obj.ref.b === 'Jupiter' ? 0.45*D2R : obj.kind === 'body' && obj.ref.b === 'Saturn' ? 0.14*D2R : obj.kind === 'con' ? 60*D2R : obj.kind === 'shower' ? 75*D2R : obj.kind === 'dso' ? 35*D2R : undefined, obj);
   renderInfo();
 }
 function renderInfo() {
