@@ -1747,6 +1747,10 @@ function grabShot() { return new Promise(res => { shotReq = res; }); }
 async function saveCanvas(c, name, title) {
   const blob = await new Promise(r => c.toBlob(r, 'image/png'));
   const file = new File([blob], name, { type: 'image/png' });
+  // inside the Claude viewer, files go through its downloads capability
+  if (window.claude && typeof window.claude.use === 'function') {
+    try { const dl = await window.claude.use('downloads'); if (dl) { try { await dl.save({ filename: name, data: blob }); toast('Görüntü kaydedildi.'); } catch (e) { if (e && e.code !== 'declined') toast('Kaydedilemedi.'); } return; } } catch (e) {}
+  }
   try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
   try { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Görüntü indirildi.'); }
   catch (e) { toast('Bu görünümde dosya kaydedilemiyor; sitede (github.io) dene.'); }

@@ -1,5 +1,5 @@
 // Çevrimdışı çalışma: sayfa ve veriler ilk açılışta saklanır, internet yokken de açılır.
-const CACHE = 'gokyuzu-20261018182919';
+const CACHE = 'gokyuzu-20261018182943';
 const CORE = ['./', './index.html', './gokyuzu-veri.js', './gokyuzu-veri-derin.js', './manifest.webmanifest', './icon-192.png',
   'https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js', 'https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
