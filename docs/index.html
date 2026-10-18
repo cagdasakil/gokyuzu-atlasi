@@ -1164,7 +1164,7 @@ let M = [[1,0,0],[0,1,0],[0,0,1]];       // J2000 equatorial -> local East/North
 let observer = new A.Observer(S.loc.lat, S.loc.lon, 0);
 let now = new Date(), atime = A.MakeTime(now);
 const bodies = PLANETS.map(p => ({ ...p, v: [1,0,0], e: [1,0,0], dist: 0, mag: 0, phase: 1 }));
-let sunE = [0,0,-1], dayness = 0, dayReal = 0, lastBodies = 0;
+let sunE = [0,0,-1], dayness = 0, dayReal = 0, lastBodies = 0, ECLIP = { f: 0 };
 const mul = (m, v) => [m[0][0]*v[0] + m[0][1]*v[1] + m[0][2]*v[2], m[1][0]*v[0] + m[1][1]*v[1] + m[1][2]*v[2], m[2][0]*v[0] + m[2][1]*v[1] + m[2][2]*v[2]];
 function updateAstro(force) {
   now = new Date(Date.now() + S.offset);
@@ -1189,6 +1189,16 @@ function updateAstro(force) {
   dayReal = smooth(-16, 1, sunAlt);
   // by default daylight is only hinted with a soft glow so the sky stays readable; "realistic day" washes it out like the real sky
   dayness = S.atmo ? dayReal*(SET.realDay ? 1 : 0.24) : 0;
+  // eclipses: true angular sizes of Sun and Moon, how much of the Sun is covered, and the Moon's place in Earth's shadow
+  { const sun = bodies[0], moon = bodies[1], AUK = 149597870.7;
+    const rs = Math.asin(696000/(sun.dist*AUK)), rm = Math.asin(1737.4/(moon.dist*AUK)), sep = Math.acos(Math.max(-1, Math.min(1, dot(sun.e, moon.e))));
+    let f = 0; if (sep < rs + rm) { if (sep <= Math.abs(rm - rs)) f = rm >= rs ? 1 : (rm*rm)/(rs*rs); else {
+      const d = sep, a1 = Math.acos((d*d + rs*rs - rm*rm)/(2*d*rs)), a2 = Math.acos((d*d + rm*rm - rs*rs)/(2*d*rm));
+      f = (rs*rs*a1 + rm*rm*a2 - 0.5*Math.sqrt(Math.max(0, (-d + rs + rm)*(d + rs - rm)*(d - rs + rm)*(d + rs + rm))))/(Math.PI*rs*rs); } }
+    const par = Math.asin(6378/(moon.dist*AUK)), parS = Math.asin(6378/(sun.dist*AUK));
+    const anti = [-sun.e[0], -sun.e[1], -sun.e[2]], sepL = Math.acos(Math.max(-1, Math.min(1, dot(anti, moon.e))));
+    ECLIP = { f, sep, rs, rm, sepL, umbra: 1.02*(par + parS - rs), pen: 1.02*(par + parS + rs), anti };
+    if (f > 0) dayness *= 1 - 0.985*Math.pow(f, 6); }
 }
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a)/(b - a))); return t*t*(3 - 2*t); };
 
@@ -1409,12 +1419,20 @@ function drawOverlay(t) {
   }
 
   // Sun, Moon, planets
-  bodies.slice().reverse().forEach(b => {
+  bodies.slice(2).reverse().concat([bodies[0], bodies[1]]).forEach(b => {
     const e = b.e; if (!visible(e)) return;
     const p = proj(e); if (!p) return;
     const dim = below(e) ? 0.45 : 1;
     if (b.b === 'Sun') {
-      const r = Math.max(9, 0.0047*ppr);
+      const ek = ECLIP.f > 0 ? Math.max(1, 9/(ECLIP.rs*ppr)) : 1, r = Math.max(9, ECLIP.rs*ppr*ek || 0.0047*ppr);
+      if (ECLIP.f > 0.93) { // the corona appears only when the Sun is almost completely covered
+        const ca = Math.min(1, (ECLIP.f - 0.93)/0.07); ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        const cg = ctx.createRadialGradient(p[0], p[1], r*0.95, p[0], p[1], r*4.5); cg.addColorStop(0, 'rgba(255,255,255,' + 0.9*ca + ')'); cg.addColorStop(0.15, 'rgba(220,230,255,' + 0.45*ca + ')'); cg.addColorStop(1, 'rgba(200,210,255,0)');
+        ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(p[0], p[1], r*4.5, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = 'rgba(235,240,255,' + 0.25*ca + ')'; ctx.lineWidth = 1.2;
+        for (let k = 0; k < 28; k++) { const an = k*0.2244 + Math.sin(k*7.1)*0.08, l2 = r*(1.6 + 1.6*Math.abs(Math.sin(k*3.7))); ctx.beginPath(); ctx.moveTo(p[0] + Math.cos(an)*r, p[1] + Math.sin(an)*r); ctx.lineTo(p[0] + Math.cos(an)*l2, p[1] + Math.sin(an)*l2); ctx.stroke(); }
+        ctx.restore();
+      }
       const g = ctx.createRadialGradient(p[0], p[1], 0, p[0], p[1], r*5);
       g.addColorStop(0, 'rgba(255,245,215,' + dim + ')'); g.addColorStop(0.2, 'rgba(255,225,160,' + 0.55*dim + ')'); g.addColorStop(1, 'rgba(255,200,120,0)');
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p[0], p[1], r*5, 0, Math.PI*2); ctx.fill();
@@ -1422,9 +1440,18 @@ function drawOverlay(t) {
       picks.push({ x: p[0], y: p[1], r: r + 14, pri: 0, obj: { kind: 'body', ref: b } });
       label(b.tr, p[0] + r + 6, p[1] + 4, '700 14px Manrope, sans-serif', 'rgba(255,233,176,.95)');
     } else if (b.b === 'Moon') {
-      const r = Math.max(11, 0.0045*ppr);
-      drawMoon(p, r, b, dim);
-      if (r > 70) drawMoonAtlas(p, r);
+      const solar = ECLIP.f > 0, ek = solar ? Math.max(1, 9/(ECLIP.rs*ppr)) : 1, r = solar ? ECLIP.rm*ppr*ek : Math.max(11, ECLIP.rm ? ECLIP.rm*ppr : 0.0045*ppr);
+      if (solar) { ctx.fillStyle = 'rgba(4,5,9,' + dim + ')'; ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI*2); ctx.fill(); }
+      else drawMoon(p, r, b, dim);
+      // lunar eclipse: Earth's penumbra and red umbra drawn onto the Moon
+      if (!solar && ECLIP.sepL < ECLIP.pen + ECLIP.rm) {
+        const ap = proj(ECLIP.anti);
+        if (ap) { const k2 = r/ECLIP.rm; ctx.save(); ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI*2); ctx.clip();
+          ctx.fillStyle = 'rgba(0,0,0,.32)'; ctx.beginPath(); ctx.arc(ap[0], ap[1], ECLIP.pen*k2, 0, Math.PI*2); ctx.fill();
+          const ug = ctx.createRadialGradient(ap[0], ap[1], 0, ap[0], ap[1], ECLIP.umbra*k2); ug.addColorStop(0, 'rgba(70,12,4,.9)'); ug.addColorStop(0.85, 'rgba(140,40,12,.82)'); ug.addColorStop(1, 'rgba(170,70,30,.6)');
+          ctx.fillStyle = ug; ctx.beginPath(); ctx.arc(ap[0], ap[1], ECLIP.umbra*k2, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
+      }
+      if (!solar && r > 70) drawMoonAtlas(p, r);
       picks.push({ x: p[0], y: p[1], r: r + 14, pri: 0, obj: { kind: 'body', ref: b } });
       label(b.tr + ' · ' + pct(Math.round(b.phase*100)), p[0] + r + 7, p[1] + 4, '700 14px Manrope, sans-serif', 'rgba(233,230,220,.95)');
     } else {
@@ -2340,7 +2367,7 @@ function upcomingEvents() {
   try { for (const y of [nowD.getFullYear(), nowD.getFullYear() + 1]) { const ss = A.Seasons(y);
     add(ss.mar_equinox.date, T('İlkbahar ekinoksu'), T('Gece ile gündüz eşit'), null); add(ss.jun_solstice.date, T('Yaz gündönümü'), T('Yılın en uzun günü'), null);
     add(ss.sep_equinox.date, T('Sonbahar ekinoksu'), T('Gece ile gündüz eşit'), null); add(ss.dec_solstice.date, T('Kış gündönümü'), T('Yılın en uzun gecesi'), null); } } catch (e) {}
-  const LK = { penumbral: T('Yarıgölge'), partial: T('Parçalı'), total: 'Tam', annular: T('Halkalı') };
+  const LK = { penumbral: T('Yarıgölge'), partial: T('Parçalı'), total: LANG === 'en' ? 'Total' : 'Tam', annular: T('Halkalı') };
   try { let le = A.SearchLunarEclipse(t0); for (let i = 0; i < 3 && le; i++) {
       const eq = A.Equator('Moon', le.peak, observer, true, true), hz = A.Horizon(le.peak, observer, eq.ra, eq.dec, 'normal');
       add(le.peak.date, (LK[le.kind] || '') + T(' Ay tutulması'), hz.altitude > 0 ? S.loc.name + T('\'dan görünür') : T('Buradan görünmez (Ay ufkun altında)'), { body: 'Moon' });
@@ -2348,8 +2375,18 @@ function upcomingEvents() {
   try { let se = A.SearchLocalSolarEclipse(t0, observer); for (let i = 0; i < 2 && se; i++) {
       add(se.peak.time.date, (LK[se.kind] || '') + T(' Güneş tutulması'), S.loc.name + T('\'dan görünür · koruyucu gözlük şart'), { body: 'Sun' });
       se = A.NextLocalSolarEclipse(se.peak.time, observer); } } catch (e) {}
+  try { let ge = A.SearchGlobalSolarEclipse(t0); for (let i = 0; i < 4 && ge; i++) {
+      const same = ev.find(x => x.act && x.act.body === 'Sun' && Math.abs(x.d - ge.peak.date) < 86400000);
+      if (same && (ge.kind === 'total' || ge.kind === 'annular') && ge.latitude != null) same.sub += (LANG === 'en' ? ' · ' + (ge.kind === 'total' ? 'total' : 'annular') + ' near ' : ' · ' + (ge.kind === 'total' ? 'tam' : 'halkalı') + ' tutulma ') + fmtN(Math.abs(ge.latitude), 0) + '°' + (ge.latitude >= 0 ? COMPASS_SHORT[0] : COMPASS_SHORT[4]) + ' ' + fmtN(Math.abs(ge.longitude), 0) + '°' + (ge.longitude >= 0 ? COMPASS_SHORT[2] : COMPASS_SHORT[6]) + (LANG === 'en' ? '' : ' yakınında');
+      if ((ge.kind === 'total' || ge.kind === 'annular') && !same) {
+        const where = ge.latitude != null ? fmtN(Math.abs(ge.latitude), 0) + '°' + (ge.latitude >= 0 ? COMPASS_SHORT[0] : COMPASS_SHORT[4]) + ' ' + fmtN(Math.abs(ge.longitude), 0) + '°' + (ge.longitude >= 0 ? COMPASS_SHORT[2] : COMPASS_SHORT[6]) : '';
+        add(ge.peak.date, (ge.kind === 'total' ? (LANG === 'en' ? 'Total' : 'Tam') : T('Halkalı')) + T(' Güneş tutulması') + (LANG === 'en' ? ' (on Earth)' : ' (dünyada)'), (LANG === 'en' ? 'Best seen near ' : 'En iyi görüleceği yer: ') + where, { body: 'Sun', far: true }); }
+      ge = A.NextGlobalSolarEclipse(ge.peak); } } catch (e) {}
   SHOWERS.forEach(sh => { const pk = nextPeak(sh, nowD); add(pk, sh.n + T(' meteor yağmuru'), T('Zirve · saatte ~') + sh.zhr + T(' meteor (ideal koşulda)'), { shower: sh }); });
-  return ev.sort((a, b) => a.d - b.d).slice(0, 14);
+  // keep the list short, but never drop an eclipse: they are the rarest events
+  const sorted = ev.sort((a, b) => a.d - b.d), top = sorted.slice(0, 14);
+  sorted.slice(14).forEach(e => { if (/tutulma|eclipse/i.test(e.t)) top.push(e); });
+  return top;
 }
 function openTonight() {
   const t0 = atime;
@@ -2396,7 +2433,7 @@ function openTonight() {
     const e = evs[+b.dataset.ev]; let d = e.d;
     if (e.act && e.act.shower) { d = new Date(d); d.setHours(3, 0, 0, 0); }
     S.offset = d - Date.now(); S.speed = 1; updateAstro(true); buildChips();
-    if (e.act && e.act.body) select({ kind: 'body', ref: bodies.find(x => x.b === e.act.body) }, true);
+    if (e.act && e.act.body) { select({ kind: 'body', ref: bodies.find(x => x.b === e.act.body) }, true); if (/tutulma|eclipse/i.test(e.t) && S.fly) S.fly.fov1 = 2.5*D2R; }
     else if (e.act && e.act.shower) select({ kind: 'shower', ref: e.act.shower }, true);
     else { closeSheet(); toast(e.t + ' · ' + dateTxt(d)); }
   }));
