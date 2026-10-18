@@ -1,0 +1,32 @@
+name: Uydu yörüngelerini güncelle
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+jobs:
+  tle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: CelesTrak'tan yörüngeleri indir (6 saatte bir, kullanım kurallarına uygun)
+        run: |
+          set -e
+          UA="GokyuzuAtlasi/1.0 (github.com/cagdasakil/gokyuzu-atlasi)"
+          curl -sf -A "$UA" "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle" -o st.txt
+          curl -sf -A "$UA" "https://celestrak.org/NORAD/elements/gp.php?CATNR=20580&FORMAT=tle" -o hst.txt || true
+          cat st.txt hst.txt > docs/tle.txt
+          grep -q "^1 25544" docs/tle.txt
+      - name: Kaydet ve siteyi yenile
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/tle.txt
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Uydu yörüngeleri güncellendi"
+          git push
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" || true

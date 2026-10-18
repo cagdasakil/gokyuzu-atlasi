@@ -9,6 +9,7 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   // live data (ISS orbit, weather) always from the network
   if (u.hostname.includes('celestrak') || u.hostname.includes('open-meteo')) return;
+  if (u.pathname.endsWith('tle.txt')) { e.respondWith(fetch(e.request).then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put(e.request, c)); return r; }).catch(() => caches.match(e.request))); return; }
   if (e.request.mode === 'navigate') { e.respondWith(fetch(e.request).then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put('./index.html', c)); return r; }).catch(() => caches.match('./index.html'))); return; }
   e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request).then(r => { if (r.ok || r.type === 'opaque') { const c = r.clone(); caches.open(CACHE).then(x => x.put(e.request, c)); } return r; })));
 });

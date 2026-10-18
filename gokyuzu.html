@@ -1602,7 +1602,7 @@ function drawMoon(p, r, b, dim) {
 function selE(sel) {
   if (!sel) return null;
   if (sel.kind === 'body') return sel.ref.e;
-  if (sel.kind === 'iss') return ISS.e || [0, 0, -1];
+  if (sel.kind === 'iss') return sel.ref.e || [0, 0, -1];
   return mul(M, sel.ref.v);
 }
 
@@ -1822,7 +1822,7 @@ function renderInfo() {
     h += '<div class="rows">' + pos + '</div>';
     if (top.length) h += '<div class="list">' + top.map(s => '<button class="item" data-star="' + s.i + '"><b>' + esc(starTitle(s)) + '</b><span>' + fmtN(s.mag, 1) + T(' kadir') + (s.ly ? ' · ' + fmtLy(s.ly) : '') + '</span></button>').join('') + '</div>';
   }
-  if (o.kind === 'iss') h = issCard();
+  if (o.kind === 'iss') h = issCard(o.ref);
   const canFly = (o.kind === 'star' && o.ref.ly > 0 && o.ref.ly < 30000) || (o.kind === 'dso' && o.ref.ly > 0 && o.ref.ly < 30000 && !'sei'.includes(o.ref.type));
   if (canFly) h += '<div class="btns"><button class="btn on" id="goBtn">✦ ' + (LANG === 'en' ? 'Fly there in 3D' : '3D olarak oraya git') + '</button></div>';
   h += logButton(o);
@@ -2077,7 +2077,7 @@ $('setBtn').addEventListener('click', openSettings);
 
 /* location */
 function setLoc(loc, quiet) {
-  setTimeout(() => { if (ISS.rec) computePasses(); }, 50);
+  setTimeout(() => { if (SATS.some(x => x.rec)) computePasses(); }, 50);
   S.loc = loc; store.set('loc', loc); observer = new A.Observer(loc.lat, loc.lon, 0); $('locName').textContent = loc.name;
   updateAstro(true); buildChips(); if (!quiet) toast(loc.name + T(' gökyüzü gösteriliyor.'));
 }
@@ -2282,7 +2282,7 @@ function openTonight() {
     act.forEach(([sh, a]) => { const d = Math.round(a.days); h += '<button class="item" data-sh="' + sh.n + '"><b>' + sh.n + '</b><span>' + (d === 0 ? T('Bu gece zirvede') : d < 0 ? T('Zirveye ') + (-d) + T(' gün') : T('Zirve ') + d + T(' gün önceydi')) + ' · ' + sh.from + '</span></button>'; });
     h += T('</div><p class="note">Meteorlar radyant denen noktadan saçılıyor gibi görünür; en iyi gece yarısından sonra, şehir ışıklarından uzakta izlenir.</p>');
   }
-  h += T('<div class="sect">Uzay istasyonu (ISS)</div>') + passList();
+  h += (LANG === 'en' ? '<div class="sect">Space stations and Hubble</div>' : '<div class="sect">Uzay istasyonları ve Hubble</div>') + passList();
   h += T('<div class="sect">Yaklaşan olaylar</div><div class="list">');
   const evs = upcomingEvents();
   evs.forEach((e, i) => { h += '<button class="item" data-ev="' + i + '"><b>' + esc(e.t) + '</b><span>' + e.d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' }) + '</span></button><p class="note" style="margin:-4px 4px 6px">' + esc(e.sub) + '</p>'; });
@@ -2420,7 +2420,7 @@ function applyFolk() {
 
 /* ---------- observation log & badges ---------- */
 const LOG = store.get('log', {});
-const logKey = o => o.kind === 'star' ? 'star:' + (o.ref.name || o.ref.hip || o.ref.i) : o.kind === 'body' ? 'body:' + o.ref.b : o.kind === 'dso' ? 'dso:' + o.ref.id : o.kind === 'con' ? 'con:' + o.ref.id : o.kind === 'shower' ? 'shower:' + o.ref.n : o.kind === 'jmoon' ? 'jmoon:' + o.ref.n : o.kind === 'iss' ? 'iss' : null;
+const logKey = o => o.kind === 'star' ? 'star:' + (o.ref.name || o.ref.hip || o.ref.i) : o.kind === 'body' ? 'body:' + o.ref.b : o.kind === 'dso' ? 'dso:' + o.ref.id : o.kind === 'con' ? 'con:' + o.ref.id : o.kind === 'shower' ? 'shower:' + o.ref.n : o.kind === 'jmoon' ? 'jmoon:' + o.ref.n : o.kind === 'iss' ? (o.ref && o.ref.id !== 25544 ? 'sat:' + o.ref.n : 'iss') : null;
 function logToggle(o) {
   const k = logKey(o); if (!k) return;
   if (LOG[k]) delete LOG[k]; else { LOG[k] = { t: Date.now(), h: new Date().getHours() }; checkBadges(true); }
@@ -2582,84 +2582,111 @@ function birthCard(date, loc, name) {
   return { canvas: c, summary };
 }
 
-/* ---------- International Space Station ---------- */
+/* ---------- crewed stations and Hubble (orbits from our own tle.txt, refreshed every 6 h by a GitHub Action) ---------- */
 const ISS_FALLBACK = ['1 25544U 98067A   26291.14461894  .00007503  00000+0  14456-3 0  9994', '2 25544  51.6328  51.6259 0006780 277.7856  82.2363 15.48918166590814'];
-const ISS = { rec: null, e: null, lit: false, alt: 0, km: 0, passes: [], live: false, last: 0 };
+const SATS = [
+  { id: 25544, n: 'ISS', col: '#9fdcff', km0: 420, full: { tr: 'Uluslararası Uzay İstasyonu', en: 'International Space Station' },
+    fact: { tr: 'Dünya\'nın çevresinde saatte yaklaşık 27.600 km hızla, her 92 dakikada bir tur atıyor. İçinde şu an astronotlar yaşıyor. Gün batımından sonra Güneş ışığını yansıtınca Venüs kadar parlak, yanıp sönmeyen bir nokta olarak birkaç dakikada gökyüzünü geçer.', en: 'It circles the Earth at about 27,600 km/h, once every 92 minutes, with astronauts living on board. After sunset, lit by the Sun, it crosses the sky in a few minutes as a steady point as bright as Venus.' } },
+  { id: 48274, n: 'Tiangong', col: '#ffb08a', km0: 390, full: { tr: 'Çin Uzay İstasyonu', en: 'Chinese Space Station' },
+    fact: { tr: 'Çin\'in kalıcı insanlı uzay istasyonu; 2021\'den beri görevde. ISS\'ten küçüktür ama parlak geçişlerinde çıplak gözle kolayca görülür.', en: 'China\'s permanently crewed space station, in service since 2021. Smaller than the ISS, but its bright passes are easy to see with the naked eye.' } },
+  { id: 20580, n: 'Hubble', col: '#d6b4ff', km0: 530, full: { tr: 'Hubble Uzay Teleskobu', en: 'Hubble Space Telescope' },
+    fact: { tr: '1990\'dan beri yörüngede çalışan uzay teleskobu. Bu uygulamadaki fotoğrafların birçoğunu o çekti. Sönük bir yıldız gibi, sessizce kayarak geçer.', en: 'The space telescope working in orbit since 1990; many of the photos in this app were taken by it. It glides past like a faint, steady star.' } }
+].map(s => ({ ...s, rec: null, e: null, lit: false, km: 0, passes: [], live: false }));
+const ISS = SATS[0];
+let SAT_LAST = 0;
+function parseTLE(txt) {
+  const out = {}, ln = txt.split('\n').map(x => x.trim()).filter(Boolean);
+  for (let i = 0; i < ln.length; i++) if (ln[i].startsWith('1 ') && ln[i + 1] && ln[i + 1].startsWith('2 ')) { out[+ln[i].slice(2, 7)] = [ln[i], ln[i + 1]]; i++; }
+  return out;
+}
+async function getTLEs() {
+  try { const r = await fetch('tle.txt', { cache: 'no-cache' }); if (r.ok) { const t = parseTLE(await r.text()); if (Object.keys(t).length) return { t, live: true }; } } catch (e) {}
+  try { const c = store.get('tle', null); if (c && Date.now() - c.at < 3*3600000) return { t: c.t, live: true }; } catch (e) {}
+  try {
+    const t = parseTLE(await (await fetch('https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=TLE')).text());
+    try { Object.assign(t, parseTLE(await (await fetch('https://celestrak.org/NORAD/elements/gp.php?CATNR=20580&FORMAT=TLE')).text())); } catch (e) {}
+    if (Object.keys(t).length) { store.set('tle', { at: Date.now(), t }); return { t, live: true }; }
+  } catch (e) {}
+  const c = store.get('tle', null); if (c) return { t: c.t, live: false };
+  return { t: { 25544: ISS_FALLBACK }, live: false };
+}
 function loadISS() {
   const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js';
   sc.onload = async () => {
-    let tle = ISS_FALLBACK;
-    try { const t = await (await fetch('https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE', { cache: 'no-cache' })).text(); const ln = t.trim().split('\n').map(x => x.trim()); if (ln[1] && ln[1].startsWith('1 ')) { tle = [ln[1], ln[2]]; ISS.live = true; } } catch (e) {}
-    try { ISS.rec = satellite.twoline2satrec(tle[0], tle[1]); computePasses(); } catch (e) {}
+    const { t, live } = await getTLEs();
+    SATS.forEach(s => { const tl = t[s.id]; if (!tl) return; try { s.rec = satellite.twoline2satrec(tl[0], tl[1]); s.live = live; } catch (e) {} });
+    computePasses();
   };
   document.body.appendChild(sc);
 }
-function issAt(date, lat, lon) {
-  const pv = satellite.propagate(ISS.rec, date); if (!pv || !pv.position) return null;
+function sunDir(date) { const sun = A.GeoVector('Sun', A.MakeTime(date), true), l = Math.hypot(sun.x, sun.y, sun.z); return [sun.x/l, sun.y/l, sun.z/l]; }
+function issAt(date, lat, lon, sat = ISS, sd) {
+  if (!sat.rec) return null;
+  const pv = satellite.propagate(sat.rec, date); if (!pv || !pv.position) return null;
   const gmst = satellite.gstime(date), ecf = satellite.eciToEcf(pv.position, gmst);
   const la = satellite.ecfToLookAngles({ longitude: lon*D2R, latitude: lat*D2R, height: 0 }, ecf);
-  const p = pv.position, sun = A.GeoVector('Sun', A.MakeTime(date), true); const sl = Math.hypot(sun.x, sun.y, sun.z), s = [sun.x/sl, sun.y/sl, sun.z/sl];
+  const p = pv.position, s = sd || sunDir(date);
   const d = p.x*s[0] + p.y*s[1] + p.z*s[2], perp = Math.hypot(p.x - d*s[0], p.y - d*s[1], p.z - d*s[2]);
-  const lit = d > 0 || perp > 6371;
   const gd = satellite.eciToGeodetic(pv.position, gmst);
-  return { az: la.azimuth, el: la.elevation, lit, km: gd.height };
+  return { az: la.azimuth, el: la.elevation, lit: d > 0 || perp > 6371, km: gd.height };
 }
 function issE(x) { return [Math.sin(x.az)*Math.cos(x.el), Math.cos(x.az)*Math.cos(x.el), Math.sin(x.el)]; }
 function updateISS() {
-  if (!ISS.rec || performance.now() - ISS.last < 250) return; ISS.last = performance.now();
-  const x = issAt(now, S.loc.lat, S.loc.lon); if (!x) { ISS.e = null; return; }
-  ISS.e = issE(x); ISS.lit = x.lit; ISS.km = x.km; ISS.el = x.el;
+  if (performance.now() - SAT_LAST < 250) return; SAT_LAST = performance.now();
+  const sd = SATS.some(s => s.rec) ? sunDir(now) : null;
+  SATS.forEach(s => { const x = issAt(now, S.loc.lat, S.loc.lon, s, sd); if (!x) { s.e = null; return; } s.e = issE(x); s.lit = x.lit; s.km = x.km; s.el = x.el; });
 }
 function computePasses() {
-  if (!ISS.rec) return;
-  const out = [], start = now.getTime(); let cur = null;
+  const act = SATS.filter(s => s.rec); if (!act.length) return;
+  const cur = new Map(), res = new Map(act.map(s => [s, []])), start = now.getTime();
   for (let t = 0; t < 72*3600; t += 30) {
-    const d = new Date(start + t*1000), x = issAt(d, S.loc.lat, S.loc.lon); if (!x) continue;
-    if (x.el > 10*D2R) {
-      if (!cur) cur = { start: d, max: d, maxEl: x.el, az0: x.az };
-      if (x.el > cur.maxEl) { cur.maxEl = x.el; cur.max = d; cur.lit = x.lit; }
-      cur.end = d; cur.az1 = x.az;
-    } else if (cur) {
-      const sunAlt = (() => { const eq = A.Equator('Sun', A.MakeTime(cur.max), observer, true, true); return A.Horizon(A.MakeTime(cur.max), observer, eq.ra, eq.dec, 'normal').altitude; })();
-      cur.visible = cur.lit && sunAlt < -6; out.push(cur); cur = null;
-    }
+    const d = new Date(start + t*1000), sd = sunDir(d);
+    act.forEach(s => {
+      const x = issAt(d, S.loc.lat, S.loc.lon, s, sd); if (!x) return; let c = cur.get(s);
+      if (x.el > 10*D2R) { if (!c) { c = { start: d, max: d, maxEl: x.el, az0: x.az, sat: s }; cur.set(s, c); } if (x.el > c.maxEl) { c.maxEl = x.el; c.max = d; c.lit = x.lit; } c.end = d; c.az1 = x.az; }
+      else if (c) { const eq = A.Equator('Sun', A.MakeTime(c.max), observer, true, true), alt = A.Horizon(A.MakeTime(c.max), observer, eq.ra, eq.dec, 'normal').altitude;
+        c.visible = c.lit && alt < -6; res.get(s).push(c); cur.delete(s); }
+    });
   }
-  ISS.passes = out;
+  act.forEach(s => { s.passes = res.get(s); });
 }
 function drawISS(night) {
-  if (!ISS.e || (!visible(ISS.e) && !(S.sel && S.sel.kind === 'iss'))) return;
-  const p = proj(ISS.e); if (!p) return;
-  const bright = ISS.lit && dayReal < 0.5;
-  // path for the next 8 minutes
-  ctx.save(); ctx.setLineDash([4, 5]); ctx.strokeStyle = 'rgba(140,220,255,' + (bright ? 0.6 : 0.3) + ')'; ctx.lineWidth = 1.2; ctx.beginPath(); let first = true;
-  for (let s2 = 0; s2 <= 480; s2 += 20) { const x = issAt(new Date(now.getTime() + s2*1000), S.loc.lat, S.loc.lon); if (!x) continue; const e = issE(x); if (e[2] < -0.02 && SET.ground === 'solid') { first = true; continue; } const q = proj(e); if (!q) { first = true; continue; } first ? ctx.moveTo(q[0], q[1]) : ctx.lineTo(q[0], q[1]); first = false; }
-  ctx.stroke(); ctx.restore();
-  ctx.save(); ctx.translate(p[0], p[1]);
-  const gl2 = ctx.createRadialGradient(0, 0, 0, 0, 0, 14); gl2.addColorStop(0, bright ? 'rgba(255,255,255,1)' : 'rgba(170,190,220,.7)'); gl2.addColorStop(1, 'rgba(140,220,255,0)');
-  ctx.fillStyle = gl2; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fill();
-  ctx.strokeStyle = bright ? '#fff' : 'rgba(200,215,235,.8)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(9, 0); ctx.moveTo(-9, -4); ctx.lineTo(-9, 4); ctx.moveTo(9, -4); ctx.lineTo(9, 4); ctx.stroke();
-  ctx.fillStyle = bright ? '#fff' : '#cdd8e8'; ctx.fillRect(-2.5, -2.5, 5, 5);
-  ctx.restore();
-  label('ISS' + (bright ? T(' · görünür') : ''), p[0] + 14, p[1] - 8, '700 13px Manrope, sans-serif', '#9fdcff', { force: true });
-  picks.push({ x: p[0], y: p[1], r: 22, pri: 0, obj: { kind: 'iss', ref: ISS } });
+  SATS.forEach(sat => {
+    if (!sat.e || (!visible(sat.e) && !(S.sel && S.sel.kind === 'iss' && S.sel.ref === sat))) return;
+    const p = proj(sat.e); if (!p) return;
+    const bright = sat.lit && dayReal < 0.5, big = sat.id !== 20580;
+    ctx.save(); ctx.setLineDash([4, 5]); ctx.strokeStyle = hexA(sat.col, bright ? 0.6 : 0.3); ctx.lineWidth = 1.2; ctx.beginPath(); let first = true;
+    for (let s2 = 0; s2 <= 480; s2 += 20) { const x = issAt(new Date(now.getTime() + s2*1000), S.loc.lat, S.loc.lon, sat); if (!x) continue; const e = issE(x); if (e[2] < -0.02 && SET.ground === 'solid') { first = true; continue; } const q = proj(e); if (!q) { first = true; continue; } first ? ctx.moveTo(q[0], q[1]) : ctx.lineTo(q[0], q[1]); first = false; }
+    ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.translate(p[0], p[1]);
+    const gl2 = ctx.createRadialGradient(0, 0, 0, 0, 0, 14); gl2.addColorStop(0, bright ? 'rgba(255,255,255,1)' : 'rgba(170,190,220,.7)'); gl2.addColorStop(1, hexA(sat.col, 0));
+    ctx.fillStyle = gl2; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = bright ? '#fff' : 'rgba(200,215,235,.8)'; ctx.lineWidth = 1.6; ctx.beginPath();
+    if (big) { ctx.moveTo(-9, 0); ctx.lineTo(9, 0); ctx.moveTo(-9, -4); ctx.lineTo(-9, 4); ctx.moveTo(9, -4); ctx.lineTo(9, 4); } else { ctx.rect(-2.5, -6, 5, 12); ctx.moveTo(-8, 0); ctx.lineTo(-3, 0); ctx.moveTo(3, 0); ctx.lineTo(8, 0); }
+    ctx.stroke(); ctx.fillStyle = bright ? '#fff' : '#cdd8e8'; ctx.fillRect(-2.5, -2.5, 5, 5); ctx.restore();
+    label(sat.n + (bright ? T(' · görünür') : ''), p[0] + 14, p[1] - 8, '700 13px Manrope, sans-serif', sat.col, { force: true });
+    picks.push({ x: p[0], y: p[1], r: 22, pri: 0, obj: { kind: 'iss', ref: sat } });
+  });
 }
-function issCard() {
-  let h = T('<div class="shead"><div class="grow"><div class="kind">Uzay istasyonu</div><h2>ISS</h2><div class="sub">Uluslararası Uzay İstasyonu · ') + (ISS.live ? T('canlı yörünge verisi') : T('kayıtlı yörünge verisi')) + '</div></div>' + closeX + '</div>';
-  h += T('<p class="fact">Dünya\'nın çevresinde saatte yaklaşık 27.600 km hızla, her 92 dakikada bir tur atıyor. İçinde şu an astronotlar yaşıyor. Gün batımından sonra Güneş ışığını yansıtınca Venüs kadar parlak, yanıp sönmeyen bir nokta olarak birkaç dakikada gökyüzünü geçer.</p><div class="rows">');
-  h += row(T('Yükseklik'), fmtN(ISS.km || 420, 0) + ' km', T('İstanbul–Ankara arasından biraz fazla')) + row(T('Durum'), ISS.e && ISS.e[2] > 0 ? (ISS.lit ? T('Ufkun üstünde, güneş alıyor') : T('Ufkun üstünde, Dünya\'nın gölgesinde')) : T('Ufkun altında'));
-  h += '</div>' + passList();
+function issCard(sat = ISS) {
+  const en = LANG === 'en';
+  let h = '<div class="shead"><div class="grow"><div class="kind">' + (sat.id === 20580 ? (en ? 'Space telescope' : 'Uzay teleskobu') : T('Uzay istasyonu')) + '</div><h2>' + sat.n + '</h2><div class="sub">' + (en ? sat.full.en : sat.full.tr) + ' · ' + (sat.live ? T('canlı yörünge verisi') : T('kayıtlı yörünge verisi')) + '</div></div>' + closeX + '</div>';
+  h += '<p class="fact">' + (en ? sat.fact.en : sat.fact.tr) + '</p><div class="rows">';
+  h += row(T('Yükseklik'), fmtN(sat.km || sat.km0, 0) + ' km') + row(T('Durum'), sat.e && sat.e[2] > 0 ? (sat.lit ? T('Ufkun üstünde, güneş alıyor') : T('Ufkun üstünde, Dünya\'nın gölgesinde')) : T('Ufkun altında'));
+  h += '</div>' + passList([sat]);
   return h;
 }
-function passList() {
-  if (!ISS.rec) return T('<p class="note">Uzay istasyonu verisi yükleniyor…</p>');
-  const vis = ISS.passes.filter(p => p.visible).slice(0, 5);
+function passList(list = SATS) {
+  if (!list.some(s => s.rec)) return T('<p class="note">Uzay istasyonu verisi yükleniyor…</p>');
+  const vis = [].concat(...list.map(s => s.passes.filter(p => p.visible))).sort((a, b) => a.start - b.start).slice(0, 6);
   if (!vis.length) return T('<p class="note">Önümüzdeki 3 günde ') + esc(S.loc.name) + T('\'dan çıplak gözle görülebilecek bir geçiş yok.</p>');
-  return T('<div class="sect">Görünür geçişler</div><div class="list">') + vis.map((p, i) => '<button class="item" data-pass="' + ISS.passes.indexOf(p) + '"><b>' + dayHm(p.start) + '</b><span>' + Math.round((p.end - p.start)/60000) + T(' dk · en yüksek ') + Math.round(p.maxEl*R2D) + '° · ' + COMPASS[Math.round(((p.az0*R2D) % 360 + 360) % 360/45) % 8] + ' → ' + COMPASS[Math.round(((p.az1*R2D) % 360 + 360) % 360/45) % 8] + '</span></button>').join('') + T('</div><p class="note">Bir geçişe dokununca zaman o ana gider ve istasyonun yolunu izlersin.</p>');
+  return T('<div class="sect">Görünür geçişler</div><div class="list">') + vis.map(p => '<button class="item" data-pass="' + SATS.indexOf(p.sat) + ':' + p.sat.passes.indexOf(p) + '"><b>' + (list.length > 1 ? p.sat.n + ' · ' : '') + dayHm(p.start) + '</b><span>' + Math.round((p.end - p.start)/60000) + T(' dk · en yüksek ') + Math.round(p.maxEl*R2D) + '° · ' + COMPASS[Math.round(((p.az0*R2D) % 360 + 360) % 360/45) % 8] + ' → ' + COMPASS[Math.round(((p.az1*R2D) % 360 + 360) % 360/45) % 8] + '</span></button>').join('') + T('</div><p class="note">Bir geçişe dokununca zaman o ana gider ve istasyonun yolunu izlersin.</p>');
 }
 function bindPasses() {
   sheet.querySelectorAll('[data-pass]').forEach(b => b.addEventListener('click', () => {
-    const p = ISS.passes[+b.dataset.pass]; S.offset = p.start.getTime() - 60000 - Date.now(); S.speed = 1; updateAstro(true); buildChips(); updateISS(); ISS.last = 0;
-    closeSheet(); const x = issAt(p.max, S.loc.lat, S.loc.lon); flyTo(issE(x), 85*D2R); toast(T('ISS geçişi: ') + dayHm(p.start));
+    const [si, pi] = b.dataset.pass.split(':').map(Number), sat = SATS[si], p = sat.passes[pi];
+    S.offset = p.start.getTime() - 60000 - Date.now(); S.speed = 1; updateAstro(true); buildChips(); SAT_LAST = 0; updateISS();
+    closeSheet(); const x = issAt(p.max, S.loc.lat, S.loc.lon, sat); flyTo(issE(x), 85*D2R); toast(sat.n + ' · ' + dayHm(p.start));
   }));
 }
 
