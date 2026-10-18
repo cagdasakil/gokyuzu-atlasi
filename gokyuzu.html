@@ -1425,6 +1425,7 @@ function drawOverlay(t) {
   drawBounds(night);
   drawJMoons(night);
   drawISS(night);
+  drawComets(night);
   // stars with known planets: a small orbit ring once zoomed in
   if (S.fov*R2D < 45 && window.EXO) {
     if (!window.EXO_STARS || window.EXO_STARS.n !== STARS.length) { window.EXO_STARS = STARS.filter(st => st.hip && window.EXO[st.hip]); window.EXO_STARS.n = STARS.length; }
@@ -1708,7 +1709,7 @@ async function setGyro(on) {
 const sheet = $('sheet');
 let sheetMode = null;
 function openSheet(html, mode) { sheet.innerHTML = '<div class="grab"></div>' + html; sheet.scrollTop = 0; sheet.classList.remove('closed'); sheetMode = mode; const x = sheet.querySelector('.x'); x && x.addEventListener('click', closeSheet); }
-function closeSheet() { sheet.classList.add('closed'); sheetMode = null; S.sel = null; seeThrough = 0; }
+function closeSheet() { sheet.classList.add('closed'); sheetMode = null; S.sel = null; seeThrough = S.track && selE(S.track)[2] < 0 ? 1 : 0; }
 const closeX = '<button class="x" aria-label="Kapat"><svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.6"><path d="M1 1l10 10M11 1L1 11"/></svg></button>';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmtN = (x, d = 0) => x.toLocaleString(LOCALE, { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -1823,6 +1824,7 @@ function renderInfo() {
     if (top.length) h += '<div class="list">' + top.map(s => '<button class="item" data-star="' + s.i + '"><b>' + esc(starTitle(s)) + '</b><span>' + fmtN(s.mag, 1) + T(' kadir') + (s.ly ? ' · ' + fmtLy(s.ly) : '') + '</span></button>').join('') + '</div>';
   }
   if (o.kind === 'iss') h = issCard(o.ref);
+  if (o.kind === 'comet') h = cometCard(o.ref) + pos + '</div>';
   const canFly = (o.kind === 'star' && o.ref.ly > 0 && o.ref.ly < 30000) || (o.kind === 'dso' && o.ref.ly > 0 && o.ref.ly < 30000 && !'sei'.includes(o.ref.type));
   if (canFly) h += '<div class="btns"><button class="btn on" id="goBtn">✦ ' + (LANG === 'en' ? 'Fly there in 3D' : '3D olarak oraya git') + '</button></div>';
   h += logButton(o);
@@ -2283,12 +2285,17 @@ function openTonight() {
     h += T('</div><p class="note">Meteorlar radyant denen noktadan saçılıyor gibi görünür; en iyi gece yarısından sonra, şehir ışıklarından uzakta izlenir.</p>');
   }
   h += (LANG === 'en' ? '<div class="sect">Space stations and Hubble</div>' : '<div class="sect">Uzay istasyonları ve Hubble</div>') + passList();
+  if (COMETS.length) {
+    h += '<div class="sect">' + (LANG === 'en' ? 'Comets' : 'Kuyruklu yıldızlar') + '</div><div class="list">' + COMETS.slice(0, 6).map((c, i) => { const e = mul(M, c.v), up2 = e[2] > 0;
+      return '<button class="item" data-comet="' + i + '"><b>' + esc(c.name) + '</b><span>≈ ' + fmtN(c.mag, 1) + ' · ' + cometVis(c.mag) + (up2 ? '' : ' · ' + T('ufkun altında')) + '</span></button>'; }).join('') + '</div>';
+  }
   h += T('<div class="sect">Yaklaşan olaylar</div><div class="list">');
   const evs = upcomingEvents();
   evs.forEach((e, i) => { h += '<button class="item" data-ev="' + i + '"><b>' + esc(e.t) + '</b><span>' + e.d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' }) + '</span></button><p class="note" style="margin:-4px 4px 6px">' + esc(e.sub) + '</p>'; });
   h += T('</div><p class="note">Bir olaya dokununca zaman o ana gider; gökyüzünü o gün nasıl görüneceğiyle izlersin.</p>');
   openSheet(h, 'tonight');
   fillWeather(); bindPasses();
+  sheet.querySelectorAll('[data-comet]').forEach(b => b.addEventListener('click', () => select({ kind: 'comet', ref: COMETS[+b.dataset.comet] }, true)));
   sheet.querySelectorAll('[data-pl]').forEach(b => b.addEventListener('click', () => select({ kind: 'body', ref: bodies[+b.dataset.pl] }, true)));
   sheet.querySelectorAll('[data-sh]').forEach(b => b.addEventListener('click', () => select({ kind: 'shower', ref: SHOWERS.find(x => x.n === b.dataset.sh) }, true)));
   sheet.querySelectorAll('[data-ev]').forEach(b => b.addEventListener('click', () => {
@@ -2420,7 +2427,7 @@ function applyFolk() {
 
 /* ---------- observation log & badges ---------- */
 const LOG = store.get('log', {});
-const logKey = o => o.kind === 'star' ? 'star:' + (o.ref.name || o.ref.hip || o.ref.i) : o.kind === 'body' ? 'body:' + o.ref.b : o.kind === 'dso' ? 'dso:' + o.ref.id : o.kind === 'con' ? 'con:' + o.ref.id : o.kind === 'shower' ? 'shower:' + o.ref.n : o.kind === 'jmoon' ? 'jmoon:' + o.ref.n : o.kind === 'iss' ? (o.ref && o.ref.id !== 25544 ? 'sat:' + o.ref.n : 'iss') : null;
+const logKey = o => o.kind === 'star' ? 'star:' + (o.ref.name || o.ref.hip || o.ref.i) : o.kind === 'body' ? 'body:' + o.ref.b : o.kind === 'dso' ? 'dso:' + o.ref.id : o.kind === 'con' ? 'con:' + o.ref.id : o.kind === 'shower' ? 'shower:' + o.ref.n : o.kind === 'jmoon' ? 'jmoon:' + o.ref.n : o.kind === 'iss' ? (o.ref && o.ref.id !== 25544 ? 'sat:' + o.ref.n : 'iss') : o.kind === 'comet' ? 'comet:' + o.ref.name : null;
 function logToggle(o) {
   const k = logKey(o); if (!k) return;
   if (LOG[k]) delete LOG[k]; else { LOG[k] = { t: Date.now(), h: new Date().getHours() }; checkBadges(true); }
@@ -3005,6 +3012,73 @@ function ssFrame(tm) {
   SSV.raf = requestAnimationFrame(ssFrame);
 }
 
+/* ---------------- comets: MPC orbits (daily kuyruklu.json), two-body positions computed here ---------------- */
+const COMETS = [];
+let COMET_T = 0;
+const GK = 0.01720209895, EPSJ = 23.4392911*D2R;
+function cometHelio(c, jdT) {
+  const dt = jdT - c.tp, e = c.e, q = c.q, i = c.i*D2R, node = c.node*D2R, peri = c.peri*D2R;
+  let nu, r;
+  if (Math.abs(e - 1) < 1e-5) { const w = 3*GK/Math.sqrt(2*q*q*q)*dt, y = Math.cbrt(w/2 + Math.sqrt(w*w/4 + 1)), s = y - 1/y; nu = 2*Math.atan(s); r = q*(1 + s*s); }
+  else if (e < 1) { const a = q/(1 - e); let m = (GK/Math.pow(a, 1.5)*dt) % (2*Math.PI); let E = e < 0.8 ? m : Math.PI*(m >= 0 ? 1 : -1);
+    for (let k = 0; k < 60; k++) { const d = (E - e*Math.sin(E) - m)/(1 - e*Math.cos(E)); E -= d; if (Math.abs(d) < 1e-12) break; }
+    nu = 2*Math.atan2(Math.sqrt(1 + e)*Math.sin(E/2), Math.sqrt(1 - e)*Math.cos(E/2)); r = a*(1 - e*Math.cos(E)); }
+  else { const a = q/(e - 1), m = GK/Math.pow(a, 1.5)*dt; let Hh = Math.asinh(m/e);
+    for (let k = 0; k < 60; k++) { const d = (e*Math.sinh(Hh) - Hh - m)/(e*Math.cosh(Hh) - 1); Hh -= d; if (Math.abs(d) < 1e-12) break; }
+    nu = 2*Math.atan(Math.sqrt((e + 1)/(e - 1))*Math.tanh(Hh/2)); r = a*(e*Math.cosh(Hh) - 1); }
+  const u = peri + nu, x = r*(Math.cos(node)*Math.cos(u) - Math.sin(node)*Math.sin(u)*Math.cos(i)), y = r*(Math.sin(node)*Math.cos(u) + Math.cos(node)*Math.sin(u)*Math.cos(i)), z = r*Math.sin(u)*Math.sin(i);
+  return [x, y*Math.cos(EPSJ) - z*Math.sin(EPSJ), y*Math.sin(EPSJ) + z*Math.cos(EPSJ), r];
+}
+async function loadComets() {
+  try { const r = await fetch('kuyruklu.json', { cache: 'no-cache' }); if (!r.ok) return; const j = await r.json();
+    (j.comets || []).forEach(c => COMETS.push({ ...c, v: [1, 0, 0], e3: null, mag: 99, r: 0, delta: 0, helio: [1, 0, 0] }));
+    COMETS.forEach(c => INDEX.push({ t: c.name, s: LANG === 'en' ? 'Comet' : 'Kuyruklu yıldız', k: nrm(c.name), o: { kind: 'comet', ref: c } }));
+    updateComets(true);
+  } catch (e) {}
+}
+function updateComets(force) {
+  if (!COMETS.length || (!force && performance.now() - COMET_T < 1000 && S.speed === 1)) return; COMET_T = performance.now();
+  const jdT = now.getTime()/86400000 + 2440587.5, ea = A.HelioVector('Earth', atime), earth = [ea.x, ea.y, ea.z];
+  COMETS.forEach(c => {
+    const h = cometHelio(c, jdT), g = [h[0] - earth[0], h[1] - earth[1], h[2] - earth[2]], d = Math.hypot(...g);
+    c.v = g.map(x => x/d); c.delta = d; c.r = h[3]; c.helio = nrm3(h.slice(0, 3)); c.geo = g;
+    c.mag = c.H + 5*Math.log10(d) + 2.5*c.K*Math.log10(h[3]);
+  });
+}
+function drawComets(night) {
+  COMETS.forEach(c => {
+    if (c.mag > magLimit(S.fov*R2D) + 5) return;
+    const e = mul(M, c.v); if (!visible(e)) return; const p = proj(e); if (!p) return;
+    // tail points away from the Sun: project a point a little further along the Sun-comet line
+    const L = Math.min(0.6, 0.12/Math.max(0.3, c.r)), tip = [c.geo[0] + c.helio[0]*L, c.geo[1] + c.helio[1]*L, c.geo[2] + c.helio[2]*L], tl = Math.hypot(...tip);
+    const pt = proj(mul(M, tip.map(x => x/tl)));
+    const v = Math.max(0, Math.min(1, (11 - c.mag)/8)), a = (0.35 + 0.65*v)*night;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    if (pt) {
+      const dx = pt[0] - p[0], dy = pt[1] - p[1], len = Math.hypot(dx, dy), maxL = 40 + 160*v;
+      const k = len > maxL ? maxL/len : 1, tx = p[0] + dx*k, ty = p[1] + dy*k, nx = -dy/(len || 1), ny = dx/(len || 1), wd = 3 + 7*v;
+      const tg = ctx.createLinearGradient(p[0], p[1], tx, ty); tg.addColorStop(0, 'rgba(170,240,215,' + 0.55*a + ')'); tg.addColorStop(1, 'rgba(140,200,255,0)');
+      ctx.fillStyle = tg; ctx.beginPath(); ctx.moveTo(p[0] + nx*2, p[1] + ny*2); ctx.lineTo(tx + nx*wd*2, ty + ny*wd*2); ctx.lineTo(tx - nx*wd*2, ty - ny*wd*2); ctx.lineTo(p[0] - nx*2, p[1] - ny*2); ctx.closePath(); ctx.fill();
+    }
+    const hg = ctx.createRadialGradient(p[0], p[1], 0, p[0], p[1], 7 + 6*v); hg.addColorStop(0, 'rgba(225,255,240,' + a + ')'); hg.addColorStop(0.4, 'rgba(150,235,200,' + 0.45*a + ')'); hg.addColorStop(1, 'rgba(120,220,190,0)');
+    ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(p[0], p[1], 7 + 6*v, 0, Math.PI*2); ctx.fill(); ctx.restore();
+    label(c.name.replace(/^C\//, 'C/'), p[0] + 10, p[1] - 8, '600 12px Manrope, sans-serif', 'rgba(170,240,215,' + Math.min(1, a + 0.2) + ')');
+    picks.push({ x: p[0], y: p[1], r: 20, pri: 0.8, obj: { kind: 'comet', ref: c } });
+  });
+}
+function cometVis(m) { const en = LANG === 'en'; return m <= 6 ? (en ? 'Visible to the naked eye from a dark site' : 'Karanlık bir yerde çıplak gözle görülür') : m <= 9 ? (en ? 'Visible with binoculars' : 'Dürbünle görülebilir') : (en ? 'Needs a small telescope' : 'Küçük bir teleskop gerekir'); }
+function cometCard(c) {
+  const en = LANG === 'en', per = new Date((c.tp - 2440587.5)*86400000);
+  let h = '<div class="shead"><div class="grow"><div class="kind">' + (en ? 'Comet' : 'Kuyruklu yıldız') + '</div><h2>' + esc(c.name) + '</h2><div class="sub">' + (en ? 'Orbit: Minor Planet Center' : 'Yörünge: Minor Planet Center') + '</div></div>' + closeX + '</div>';
+  h += '<p class="fact">' + (en ? 'A ball of ice and dust from the edge of the Solar System. Near the Sun it heats up and grows a glowing head and a tail that always points away from the Sun.' : 'Güneş Sistemi\'nin uzak köşelerinden gelen bir buz ve toz yığını. Güneş\'e yaklaşınca ısınır; parlayan bir baş ve her zaman Güneş\'in ters yönüne uzanan bir kuyruk oluşturur.') + '</p><div class="rows">';
+  h += row(T('Parlaklık'), '≈ ' + fmtN(c.mag, 1) + ' ' + (en ? 'mag' : 'kadir'), cometVis(c.mag), true);
+  h += row(en ? 'From the Sun' : 'Güneş\'e uzaklık', fmtN(c.r, 2) + ' AU') + row(en ? 'From Earth' : 'Dünya\'ya uzaklık', fmtN(c.delta, 2) + ' AU', fmtN(c.delta*149.6, 0) + (en ? ' million km' : ' milyon km'));
+  h += row(en ? 'Perihelion' : 'Güneş\'e en yakın an', per.toLocaleDateString(LOCALE, { day: 'numeric', month: 'long', year: 'numeric' }), fmtN(c.q, 2) + ' AU');
+  if (c.e < 1) h += row(en ? 'Orbital period' : 'Yörünge süresi', fmtN(Math.pow(c.q/(1 - c.e), 1.5), 1) + (en ? ' years' : ' yıl'));
+  else h += row(en ? 'Orbit' : 'Yörünge', en ? 'Open: it will not return' : 'Açık: bir daha dönmeyecek');
+  return h;
+}
+
 /* chips: what's up right now */
 function buildChips() {
   const up = bodies.filter(b => b.e[2] > 0 && b.b !== 'Sun' && b.mag < 5);
@@ -3049,7 +3123,7 @@ function frame(nowT) {
   render();
   drawTrails();
   if (shotReq) { const r = shotReq; shotReq = null; r(composeShot()); }
-  updateISS(); soundTick(); perfTick(dt*1000);
+  updateISS(); updateComets(false); soundTick(); perfTick(dt*1000);
   applyEpoch(false);
   $('timeTxt').textContent = (Math.abs(now.getUTCFullYear() - new Date().getUTCFullYear()) > 0 ? yearLabel(now.getUTCFullYear()) + ' · ' + now.toLocaleString(LOCALE, { day: 'numeric', month: 'short' }) : now.toLocaleString(LOCALE, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + (S.speed > 1 ? ' ▸' + S.speed + '×' : S.offset !== 0 && Math.abs(S.offset) > 60000 ? ' •' : '');
   if (nowT - lastChips > 5000 || (S.speed > 1 && nowT - lastChips > 600)) { lastChips = nowT; buildChips(); }
@@ -3137,6 +3211,7 @@ if (LANG === 'en') {
 /* hub, ISS, first-run guide */
 $('hubBtn').addEventListener('click', openHub);
 setTimeout(loadISS, 1800);
+setTimeout(loadComets, 2200);
 const ONB = [
   ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 40V20a4 4 0 0 1 8 0v14"/><path d="M30 32v-4a4 4 0 0 1 8 0v6"/><path d="M38 33a4 4 0 0 1 8 0v8c0 9-6 15-14 15s-12-5-15-11l-4-8a4 4 0 0 1 7-4l2 4"/><path d="M8 14h10M46 14h10M13 9l-5 5 5 5M51 9l5 5-5 5"/></svg>', T('Etrafa bak'), T('Ekranı parmağınla sürükle; gökyüzünün her yönüne dönebilirsin. Telefonu göğe tutmak için alttaki "Göğe tut"a bas.')],
   ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="28" cy="28" r="14"/><path d="M38 38l14 14M22 28h12M28 22v12"/></svg>', T('Yakınlaş'), T('İki parmakla aç-kapa ya da fare tekerleğini kullan. Yakınlaştıkça sönük yıldızlar, galaksiler ve Jupiter\'in uyduları ortaya çıkar.')],

@@ -1,0 +1,30 @@
+name: Kuyruklu yıldızları güncelle
+on:
+  schedule:
+    - cron: '41 4 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+jobs:
+  comets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: MPC'den yörüngeleri indir ve parlak olanları seç
+        run: |
+          set -e
+          curl -sf -A "GokyuzuAtlasi/1.0 (github.com/cagdasakil/gokyuzu-atlasi)" https://www.minorplanetcenter.net/iau/MPCORB/CometEls.txt -o CometEls.txt
+          python3 araclar/kuyruklu.py CometEls.txt docs/kuyruklu.json
+      - name: Kaydet ve siteyi yenile
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/kuyruklu.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Kuyruklu yıldız listesi güncellendi"
+          git pull --rebase -q origin main
+          git push
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" || true
