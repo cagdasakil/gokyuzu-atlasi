@@ -89,6 +89,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .row .k { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
 .row .v { margin-top: 3px; font-family: var(--f-num); font-size: 14px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .row .n { margin-top: 2px; font-size: 12px; color: var(--dim); line-height: 1.4; }
+.photo { margin: 14px 0 0; } .photo img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); background: #02030a; }
+.photo figcaption { margin-top: 6px; font-size: 11px; color: var(--dim); line-height: 1.4; } .photo a { color: var(--gilt); }
 .portrait { display: block; width: 100%; height: 150px; margin-top: 14px; border-radius: 12px; border: 1px solid var(--line); background: #02030a; }
 .warn { margin-top: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(227,194,126,.35); color: var(--gilt); font-size: 13px; }
 
@@ -222,6 +224,7 @@ input[type="range"] { accent-color: var(--gilt); }
 <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 <script src="gokyuzu-veri.js"></script>
 <script src="gokyuzu-exo.js"></script>
+<script src="gokyuzu-foto.js"></script>
 <script>
 (() => {
 'use strict';
@@ -1167,6 +1170,17 @@ function drawOverlay(t) {
   const night = 1 - dayness*0.85;
   const below = e => e[2] < 0;
 
+  // real photos fade in over famous objects once they are large on screen
+  if (S.dso && window.PHOTOS && night > 0.4) DSOS.forEach(d => {
+    if (!PHOTOS[d.id] || d.id === 'M87') return;
+    const e = mul(M, d.v); if (!visible(e)) return; const p = proj(e); if (!p) return;
+    const dm = String(d.dim || '10').split('x').map(Number), sizePx = Math.max(dm[0] || 10, dm[1] || 0)/60*D2R*ppr;
+    if (sizePx < 50 || p[0] < -sizePx || p[0] > W + sizePx || p[1] < -sizePx || p[1] > H + sizePx) return;
+    const im = photoCanvas(d.id); if (!im) return;
+    const w = sizePx*1.25, hh = w*im.height/im.width;
+    ctx.save(); ctx.globalAlpha = Math.min(1, (sizePx - 50)/140)*night; ctx.globalCompositeOperation = 'screen';
+    ctx.drawImage(im, p[0] - w/2, p[1] - hh/2, w, hh); ctx.restore();
+  });
   // deep-sky glows, additive, under the lines and labels
   if (S.dso && night > 0.3) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
@@ -1395,6 +1409,21 @@ function drawJMoons(night) {
     if (d > 22) label(m.n, p[0] - 10, p[1] + 16, '500 11px Manrope, sans-serif', 'rgba(255,236,200,' + (0.85*night + 0.15) + ')');
   });
 }
+const PHOTO_CACHE = {};
+function photoCanvas(id) {
+  const c = PHOTO_CACHE[id];
+  if (c) return c.ready ? c.cv : null;
+  const im = new Image(), entry = { ready: false }; PHOTO_CACHE[id] = entry;
+  im.onload = () => {
+    const cv = document.createElement('canvas'); cv.width = im.naturalWidth; cv.height = im.naturalHeight; const g = cv.getContext('2d');
+    g.drawImage(im, 0, 0); g.globalCompositeOperation = 'destination-in';
+    const r = Math.max(cv.width, cv.height)/2, gr = g.createRadialGradient(cv.width/2, cv.height/2, r*0.35, cv.width/2, cv.height/2, r*0.98);
+    gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, cv.width, cv.height);
+    entry.cv = cv; entry.ready = true;
+  };
+  im.src = 'foto/' + id + '.jpg';
+  return null;
+}
 function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a.toFixed(3) + ')'; }
 function drawMoon(p, r, b, dim) {
   const m = b.e, s = sunE;
@@ -1599,6 +1628,14 @@ function renderInfo() {
   } else if (o.kind === 'dso') {
     const d = o.ref;
     h += '<div class="shead"><div class="grow"><div class="kind">' + (DSO_TYPE[d.type] || T('Derin gök cismi')) + '</div><h2>' + esc(d.tr || d.alt || d.id) + '</h2><div class="sub">' + d.id + (d.desig ? ' · ' + esc(d.desig) : '') + '</div></div>' + closeX + '</div><canvas class="portrait" id="pc"></canvas>';
+    const ph = (window.PHOTOS || {})[d.id];
+    if (ph) {
+      const en = LANG === 'en', bh = d.id === 'M87';
+      h = h.replace('<canvas class="portrait" id="pc"></canvas>', '<figure class="photo"><img src="foto/' + d.id + '.jpg" alt="' + esc(d.tr || d.id) + '" loading="lazy"><figcaption>' +
+        (bh ? (en ? 'The real image of the black hole at its centre (Event Horizon Telescope, 2019). ' : 'Merkezindeki kara deliğin gerçek görüntüsü (Event Horizon Telescope, 2019). ') : (en ? 'Photo: ' : 'Fotoğraf: ')) +
+        esc(ph[0]) + ' · ' + esc(ph[1]) + ' · <a href="' + esc(ph[2]) + '" target="_blank" rel="noopener">' + (en ? 'source' : 'kaynak') + '</a></figcaption></figure>' +
+        (bh && /github\.io$/.test(location.hostname) ? '<div class="btns"><a class="btn on" style="display:inline-flex;align-items:center;text-decoration:none" href="kara-delik.html">' + (en ? 'Open the black hole animation' : 'Kara delik animasyonunu aç') + '</a></div>' : ''));
+    }
     if (d.fact) h += '<p class="fact">' + d.fact + '</p>';
     h += '<div class="rows">';
     if (d.ly) h += row(T('Uzaklık'), fmtLy(d.ly), T('Gördüğün ışık ') + lightYear(d.ly) + T(' yola çıktı.'), true);
