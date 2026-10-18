@@ -131,6 +131,36 @@ input[type="range"] { accent-color: var(--gilt); }
 .tourcard .btn { padding: 0; }
 .hud { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(max(12px, env(safe-area-inset-bottom, 0px)) + 62px); font-family: var(--f-num); font-size: 10.5px; letter-spacing: .04em; color: rgba(233,228,216,.55); white-space: nowrap; pointer-events: none; text-shadow: 0 1px 4px #000; }
 .homebtn { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(max(12px, env(safe-area-inset-bottom, 0px)) + 84px); border-color: rgba(227,194,126,.55); color: var(--gilt); background: rgba(10,13,24,.75); animation: uiIn .4s ease both; }
+.hubbtn { color: var(--gilt); border-color: rgba(227,194,126,.45); }
+.hubs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.hub { display: grid; gap: 3px; text-align: left; padding: 14px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.03); cursor: pointer; min-width: 0; }
+.hub:hover { border-color: rgba(227,194,126,.5); }
+.hub i { font-style: normal; font-size: 20px; color: var(--gilt); }
+.hub b { font-size: 14.5px; font-weight: 600; }
+.hub span { font-size: 12px; color: var(--dim); line-height: 1.35; }
+.badges { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.badge { padding: 10px; border-radius: 10px; border: 1px solid var(--line); opacity: .5; display: grid; gap: 2px; }
+.badge.on { opacity: 1; border-color: rgba(227,194,126,.55); background: rgba(227,194,126,.06); }
+.badge i { font-style: normal; color: var(--gilt); font-size: 16px; }
+.badge b { font-size: 13px; } .badge span { font-size: 11.5px; color: var(--dim); line-height: 1.3; }
+.score { display: flex; gap: 14px; align-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 10px; margin-top: 14px; }
+.score .sv { font-family: var(--f-num); font-size: 34px; color: var(--gilt); font-variant-numeric: tabular-nums; }
+.score .sv small { font-size: 14px; color: var(--dim); }
+.score b { display: block; font-size: 15px; } .score span { display: block; font-size: 12.5px; color: var(--dim); } .score .dim { font-size: 11px; opacity: .7; }
+.qopts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+.qopts .btn { height: 42px; font-size: 14px; }
+.btn.good { border-color: #6fdc9a; color: #6fdc9a; } .btn.bad { border-color: #ff7a6b; color: #ff7a6b; }
+.tb2 { margin-top: 8px; display: flex; justify-content: flex-end; }
+.bcard { width: 100%; height: auto; margin-top: 14px; border-radius: 12px; border: 1px solid var(--line); display: block; }
+.sel { height: 42px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,.04); color: var(--ink); font: inherit; font-size: 15px; width: 100%; }
+.onb { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(2,4,10,.55); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); animation: uiIn .4s ease both; }
+.onbc { width: min(360px, 100%); box-sizing: border-box; padding: 22px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); text-align: center; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.onbc svg { width: 64px; height: 64px; color: var(--gilt); }
+.onbc h3 { margin: 10px 0 6px; font-family: var(--f-name); font-weight: 600; font-size: 28px; }
+.onbc p { margin: 0; color: #cfc9bd; font-size: 14px; line-height: 1.5; }
+.onbc .dots { display: flex; gap: 6px; justify-content: center; margin: 16px 0 12px; } .onbc .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); } .onbc .dots i.on { background: var(--gilt); }
+.onbc .btns { justify-content: center; }
+@media (max-width: 420px) { .hubbtn span { display: none; } .hubbtn { width: 36px; padding: 0; justify-content: center; } }
 .err { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; color: var(--dim); text-align: center; }
 
 @media (min-width: 760px) {
@@ -159,6 +189,7 @@ input[type="range"] { accent-color: var(--gilt); }
       <span class="t" id="timeTxt">—</span>
     </button>
     <span class="grow"></span>
+    <button class="pill hubbtn" id="hubBtn" aria-label="Keşfet"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.2 6.3L20.5 12l-6.3 2.2L12 21l-2.2-6.8L3.5 12l6.3-2.7z"/></svg><span>Keşfet</span></button>
     <button class="pill iconbtn" id="setBtn" aria-label="Ayarlar">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>
     </button>
@@ -183,6 +214,8 @@ input[type="range"] { accent-color: var(--gilt); }
     <button class="tool" id="tGyro" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M12 7l2 4h-4z" fill="currentColor"/></svg>Göğe tut</button>
   </nav>
 
+  <section class="tourcard" id="quizCard" hidden aria-live="polite"></section>
+  <div class="onb" id="onb" hidden><div class="onbc" id="onbc"></div></div>
   <section class="sheet closed" id="sheet" aria-live="polite"></section>
 </div>
 
@@ -299,6 +332,7 @@ const DSOS = SKY.dso.map(d => { const tr = DSO_TR[d[0]]; return { id: d[0], v: e
 /* ---------------- settings ---------------- */
 const SET_DEF = { starB: 1, starS: 1, spikes: 1, mwB: 1, depth: 0, lines: 1, labels: 1, ground: 'solid', land: true, lp: 0, gridAz: false, gridEq: false, ecl: false, meteors: true, bounds: false, realDay: false };
 const SET = Object.assign({}, SET_DEF, store.get('set', {}));
+SET.sound = false;
 const GROUND = { solid: 1, glass: 0.55, off: 0 };
 const saveSet = () => store.set('set', SET);
 
@@ -496,8 +530,9 @@ const mwTex = gl.createTexture();
 
 /* ---------------- sizing ---------------- */
 let W = 0, H = 0, dpr = 1;
+let DPR_CAP = 2;
 function resize() {
-  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
   W = innerWidth; H = innerHeight;
   glc.width = ov.width = Math.round(W*dpr); glc.height = ov.height = Math.round(H*dpr);
   gl.viewport(0, 0, glc.width, glc.height);
@@ -778,6 +813,7 @@ function drawOverlay(t) {
 
   drawBounds(night);
   drawJMoons(night);
+  drawISS(night);
   drawRadiants(night);
   drawMeteors();
 
@@ -856,6 +892,7 @@ function drawMoon(p, r, b, dim) {
 function selE(sel) {
   if (!sel) return null;
   if (sel.kind === 'body') return sel.ref.e;
+  if (sel.kind === 'iss') return ISS.e || [0, 0, -1];
   return mul(M, sel.ref.v);
 }
 
@@ -1049,12 +1086,16 @@ function renderInfo() {
     const c = o.ref;
     const top = STARS.filter(s => s.con === c.id).slice(0, 4);
     h += '<div class="shead"><div class="grow"><div class="kind">Takımyıldız</div><h2>' + esc(c.la) + '</h2><div class="sub">' + esc(c.gen) + ' · ' + c.id + '</div></div>' + closeX + '</div><canvas class="portrait" id="pc"></canvas>';
-    h += '<p class="fact">Gökyüzü resmi olarak 88 takımyıldıza bölünmüştür; ' + esc(c.la) + ' bunlardan biri. Çizgiler yalnızca yön bulmayı kolaylaştırır, yıldızlar aslında birbirinden çok farklı uzaklıklardadır.</p>';
+    if (MYTH[c.id]) h += '<p class="fact">' + MYTH[c.id] + '</p>';
+    h += '<p class="note">Gökyüzü resmi olarak 88 takımyıldıza bölünmüştür; ' + esc(c.la) + ' bunlardan biri. Çizgiler yalnızca yön bulmayı kolaylaştırır, yıldızlar aslında birbirinden çok farklı uzaklıklardadır.</p>';
     h += '<div class="rows">' + pos + '</div>';
     if (top.length) h += '<div class="list">' + top.map(s => '<button class="item" data-star="' + s.i + '"><b>' + esc(starTitle(s)) + '</b><span>' + fmtN(s.mag, 1) + ' kadir' + (s.ly ? ' · ' + fmtLy(s.ly) : '') + '</span></button>').join('') + '</div>';
   }
+  if (o.kind === 'iss') h = issCard();
+  h += logButton(o);
   openSheet(h, 'info');
-  drawPortrait(o);
+  if (o.kind !== 'iss') drawPortrait(o); else bindPasses();
+  const lb = $('logBtn'); if (lb) lb.addEventListener('click', () => { logToggle(o); renderInfo(); });
   sheet.querySelectorAll('[data-star]').forEach(b => b.addEventListener('click', () => select({ kind: 'star', ref: STARS[+b.dataset.star] }, true)));
 }
 /* ---------------- object portraits (info card) ---------------- */
@@ -1276,6 +1317,8 @@ function openSettings() {
     '<div class="sect">Zemin</div>' + seg('ground', [['solid', 'Opak'], ['glass', 'Yarı saydam'], ['off', 'Kapalı']]) +
     '<p class="note">Zemini kapatınca aşağı bakabilirsin: ayaklarının altındaki, Dünya\'nın öbür yüzünden görünen yıldızlar ortaya çıkar.</p>' +
     '<div class="btns">' + tog('land', 'Dağ silüeti') + tog('realDay', 'Gerçekçi gündüz') + '</div>' +
+    '<div class="sect">Kültür ve ses</div><div class="btns">' + tog('folk', 'Türk gök kültürü adları') + tog('sound', 'Gece sesleri') + '</div>' +
+    '<p class="note">Türk gök kültürü açıkken bazı cisimler halk ve Osmanlı astronomisindeki adlarıyla görünür: Demir Kazık (Polaris), Yedi Han (Ursa Major), Ülker (Pleiades), Çoban Yıldızı (Venus), Merih (Mars), Müşteri (Jupiter), Zühal (Saturn). Adlar yöreden yöreye değişebilir.</p>' +
     '<p class="note">Gerçekçi gündüz açıkken gökyüzü gerçekteki gibi maviye döner ve yıldızlar kaybolur. Kapalıyken gündüz yalnızca hafif bir aydınlıkla belli olur, yıldızlar görünmeye devam eder.</p>' +
     '<div class="sect">Gökyüzü koşulları</div>' +
     '<div class="set"><label for="s_lp">Işık kirliliği</label><output id="o_lp">' + lpName(SET.lp) + '</output><input type="range" id="s_lp" min="0" max="1" step="0.01" value="' + SET.lp + '"></div>' +
@@ -1288,7 +1331,7 @@ function openSettings() {
     el.addEventListener('input', () => { SET[k] = +el.value; out.textContent = k === 'lp' ? lpName(SET[k]) : sl[5](SET[k]); saveSet(); });
   });
   sheet.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => { SET[b.dataset.k] = b.dataset.v; saveSet(); sheet.querySelectorAll('[data-k="' + b.dataset.k + '"]').forEach(x => x.classList.toggle('on', x === b)); }));
-  sheet.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.t; SET[k] = !SET[k]; saveSet(); b.classList.toggle('on', SET[k]); b.setAttribute('aria-pressed', String(SET[k])); }));
+  sheet.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.t; SET[k] = !SET[k]; saveSet(); if (k === 'folk') applyFolk(); if (k === 'sound') soundOn(SET[k]); b.classList.toggle('on', SET[k]); b.setAttribute('aria-pressed', String(SET[k])); }));
   $('setReset').addEventListener('click', () => { Object.assign(SET, SET_DEF); saveSet(); openSettings(); toast('Ayarlar varsayılana döndü.'); });
 }
 $('setBtn').addEventListener('click', openSettings);
@@ -1296,6 +1339,7 @@ $('setBtn').addEventListener('click', openSettings);
 
 /* location */
 function setLoc(loc, quiet) {
+  setTimeout(() => { if (ISS.rec) computePasses(); }, 50);
   S.loc = loc; store.set('loc', loc); observer = new A.Observer(loc.lat, loc.lon, 0); $('locName').textContent = loc.name;
   updateAstro(true); buildChips(); if (!quiet) toast(loc.name + ' gökyüzü gösteriliyor.');
 }
@@ -1376,6 +1420,7 @@ function spawnMeteor(sh) {
     dir = comb(t1, Math.cos(ph), t2, Math.sin(ph));
   }
   if (s[2] < 0.05) return;
+  soundMeteor();
   meteors.push({ s, dir, len: (5 + Math.random()*18)*D2R, dur: 0.45 + Math.random()*0.8, t: 0, b: 0.55 + Math.random()*0.7, warm: Math.random() < 0.3 });
 }
 function updateMeteors(dt) {
@@ -1477,7 +1522,7 @@ function openTonight() {
   const set = rs('Sun', -1, t0), rise = rs('Sun', +1, t0), dusk = rs('Sun', -1, t0, 1.5, -18), dawn = rs('Sun', +1, t0, 1.5, -18);
   const mr = rs('Moon', +1, t0), ms = rs('Moon', -1, t0);
   const sunUp = sunE[2] > 0;
-  let h = '<div class="shead"><div class="grow"><div class="kind">Bu gece · ' + esc(S.loc.name) + '</div><h2>Gökyüzünde neler var?</h2><div class="sub">' + dateTxt(now) + '</div></div>' + closeX + '</div><div class="rows">';
+  let h = '<div class="shead"><div class="grow"><div class="kind">Bu gece · ' + esc(S.loc.name) + '</div><h2>Gökyüzünde neler var?</h2><div class="sub">' + dateTxt(now) + '</div></div>' + closeX + '</div><div id="wxBox"><div class="score"><div class="sv">…</div><div><b>Gözlem skoru hesaplanıyor</b><span>Hava durumu alınıyor</span></div></div></div><div class="rows">';
   h += row(sunUp ? 'Güneş batışı' : 'Güneş doğuşu', sunUp ? (set ? hm(set) : '—') : (rise ? hm(rise) : '—'), sunUp ? (rise ? 'Doğuş: ' + dayHm(rise) : '') : (set ? 'Son batış: ' + hm(set) : ''));
   h += row('Tam karanlık', dusk && dawn ? hm(dusk) + ' – ' + hm(dawn) : 'Bu gece yok', 'Güneş ufkun 18° altında; sönük yıldızlar ancak bu aralıkta görünür.');
   const moon = bodies[1];
@@ -1496,11 +1541,13 @@ function openTonight() {
     act.forEach(([sh, a]) => { const d = Math.round(a.days); h += '<button class="item" data-sh="' + sh.n + '"><b>' + sh.n + '</b><span>' + (d === 0 ? 'Bu gece zirvede' : d < 0 ? 'Zirveye ' + (-d) + ' gün' : 'Zirve ' + d + ' gün önceydi') + ' · ' + sh.from + '</span></button>'; });
     h += '</div><p class="note">Meteorlar radyant denen noktadan saçılıyor gibi görünür; en iyi gece yarısından sonra, şehir ışıklarından uzakta izlenir.</p>';
   }
+  h += '<div class="sect">Uzay istasyonu (ISS)</div>' + passList();
   h += '<div class="sect">Yaklaşan olaylar</div><div class="list">';
   const evs = upcomingEvents();
   evs.forEach((e, i) => { h += '<button class="item" data-ev="' + i + '"><b>' + esc(e.t) + '</b><span>' + e.d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) + '</span></button><p class="note" style="margin:-4px 4px 6px">' + esc(e.sub) + '</p>'; });
   h += '</div><p class="note">Bir olaya dokununca zaman o ana gider; gökyüzünü o gün nasıl görüneceğiyle izlersin.</p>';
   openSheet(h, 'tonight');
+  fillWeather(); bindPasses();
   sheet.querySelectorAll('[data-pl]').forEach(b => b.addEventListener('click', () => select({ kind: 'body', ref: bodies[+b.dataset.pl] }, true)));
   sheet.querySelectorAll('[data-sh]').forEach(b => b.addEventListener('click', () => select({ kind: 'shower', ref: SHOWERS.find(x => x.n === b.dataset.sh) }, true)));
   sheet.querySelectorAll('[data-ev]').forEach(b => b.addEventListener('click', () => {
@@ -1583,6 +1630,415 @@ function nextStop(d) {
 }
 function endTour() { tour.on = false; clearTimeout(tour.timer); $('tourCard').hidden = true; }
 
+/* ================= batch 1: discovery hub, sharing, birth sky, ISS, weather, culture, log, quiz, sound ================= */
+
+/* ---------- mythology (constellation stories) ---------- */
+const MYTH = {
+  Ori: 'Yunan mitolojisinde dev avcı Orion, yeryüzündeki bütün hayvanları avlayacağını söyleyince Gaia ona bir akrep gönderdi. Akrep onu soktu; tanrılar ikisini de göğe koydu ama birbirinden olabildiğince uzağa. Bu yüzden Orion batarken Scorpius doğar; ikisi aynı anda gökte görünmez.',
+  Sco: 'Orion\'u sokan akrep. Kalbinde kızıl Antares parlar. Yazın güney ufkunun üstünde, kıvrık kuyruğuyla en kolay tanınan takımyıldızlardandır.',
+  UMa: 'Zeus\'un sevdiği Kallisto, Hera\'nın kıskançlığıyla ayıya dönüştürüldü ve sonunda göğe yerleştirildi. İçindeki yedi parlak yıldız (Büyük Kepçe) binlerce yıldır kuzeyi bulmak için kullanılır.',
+  UMi: 'Kallisto\'nun oğlu Arkas. Kuyruğunun ucunda Kutup Yıldızı (Polaris) durur; bütün gökyüzü onun çevresinde döner.',
+  Cas: 'Güzelliğiyle övünen Etiyopya kraliçesi Kassiopeia, ceza olarak tahtına bağlanıp göğe kondu. Yılın yarısında baş aşağı döner. W harfi şekliyle hemen tanınır.',
+  And: 'Kassiopeia\'nın kızı Andromeda, annesinin kibri yüzünden bir deniz canavarına kurban edilmek üzere kayalara zincirlendi; Perseus onu kurtardı. Andromeda Galaksisi bu takımyıldızın içinde görünür.',
+  Per: 'Medusa\'nın başını kesen kahraman Perseus. Elinde tuttuğu Medusa\'nın gözü, parlaklığı değişen Algol yıldızıdır. Her ağustosta Perseids meteorları buradan saçılır.',
+  Cyg: 'Zeus\'un kuğu kılığına girdiği hikâyeden gelir. Kanatlarını Samanyolu boyunca açmış bir kuğu gibi uçar; kuyruğunda Deneb parlar. "Kuzey Haçı" diye de bilinir.',
+  Lyr: 'Ozan Orpheus\'un lirı. Orpheus çaldığında taşlar bile ağlarmış; öldükten sonra Zeus lirini göğe koydu. Gökyüzünün en parlak yıldızlarından Vega bu lirin içindedir.',
+  Gem: 'İkiz kardeşler Kastor ve Polluks. Biri ölümlü, biri ölümsüzdü; Polluks kardeşinden ayrılmamak için ölümsüzlüğünü paylaştı. İki parlak yıldız ikizlerin başlarıdır.',
+  Tau: 'Zeus\'un Europa\'yı kaçırmak için büründüğü beyaz boğa. Kızıl gözü Aldebaran; omzunda Ülker (Pleiades) kümesi parlar.',
+  Leo: 'Herakles\'in ilk görevinde boğduğu, hiçbir silahın işlemediği Nemea aslanı. Göğsünde Regulus yıldızı, başı ters bir soru işaretine benzer.',
+  Peg: 'Perseus Medusa\'nın başını kestiğinde onun kanından doğan kanatlı at. Büyük dört yıldızı "Pegasus Karesi" sonbahar gökyüzünün kılavuzudur.',
+  Her: 'On iki görevi tamamlayan kahraman Herakles, gökte baş aşağı diz çökmüş halde durur. İçinde, yüz binlerce yıldızdan oluşan Great Hercules Cluster bulunur.',
+  Aql: 'Zeus\'un yıldırımlarını taşıyan kartal. Gözündeki Altair, Vega ve Deneb ile birlikte yaz gecelerinin "Yaz Üçgeni"ni oluşturur.',
+  Sgr: 'Yay geren bir kentaur. Okunun ucu Samanyolu\'nun merkezine, galaksimizin ortasındaki dev kara deliğe (Sgr A*) doğru bakar. Şekli bir çaydanlığa da benzer.',
+  CMa: 'Avcı Orion\'un büyük köpeği. Ağzında gece gökyüzünün en parlak yıldızı Sirius parlar; eski Mısır\'da Sirius\'un doğuşu Nil\'in taşmasını haber verirdi.',
+  Cep: 'Etiyopya kralı Kefeus, Kassiopeia\'nın eşi ve Andromeda\'nın babası. Göğe çizilmiş bir ev ya da çan şeklindedir.',
+  Boo: 'Büyükayı\'yı gökyüzünde kovalayan çoban. Turuncu Arcturus onun en parlak yıldızıdır; Büyük Kepçe\'nin sapını takip ederek bulunur ("arka doğru yay çiz").',
+  Vir: 'Hasat tanrıçası Demeter ya da adalet tanrıçası Astraea. Elindeki başak Spica yıldızıdır. Bu yönde binlerce galaksiden oluşan Virgo Kümesi uzanır.',
+  Dra: 'Altın elmaları koruyan ejderha Ladon. Uzun gövdesi iki ayı arasında kıvrılır. Mısır piramitleri yapıldığında kutup yıldızı bu takımyıldızdaki Thuban\'dı.',
+  Aqr: 'Tanrılara su taşıyan Ganymedes. Testisinden dökülen su Piscis Austrinus\'un ağzındaki Fomalhaut\'a akar.'
+};
+
+/* ---------- Turkish sky-culture names (Anadolu & Osmanlı halk astronomisi) ---------- */
+const FOLK = {
+  body: { Venus: 'Çoban Yıldızı (Zühre)', Mars: 'Merih', Jupiter: 'Müşteri', Saturn: 'Zühal', Mercury: 'Utarid', Moon: 'Ay', Sun: 'Güneş' },
+  con: { UMa: 'Yedi Han' },
+  star: { Polaris: 'Demir Kazık' },
+  dso: { M45: 'Ülker' }
+};
+bodies.forEach(b => b.en = b.tr);
+Object.values(CONS).forEach(c => c.laOrig = c.la);
+DSOS.forEach(d => d.trOrig = d.tr);
+function applyFolk() {
+  const on = !!SET.folk;
+  bodies.forEach(b => { b.tr = on && FOLK.body[b.b] || b.en; });
+  Object.values(CONS).forEach(c => { c.la = on && FOLK.con[c.id] || c.laOrig; });
+  DSOS.forEach(d => { d.tr = on && FOLK.dso[d.id] || d.trOrig; });
+  Object.keys(STAR_TR).forEach(k => delete STAR_TR[k]);
+  if (on) Object.assign(STAR_TR, FOLK.star);
+}
+
+/* ---------- observation log & badges ---------- */
+const LOG = store.get('log', {});
+const logKey = o => o.kind === 'star' ? 'star:' + (o.ref.name || o.ref.hip || o.ref.i) : o.kind === 'body' ? 'body:' + o.ref.b : o.kind === 'dso' ? 'dso:' + o.ref.id : o.kind === 'con' ? 'con:' + o.ref.id : o.kind === 'shower' ? 'shower:' + o.ref.n : o.kind === 'jmoon' ? 'jmoon:' + o.ref.n : o.kind === 'iss' ? 'iss' : null;
+function logToggle(o) {
+  const k = logKey(o); if (!k) return;
+  if (LOG[k]) delete LOG[k]; else { LOG[k] = { t: Date.now(), h: new Date().getHours() }; checkBadges(true); }
+  store.set('log', LOG);
+}
+const BADGES = [
+  ['first', 'İlk adım', 'Bir gök cismini gözlem günlüğüne ekle', L => Object.keys(L).length >= 1],
+  ['planets', 'Gezegen avcısı', 'Çıplak gözle görülen 5 gezegenin hepsini gör', L => ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'].every(p => L['body:' + p])],
+  ['galaxy', 'Galaksi gözcüsü', 'Başka bir galaksiyi gör (ör. Andromeda)', L => Object.keys(L).some(k => k.startsWith('dso:') && 'sei'.includes((DSOS.find(d => 'dso:' + d.id === k) || {}).type))],
+  ['messier10', 'Messier kâşifi', '10 Messier cismi gör', L => Object.keys(L).filter(k => k.startsWith('dso:')).length >= 10],
+  ['con20', 'Takımyıldız ustası', '20 takımyıldız tanı', L => Object.keys(L).filter(k => k.startsWith('con:')).length >= 20],
+  ['iss', 'Uzay istasyonu', 'Uluslararası Uzay İstasyonu\'nun geçişini gör', L => !!L.iss],
+  ['meteor', 'Meteor avcısı', 'Bir meteor yağmurunu izle', L => Object.keys(L).some(k => k.startsWith('shower:'))],
+  ['galileo', 'Galileo\'nun izinde', 'Jupiter\'in bir uydusunu gör', L => Object.keys(L).some(k => k.startsWith('jmoon:'))],
+  ['owl', 'Gece kuşu', 'Gece 02:00 ile 05:00 arasında bir gözlem kaydet', L => Object.values(L).some(v => v.h >= 2 && v.h < 5)],
+  ['stars25', 'Yıldız koleksiyoncusu', 'Adı olan 25 yıldız gör', L => Object.keys(L).filter(k => k.startsWith('star:') && isNaN(+k.slice(5))).length >= 25]
+];
+let earnedBefore = new Set(BADGES.filter(b => b[3](LOG)).map(b => b[0]));
+function checkBadges(announce) {
+  BADGES.forEach(b => { if (b[3](LOG) && !earnedBefore.has(b[0])) { earnedBefore.add(b[0]); if (announce) setTimeout(() => toast('Rozet kazandın: ' + b[1] + '!'), 400); } });
+}
+function logButton(o) {
+  const k = logKey(o); if (!k) return '';
+  const v = LOG[k];
+  return '<div class="btns"><button class="btn' + (v ? ' on' : '') + '" id="logBtn">' + (v ? '✓ Gördüm · ' + new Date(v.t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : 'Bunu gördüm, günlüğüme ekle') + '</button></div>';
+}
+function openCollection() {
+  const cnt = p => Object.keys(LOG).filter(k => k.startsWith(p)).length;
+  const named = STARS.filter(s => s.name).length;
+  let h = '<div class="shead"><div class="grow"><div class="kind">Gözlem günlüğü</div><h2>Koleksiyonum</h2><div class="sub">Bir cisme dokunup "Bunu gördüm" de; buraya eklenir</div></div>' + closeX + '</div><div class="rows">';
+  h += row('Gezegenler', cnt('body:') + ' / 9', 'Sun ve Moon dahil') + row('Messier cisimleri', cnt('dso:') + ' / 110', 'Galaksi, bulutsu ve kümeler');
+  h += row('Takımyıldızlar', cnt('con:') + ' / 88') + row('Adı olan yıldızlar', Object.keys(LOG).filter(k => k.startsWith('star:') && isNaN(+k.slice(5))).length + ' / ' + named);
+  h += '</div><div class="sect">Rozetler</div><div class="badges">';
+  BADGES.forEach(b => { const ok = b[3](LOG); h += '<div class="badge' + (ok ? ' on' : '') + '"><i>' + (ok ? '★' : '☆') + '</i><b>' + b[1] + '</b><span>' + b[2] + '</span></div>'; });
+  h += '</div>';
+  const items = Object.entries(LOG).sort((a, b) => b[1].t - a[1].t).slice(0, 30);
+  if (items.length) h += '<div class="sect">Son gözlemler</div><div class="list">' + items.map(([k, v]) => '<div class="item"><b>' + esc(k.split(':').slice(1).join(':') || 'ISS') + '</b><span>' + new Date(v.t).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '</span></div>').join('') + '</div>';
+  openSheet(h, 'collection');
+}
+
+/* ---------- sharing: image of the current view + link to it ---------- */
+let shotReq = null;
+function composeShot() {
+  const c = document.createElement('canvas'); c.width = glc.width; c.height = glc.height;
+  const g = c.getContext('2d'); g.drawImage(glc, 0, 0); g.drawImage(trc, 0, 0); g.drawImage(ov, 0, 0);
+  const k = dpr, bh = 58*k;
+  const gr = g.createLinearGradient(0, c.height - bh*1.6, 0, c.height); gr.addColorStop(0, 'rgba(4,6,12,0)'); gr.addColorStop(1, 'rgba(4,6,12,.92)');
+  g.fillStyle = gr; g.fillRect(0, c.height - bh*1.6, c.width, bh*1.6);
+  g.fillStyle = '#e3c27e'; g.font = 'italic 600 ' + 22*k + 'px "Cormorant Garamond", Georgia, serif'; g.fillText('Gökyüzü Atlası', 18*k, c.height - 30*k);
+  g.fillStyle = 'rgba(233,228,216,.8)'; g.font = '500 ' + 12*k + 'px Manrope, sans-serif';
+  g.fillText(S.loc.name + ' · ' + now.toLocaleString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }), 18*k, c.height - 12*k);
+  const site = 'cagdasakil.github.io/gokyuzu-atlasi'; const w = g.measureText(site).width; g.fillText(site, c.width - w - 18*k, c.height - 12*k);
+  return c;
+}
+function grabShot() { return new Promise(res => { shotReq = res; }); }
+async function saveCanvas(c, name, title) {
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  const file = new File([blob], name, { type: 'image/png' });
+  try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Görüntü indirildi.'); }
+  catch (e) { toast('Bu görünümde dosya kaydedilemiyor; sitede (github.io) dene.'); }
+}
+function buildLink() {
+  const base = location.href.split(/[?#]/)[0];
+  const q = new URLSearchParams({ t: now.toISOString().slice(0, 16) + 'Z', lat: S.loc.lat.toFixed(3), lon: S.loc.lon.toFixed(3), n: S.loc.name, az: (((S.az*R2D) % 360 + 360) % 360).toFixed(1), alt: (S.alt*R2D).toFixed(1), fov: (S.fov*R2D).toFixed(2) });
+  return base + '?' + q.toString();
+}
+function openShare() {
+  const link = buildLink();
+  openSheet('<div class="shead"><div class="grow"><div class="kind">Paylaş</div><h2>Bu gökyüzünü gönder</h2><div class="sub">Şu anki görünüm, saat ve konumla</div></div>' + closeX + '</div>' +
+    '<div class="btns"><button class="btn on" id="shImg">Görüntüyü paylaş / kaydet</button><button class="btn" id="shLink">Bağlantıyı kopyala</button></div>' +
+    '<div class="field"><label for="shUrl">Bağlantı</label><input type="search" id="shUrl" readonly value="' + esc(link) + '"></div>' +
+    '<p class="note">Bağlantıyı açan kişi tam olarak bu saati, bu yeri ve bu açıyı görür. Örneğin "Bak, şu an Jupiter ile Ay yan yana!" demek için.</p>', 'share');
+  $('shImg').addEventListener('click', async () => { closeSheet(); await new Promise(r => setTimeout(r, 350)); const c = await grabShot(); saveCanvas(c, 'gokyuzu-' + now.toISOString().slice(0, 10) + '.png', 'Gökyüzü Atlası'); });
+  $('shLink').addEventListener('click', () => {
+    const inp = $('shUrl');
+    navigator.clipboard && navigator.clipboard.writeText(link).then(() => toast('Bağlantı kopyalandı.'), () => { inp.focus(); inp.select(); toast('Bağlantıyı seçtim; kopyala diyebilirsin.'); });
+    if (!navigator.clipboard) { inp.focus(); inp.select(); }
+  });
+}
+const LINK = (() => {
+  try {
+    const q = new URLSearchParams(location.search); if (!q.has('lat') && !q.has('t')) return null;
+    const o = {};
+    if (q.has('lat') && q.has('lon')) o.loc = { name: q.get('n') || 'Paylaşılan konum', lat: +q.get('lat'), lon: +q.get('lon') };
+    if (q.has('t')) { const d = new Date(q.get('t')); if (!isNaN(d)) o.t = d; }
+    if (q.has('az')) o.az = +q.get('az')*D2R; if (q.has('alt')) o.alt = +q.get('alt')*D2R; if (q.has('fov')) o.fov = +q.get('fov')*D2R;
+    return o;
+  } catch (e) { return null; }
+})();
+
+/* ---------- birth-night sky card ---------- */
+function openBirth() {
+  const opts = '<option value="here">Şu anki konum (' + esc(S.loc.name) + ')</option>' + CITIES.map((c, i) => '<option value="' + i + '">' + c[0] + '</option>').join('');
+  openSheet('<div class="shead"><div class="grow"><div class="kind">Doğduğun gece</div><h2>Doğduğun anın gökyüzü</h2><div class="sub">O an başının üstünde ne vardı?</div></div>' + closeX + '</div>' +
+    '<div class="field"><label for="bName">İsim (isteğe bağlı)</label><input type="search" id="bName" placeholder="Örn. Elif" autocomplete="off"></div>' +
+    '<div class="field"><label for="bDate">Doğum tarihi</label><input type="datetime-local" id="bDate" value="1995-03-21T03:30"></div>' +
+    '<div class="field"><label for="bPlace">Doğum yeri</label><select id="bPlace" class="sel">' + opts + '</select></div>' +
+    '<div class="btns"><button class="btn on" id="bGo">Gökyüzünü oluştur</button></div><div id="bOut"></div>', 'birth');
+  $('bGo').addEventListener('click', async () => {
+    const d = new Date($('bDate').value); if (isNaN(d)) { toast('Tarih ve saati seç.'); return; }
+    const pv = $('bPlace').value, loc = pv === 'here' ? S.loc : { name: CITIES[+pv][0], lat: CITIES[+pv][1], lon: CITIES[+pv][2] };
+    try { await document.fonts.ready; } catch (e) {}
+    const { canvas, summary } = birthCard(d, loc, $('bName').value.trim());
+    const out = $('bOut'); out.innerHTML = '';
+    canvas.className = 'bcard'; out.appendChild(canvas);
+    out.insertAdjacentHTML('beforeend', '<p class="note">' + esc(summary) + '</p><div class="btns"><button class="btn on" id="bSave">Kartı paylaş / kaydet</button><button class="btn" id="bSky">Bu gökyüzüne git</button></div>');
+    $('bSave').onclick = () => saveCanvas(canvas, 'dogdugun-gece.png', 'Doğduğum gecenin gökyüzü');
+    $('bSky').onclick = () => { setLoc(loc, true); S.offset = d - Date.now(); S.speed = 1; updateAstro(true); buildChips(); closeSheet(); goHome(); toast('Zaman ' + d.toLocaleString('tr-TR') + ' anına alındı.'); };
+  });
+}
+function birthCard(date, loc, name) {
+  const Wc = 1080, Hc = 1350, cx = 540, cy = 664, R = 400;
+  const c = document.createElement('canvas'); c.width = Wc; c.height = Hc; const g = c.getContext('2d');
+  const obs = new A.Observer(loc.lat, loc.lon, 0), tm = A.MakeTime(date), r = A.Rotation_EQJ_HOR(tm, obs).rot;
+  const ML = [[-r[0][1], -r[1][1], -r[2][1]], [r[0][0], r[1][0], r[2][0]], [r[0][2], r[1][2], r[2][2]]];
+  const P = e => { const alt = Math.asin(Math.max(-1, Math.min(1, e[2]))), az = Math.atan2(e[0], e[1]); const rr = R*Math.tan((Math.PI/2 - alt)/2); return [cx - Math.sin(az)*rr, cy - Math.cos(az)*rr]; };
+  const bg = g.createLinearGradient(0, 0, 0, Hc); bg.addColorStop(0, '#060912'); bg.addColorStop(1, '#0b1020'); g.fillStyle = bg; g.fillRect(0, 0, Wc, Hc);
+  for (let i = 0; i < 260; i++) { g.fillStyle = 'rgba(220,228,255,' + (Math.random()*0.25).toFixed(2) + ')'; g.fillRect(Math.random()*Wc, Math.random()*Hc, 1.4, 1.4); }
+  const disk = g.createRadialGradient(cx, cy, 0, cx, cy, R); disk.addColorStop(0, '#0d1430'); disk.addColorStop(1, '#070a18'); g.fillStyle = disk; g.beginPath(); g.arc(cx, cy, R, 0, Math.PI*2); g.fill();
+  g.save(); g.beginPath(); g.arc(cx, cy, R, 0, Math.PI*2); g.clip();
+  g.strokeStyle = 'rgba(227,194,126,.38)'; g.lineWidth = 1.6;
+  LINES.forEach(l => { g.beginPath(); let prev = null; l.pts.forEach(v => { const e = mul(ML, v); if (e[2] < 0) { prev = null; return; } const p = P(e); prev ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); prev = p; }); g.stroke(); });
+  g.globalCompositeOperation = 'lighter';
+  for (const s of STARS) { if (s.mag > 5.4) break; const e = mul(ML, s.v); if (e[2] < 0) continue; const p = P(e), sz = Math.max(0.8, (5.8 - s.mag)*1.25);
+    const sg = g.createRadialGradient(p[0], p[1], 0, p[0], p[1], sz*2.4); sg.addColorStop(0, 'rgba(255,255,255,1)'); sg.addColorStop(0.35, 'rgba(' + s.rgb.map(x => Math.round(x*255)).join(',') + ',.8)'); sg.addColorStop(1, 'rgba(200,210,255,0)');
+    g.fillStyle = sg; g.beginPath(); g.arc(p[0], p[1], sz*2.4, 0, Math.PI*2); g.fill(); }
+  g.globalCompositeOperation = 'source-over';
+  g.font = '700 15px Manrope, sans-serif'; g.fillStyle = 'rgba(232,200,130,.75)'; g.textAlign = 'center';
+  Object.values(CONS).forEach(cn => { if (cn.rank > 1) return; const e = mul(ML, cn.v); if (e[2] < 0.08) return; const p = P(e); g.fillText(cn.la.toUpperCase(), p[0], p[1]); });
+  const vis = [];
+  PLANETS.forEach(pl => { if (pl.b === 'Sun' && false) return; const eq = A.Equator(pl.b, tm, obs, false, true); const l = Math.hypot(eq.vec.x, eq.vec.y, eq.vec.z); const e = mul(ML, [eq.vec.x/l, eq.vec.y/l, eq.vec.z/l]); if (e[2] < 0) return;
+    const p = P(e); vis.push(pl.b === 'Moon' ? 'Moon' : pl.b);
+    if (pl.b === 'Moon') { const ph = A.Illumination('Moon', tm).phase_fraction; g.fillStyle = '#2a2c36'; g.beginPath(); g.arc(p[0], p[1], 15, 0, Math.PI*2); g.fill(); g.fillStyle = '#f0ece0'; g.beginPath(); g.arc(p[0], p[1], 15, -Math.PI/2, Math.PI/2); const rx = 15*Math.abs(2*ph - 1); if (ph >= 0.5) g.ellipse(p[0], p[1], rx, 15, 0, Math.PI/2, Math.PI*1.5); else g.ellipse(p[0], p[1], rx, 15, 0, Math.PI/2, -Math.PI/2, true); g.fill(); }
+    else { const rr = pl.b === 'Sun' ? 18 : 7; const pg = g.createRadialGradient(p[0], p[1], 0, p[0], p[1], rr*3); pg.addColorStop(0, pl.col); pg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = pg; g.beginPath(); g.arc(p[0], p[1], rr*3, 0, Math.PI*2); g.fill(); g.fillStyle = pl.col; g.beginPath(); g.arc(p[0], p[1], rr, 0, Math.PI*2); g.fill(); }
+    g.font = '700 17px Manrope, sans-serif'; g.fillStyle = pl.col; g.textAlign = 'left'; g.fillText(pl.b === 'Moon' ? 'Moon' : pl.tr, p[0] + 20, p[1] + 6);
+  });
+  g.restore();
+  g.strokeStyle = 'rgba(227,194,126,.7)'; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, R, 0, Math.PI*2); g.stroke();
+  g.strokeStyle = 'rgba(227,194,126,.35)'; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, R + 14, 0, Math.PI*2); g.stroke();
+  for (let a = 0; a < 360; a += 5) { const t = a*D2R, l1 = a % 45 === 0 ? 14 : 6; g.beginPath(); g.moveTo(cx - Math.sin(t)*(R + 14), cy - Math.cos(t)*(R + 14)); g.lineTo(cx - Math.sin(t)*(R + 14 - l1), cy - Math.cos(t)*(R + 14 - l1)); g.stroke(); }
+  g.font = '700 22px Manrope, sans-serif'; g.fillStyle = '#e3c27e'; g.textAlign = 'center';
+  [['K', 0], ['D', 90], ['G', 180], ['B', 270]].forEach(([t, a]) => { g.fillText(t, cx - Math.sin(a*D2R)*(R + 40), cy - Math.cos(a*D2R)*(R + 40) + 8); });
+  g.fillStyle = '#efe9dc'; g.font = 'italic 600 64px "Cormorant Garamond", Georgia, serif';
+  g.fillText(name ? name : 'Doğduğum gece', cx, 120);
+  g.font = '600 20px Manrope, sans-serif'; g.fillStyle = '#e3c27e'; g.letterSpacing = '4px';
+  g.fillText((name ? 'DOĞDUĞU ANIN GÖKYÜZÜ' : 'O ANIN GERÇEK GÖKYÜZÜ'), cx, 162); g.letterSpacing = '0px';
+  const dtxt = date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) + ' · ' + loc.name;
+  g.font = '500 26px Manrope, sans-serif'; g.fillStyle = '#efe9dc'; g.fillText(dtxt, cx, 1180);
+  const ph = A.Illumination('Moon', tm).phase_fraction, mn = ['Yeni Ay', 'Hilal', 'İlk dördün', 'Şişkin Ay', 'Dolunay', 'Şişkin Ay', 'Son dördün', 'Hilal'][Math.round(A.MoonPhase(tm)/45) % 8];
+  const pls = vis.filter(x => !['Moon', 'Sun'].includes(x)).map(x => (bodies.find(b => b.b === x) || {}).tr || x);
+  const summary = 'O an gökyüzünde: ' + (pls.length ? pls.join(', ') : 'ufkun üstünde parlak gezegen yoktu') + ' · Ay %' + Math.round(ph*100) + ' (' + mn + ')' + (vis.includes('Sun') ? ' · Güneş ufkun üstündeydi' : '');
+  g.font = '500 21px Manrope, sans-serif'; g.fillStyle = 'rgba(233,228,216,.75)'; g.fillText(summary, cx, 1224);
+  g.font = '500 17px Manrope, sans-serif'; g.fillStyle = 'rgba(233,228,216,.45)'; g.fillText('cagdasakil.github.io/gokyuzu-atlasi', cx, 1300);
+  return { canvas: c, summary };
+}
+
+/* ---------- International Space Station ---------- */
+const ISS_FALLBACK = ['1 25544U 98067A   26291.14461894  .00007503  00000+0  14456-3 0  9994', '2 25544  51.6328  51.6259 0006780 277.7856  82.2363 15.48918166590814'];
+const ISS = { rec: null, e: null, lit: false, alt: 0, km: 0, passes: [], live: false, last: 0 };
+function loadISS() {
+  const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js';
+  sc.onload = async () => {
+    let tle = ISS_FALLBACK;
+    try { const t = await (await fetch('https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE', { cache: 'no-cache' })).text(); const ln = t.trim().split('\n').map(x => x.trim()); if (ln[1] && ln[1].startsWith('1 ')) { tle = [ln[1], ln[2]]; ISS.live = true; } } catch (e) {}
+    try { ISS.rec = satellite.twoline2satrec(tle[0], tle[1]); computePasses(); } catch (e) {}
+  };
+  document.body.appendChild(sc);
+}
+function issAt(date, lat, lon) {
+  const pv = satellite.propagate(ISS.rec, date); if (!pv || !pv.position) return null;
+  const gmst = satellite.gstime(date), ecf = satellite.eciToEcf(pv.position, gmst);
+  const la = satellite.ecfToLookAngles({ longitude: lon*D2R, latitude: lat*D2R, height: 0 }, ecf);
+  const p = pv.position, sun = A.GeoVector('Sun', A.MakeTime(date), true); const sl = Math.hypot(sun.x, sun.y, sun.z), s = [sun.x/sl, sun.y/sl, sun.z/sl];
+  const d = p.x*s[0] + p.y*s[1] + p.z*s[2], perp = Math.hypot(p.x - d*s[0], p.y - d*s[1], p.z - d*s[2]);
+  const lit = d > 0 || perp > 6371;
+  const gd = satellite.eciToGeodetic(pv.position, gmst);
+  return { az: la.azimuth, el: la.elevation, lit, km: gd.height };
+}
+function issE(x) { return [Math.sin(x.az)*Math.cos(x.el), Math.cos(x.az)*Math.cos(x.el), Math.sin(x.el)]; }
+function updateISS() {
+  if (!ISS.rec || performance.now() - ISS.last < 250) return; ISS.last = performance.now();
+  const x = issAt(now, S.loc.lat, S.loc.lon); if (!x) { ISS.e = null; return; }
+  ISS.e = issE(x); ISS.lit = x.lit; ISS.km = x.km; ISS.el = x.el;
+}
+function computePasses() {
+  if (!ISS.rec) return;
+  const out = [], start = now.getTime(); let cur = null;
+  for (let t = 0; t < 72*3600; t += 30) {
+    const d = new Date(start + t*1000), x = issAt(d, S.loc.lat, S.loc.lon); if (!x) continue;
+    if (x.el > 10*D2R) {
+      if (!cur) cur = { start: d, max: d, maxEl: x.el, az0: x.az };
+      if (x.el > cur.maxEl) { cur.maxEl = x.el; cur.max = d; cur.lit = x.lit; }
+      cur.end = d; cur.az1 = x.az;
+    } else if (cur) {
+      const sunAlt = (() => { const eq = A.Equator('Sun', A.MakeTime(cur.max), observer, true, true); return A.Horizon(A.MakeTime(cur.max), observer, eq.ra, eq.dec, 'normal').altitude; })();
+      cur.visible = cur.lit && sunAlt < -6; out.push(cur); cur = null;
+    }
+  }
+  ISS.passes = out;
+}
+function drawISS(night) {
+  if (!ISS.e || (!visible(ISS.e) && !(S.sel && S.sel.kind === 'iss'))) return;
+  const p = proj(ISS.e); if (!p) return;
+  const bright = ISS.lit && dayReal < 0.5;
+  // path for the next 8 minutes
+  ctx.save(); ctx.setLineDash([4, 5]); ctx.strokeStyle = 'rgba(140,220,255,' + (bright ? 0.6 : 0.3) + ')'; ctx.lineWidth = 1.2; ctx.beginPath(); let first = true;
+  for (let s2 = 0; s2 <= 480; s2 += 20) { const x = issAt(new Date(now.getTime() + s2*1000), S.loc.lat, S.loc.lon); if (!x) continue; const e = issE(x); if (e[2] < -0.02 && SET.ground === 'solid') { first = true; continue; } const q = proj(e); if (!q) { first = true; continue; } first ? ctx.moveTo(q[0], q[1]) : ctx.lineTo(q[0], q[1]); first = false; }
+  ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.translate(p[0], p[1]);
+  const gl2 = ctx.createRadialGradient(0, 0, 0, 0, 0, 14); gl2.addColorStop(0, bright ? 'rgba(255,255,255,1)' : 'rgba(170,190,220,.7)'); gl2.addColorStop(1, 'rgba(140,220,255,0)');
+  ctx.fillStyle = gl2; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = bright ? '#fff' : 'rgba(200,215,235,.8)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(9, 0); ctx.moveTo(-9, -4); ctx.lineTo(-9, 4); ctx.moveTo(9, -4); ctx.lineTo(9, 4); ctx.stroke();
+  ctx.fillStyle = bright ? '#fff' : '#cdd8e8'; ctx.fillRect(-2.5, -2.5, 5, 5);
+  ctx.restore();
+  label('ISS' + (bright ? ' · görünür' : ''), p[0] + 14, p[1] - 8, '700 13px Manrope, sans-serif', '#9fdcff', { force: true });
+  picks.push({ x: p[0], y: p[1], r: 22, pri: 0, obj: { kind: 'iss', ref: ISS } });
+}
+function issCard() {
+  let h = '<div class="shead"><div class="grow"><div class="kind">Uzay istasyonu</div><h2>ISS</h2><div class="sub">Uluslararası Uzay İstasyonu · ' + (ISS.live ? 'canlı yörünge verisi' : 'kayıtlı yörünge verisi') + '</div></div>' + closeX + '</div>';
+  h += '<p class="fact">Dünya\'nın çevresinde saatte yaklaşık 27.600 km hızla, her 92 dakikada bir tur atıyor. İçinde şu an astronotlar yaşıyor. Gün batımından sonra Güneş ışığını yansıtınca Venüs kadar parlak, yanıp sönmeyen bir nokta olarak birkaç dakikada gökyüzünü geçer.</p><div class="rows">';
+  h += row('Yükseklik', fmtN(ISS.km || 420, 0) + ' km', 'İstanbul–Ankara arasından biraz fazla') + row('Durum', ISS.e && ISS.e[2] > 0 ? (ISS.lit ? 'Ufkun üstünde, güneş alıyor' : 'Ufkun üstünde, Dünya\'nın gölgesinde') : 'Ufkun altında');
+  h += '</div>' + passList();
+  return h;
+}
+function passList() {
+  if (!ISS.rec) return '<p class="note">Uzay istasyonu verisi yükleniyor…</p>';
+  const vis = ISS.passes.filter(p => p.visible).slice(0, 5);
+  if (!vis.length) return '<p class="note">Önümüzdeki 3 günde ' + esc(S.loc.name) + '\'dan çıplak gözle görülebilecek bir geçiş yok.</p>';
+  return '<div class="sect">Görünür geçişler</div><div class="list">' + vis.map((p, i) => '<button class="item" data-pass="' + ISS.passes.indexOf(p) + '"><b>' + dayHm(p.start) + '</b><span>' + Math.round((p.end - p.start)/60000) + ' dk · en yüksek ' + Math.round(p.maxEl*R2D) + '° · ' + COMPASS[Math.round(((p.az0*R2D) % 360 + 360) % 360/45) % 8] + ' → ' + COMPASS[Math.round(((p.az1*R2D) % 360 + 360) % 360/45) % 8] + '</span></button>').join('') + '</div><p class="note">Bir geçişe dokununca zaman o ana gider ve istasyonun yolunu izlersin.</p>';
+}
+function bindPasses() {
+  sheet.querySelectorAll('[data-pass]').forEach(b => b.addEventListener('click', () => {
+    const p = ISS.passes[+b.dataset.pass]; S.offset = p.start.getTime() - 60000 - Date.now(); S.speed = 1; updateAstro(true); buildChips(); updateISS(); ISS.last = 0;
+    closeSheet(); const x = issAt(p.max, S.loc.lat, S.loc.lon); flyTo(issE(x), 85*D2R); toast('ISS geçişi: ' + dayHm(p.start));
+  }));
+}
+
+/* ---------- weather & observing score ---------- */
+const WX = { key: '', data: null, err: false };
+async function loadWeather() {
+  const key = S.loc.lat.toFixed(2) + ',' + S.loc.lon.toFixed(2); if (WX.key === key && WX.data) return WX.data;
+  try {
+    const u = 'https://api.open-meteo.com/v1/forecast?latitude=' + S.loc.lat + '&longitude=' + S.loc.lon + '&hourly=cloud_cover,relative_humidity_2m&forecast_days=3&timezone=UTC';
+    const j = await (await fetch(u)).json(); WX.key = key; WX.data = j; WX.err = false; return j;
+  } catch (e) { WX.err = true; return null; }
+}
+function scoreFor(j, from, to) {
+  if (!j || !j.hourly) return null;
+  const T = j.hourly.time.map(t => new Date(t + 'Z').getTime()); let cl = 0, hu = 0, n = 0;
+  T.forEach((t, i) => { if (t >= from && t <= to) { cl += j.hourly.cloud_cover[i]; hu += j.hourly.relative_humidity_2m[i]; n++; } });
+  if (!n) return null; cl /= n; hu /= n;
+  const moon = bodies[1], mf = 1 - 0.35*moon.phase;
+  const sc = Math.max(1, Math.min(10, Math.round(10*(1 - cl/100)*mf*(1 - Math.max(0, hu - 75)/80))));
+  return { sc, cl: Math.round(cl), hu: Math.round(hu) };
+}
+async function fillWeather() {
+  const box = $('wxBox'); if (!box) return;
+  const t0 = atime, dusk = rs('Sun', -1, t0, 1.5, -18), dawn = dusk ? rs('Sun', +1, A.MakeTime(dusk), 1, -18) : null;
+  const j = await loadWeather(); if (!$('wxBox')) return;
+  if (!j) { box.innerHTML = row('Gözlem skoru', '—', 'Hava durumu bu görünümde alınamıyor; sitede (github.io) çalışır.', true); return; }
+  const from = (dusk || now).getTime(), to = (dawn || new Date(from + 8*3600000)).getTime();
+  const r = scoreFor(j, from, to);
+  if (!r) { box.innerHTML = row('Gözlem skoru', '—', 'Bu gece için tahmin yok.', true); return; }
+  const word = r.sc >= 8 ? 'Mükemmel' : r.sc >= 6 ? 'İyi' : r.sc >= 4 ? 'Orta' : 'Zayıf';
+  box.innerHTML = '<div class="score"><div class="sv">' + r.sc + '<small>/10</small></div><div><b>' + word + ' bir gece</b><span>Bulut %' + r.cl + ' · nem %' + r.hu + ' · Ay %' + Math.round(bodies[1].phase*100) + '</span><span class="dim">Tahmin: Open-Meteo, karanlık saatlerin ortalaması</span></div></div>';
+}
+
+/* ---------- constellation quiz ---------- */
+const quiz = { on: false, q: null, score: 0, n: 0, names: true, timer: 0 };
+function startQuiz() {
+  if (tour.on) endTour(); closeSheet(); quiz.on = true; quiz.score = 0; quiz.n = 0; quiz.names = S.names; S.names = false; nextQuiz();
+}
+function endQuiz() { quiz.on = false; clearTimeout(quiz.timer); S.names = quiz.names; S.sel = null; $('quizCard').hidden = true; toast('Oyun bitti: ' + quiz.score + ' / ' + quiz.n + ' doğru.'); }
+function nextQuiz() {
+  if (!quiz.on) return;
+  const upC = Object.values(CONS).filter(c => c.rank <= 2 && mul(M, c.v)[2] > 0.25);
+  const upS = STARS.filter(s => s.name && s.mag < 1.8 && mul(M, s.v)[2] > 0.2);
+  const useStar = upS.length >= 4 && Math.random() < 0.4;
+  const pool = useStar ? upS : upC; if (pool.length < 4) { toast('Gökte yeterince takımyıldız yok; zamanı geceye al.'); endQuiz(); return; }
+  const ans = pool[Math.floor(Math.random()*pool.length)], wrong = pool.filter(x => x !== ans).sort(() => Math.random() - 0.5).slice(0, 3);
+  const opts = [ans, ...wrong].sort(() => Math.random() - 0.5);
+  quiz.q = { ans, star: useStar };
+  const obj = useStar ? { kind: 'star', ref: ans } : { kind: 'con', ref: ans };
+  S.sel = obj; flyTo(mul(M, ans.v), useStar ? 30*D2R : 62*D2R, obj); S.fly.dur = 2.2;
+  const nm = x => useStar ? starTitle(x) : x.la;
+  const c = $('quizCard');
+  c.innerHTML = '<div class="tk">Oyun · ' + quiz.score + ' / ' + quiz.n + '</div><div class="tt">' + (useStar ? 'Halkadaki yıldız hangisi?' : 'Altın çizgili takımyıldız hangisi?') + '</div>' +
+    '<div class="qopts">' + opts.map((o, i) => '<button class="btn" data-q="' + i + '">' + esc(nm(o)) + '</button>').join('') + '</div><div class="tb2"><button class="btn" id="qEnd">Oyunu bitir</button></div>';
+  c.hidden = false;
+  c.querySelectorAll('[data-q]').forEach(b => b.addEventListener('click', () => {
+    if (quiz.q.done) return; quiz.q.done = true; quiz.n++;
+    const ok = opts[+b.dataset.q] === ans; if (ok) quiz.score++;
+    b.classList.add(ok ? 'good' : 'bad');
+    c.querySelectorAll('[data-q]').forEach((x, i) => { if (opts[i] === ans) x.classList.add('good'); });
+    if (ok && useStar === false) { LOG['con:' + ans.id] = LOG['con:' + ans.id] || { t: Date.now(), h: new Date().getHours() }; store.set('log', LOG); checkBadges(true); }
+    quiz.timer = setTimeout(nextQuiz, 1600);
+  }));
+  $('qEnd').onclick = endQuiz;
+}
+
+/* ---------- discover hub ---------- */
+function openHub() {
+  const card = (id, t, d, ic) => '<button class="hub" id="' + id + '"><i>' + ic + '</i><b>' + t + '</b><span>' + d + '</span></button>';
+  openSheet('<div class="shead"><div class="grow"><div class="kind">Keşfet</div><h2>Ne yapmak istersin?</h2></div>' + closeX + '</div><div class="hubs">' +
+    card('hBirth', 'Doğduğun gece', 'Doğum anının gökyüzü kartı', '✦') + card('hTour', 'Gök turu', 'Bu gecenin en güzel cisimleri', '◎') +
+    card('hTonight', 'Bu gece', 'Saatler, olaylar, gözlem skoru', '☾') + card('hIss', 'Uzay istasyonu', 'Ne zaman üstünden geçecek?', '⌁') +
+    card('hQuiz', 'Takımyıldız oyunu', 'Gökyüzünü ne kadar tanıyorsun?', '?') + card('hLog', 'Koleksiyonum', 'Gördüklerin ve rozetlerin', '★') +
+    card('hShare', 'Paylaş', 'Görüntü ya da bağlantı gönder', '↗') + card('hSet', 'Ayarlar', 'Parlaklık, zemin, ses…', '⚙') + '</div>', 'hub');
+  $('hBirth').onclick = openBirth; $('hTour').onclick = startTour; $('hTonight').onclick = openTonight; $('hQuiz').onclick = startQuiz;
+  $('hLog').onclick = openCollection; $('hShare').onclick = openShare; $('hSet').onclick = openSettings;
+  $('hIss').onclick = () => { if (ISS.e) select({ kind: 'iss', ref: ISS }, true); else openSheet(issCard(), 'info'); bindPasses(); };
+}
+
+/* ---------- ambient sound (off by default, starts only from a tap) ---------- */
+const SND = { ctx: null, master: null, cricketT: 0 };
+function soundOn(on) {
+  if (!on) { if (SND.ctx) { SND.master.gain.setTargetAtTime(0, SND.ctx.currentTime, 0.3); setTimeout(() => { try { SND.ctx.close(); } catch (e) {} SND.ctx = null; }, 900); } return; }
+  try {
+    const C = new (window.AudioContext || window.webkitAudioContext)(); SND.ctx = C;
+    const master = C.createGain(); master.gain.value = 0; master.connect(C.destination); SND.master = master;
+    master.gain.setTargetAtTime(0.5, C.currentTime, 1.5);
+    const len = C.sampleRate*4, buf = C.createBuffer(1, len, C.sampleRate), d = buf.getChannelData(0); let b0 = 0, b1 = 0, b2 = 0;
+    for (let i = 0; i < len; i++) { const w = Math.random()*2 - 1; b0 = 0.997*b0 + w*0.03; b1 = 0.985*b1 + w*0.06; b2 = 0.95*b2 + w*0.1; d[i] = (b0 + b1 + b2)*0.35; }
+    const src = C.createBufferSource(); src.buffer = buf; src.loop = true;
+    const lp = C.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420;
+    const wg = C.createGain(); wg.gain.value = 0.12;
+    const lfo = C.createOscillator(), lg = C.createGain(); lfo.frequency.value = 0.07; lg.gain.value = 0.07; lfo.connect(lg); lg.connect(wg.gain); lfo.start();
+    src.connect(lp); lp.connect(wg); wg.connect(master); src.start();
+    SND.noise = buf;
+  } catch (e) { toast('Bu cihazda ses başlatılamadı.'); }
+}
+function soundTick() {
+  if (!SND.ctx || dayReal > 0.4) return;
+  const C = SND.ctx; if (C.currentTime < SND.cricketT) return;
+  SND.cricketT = C.currentTime + 1.2 + Math.random()*3.5;
+  const n = 2 + Math.floor(Math.random()*3), f = 4300 + Math.random()*700;
+  for (let k = 0; k < n; k++) {
+    const o = C.createOscillator(), g = C.createGain(), t = C.currentTime + k*0.11; o.frequency.value = f; o.type = 'sine';
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.012, t + 0.015); g.gain.linearRampToValueAtTime(0, t + 0.06);
+    o.connect(g); g.connect(SND.master); o.start(t); o.stop(t + 0.08);
+  }
+}
+function soundMeteor() {
+  if (!SND.ctx || !SND.noise) return;
+  const C = SND.ctx, s = C.createBufferSource(); s.buffer = SND.noise;
+  const bp = C.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3; bp.frequency.setValueAtTime(2400, C.currentTime); bp.frequency.exponentialRampToValueAtTime(500, C.currentTime + 0.7);
+  const g = C.createGain(); g.gain.setValueAtTime(0, C.currentTime); g.gain.linearRampToValueAtTime(0.05, C.currentTime + 0.08); g.gain.exponentialRampToValueAtTime(0.0001, C.currentTime + 0.8);
+  s.connect(bp); bp.connect(g); g.connect(SND.master); s.start(); s.stop(C.currentTime + 0.9);
+}
+
+/* ---------- adaptive quality for slow phones ---------- */
+const PERF = { sum: 0, n: 0, reduced: false };
+function perfTick(dtMs) {
+  if (PERF.reduced) return; PERF.sum += dtMs; PERF.n++;
+  if (PERF.n >= 120) { const avg = PERF.sum/PERF.n; PERF.sum = 0; PERF.n = 0;
+    if (avg > 42 && (window.devicePixelRatio || 1) > 1) { PERF.reduced = true; DPR_CAP = 1; resize(); toast('Akıcılık için görüntü çözünürlüğü düşürüldü.'); } }
+}
+
 /* chips: what's up right now */
 function buildChips() {
   const up = bodies.filter(b => b.e[2] > 0 && b.b !== 'Sun' && b.mag < 5);
@@ -1625,6 +2081,8 @@ function frame(nowT) {
   { const a = ((S.az*R2D) % 360 + 360) % 360, txt = COMPASS[Math.round(a/45) % 8] + ' ' + Math.round(a) + '° · yükseklik ' + Math.round(S.alt*R2D) + '° · görüş ' + (S.fov*R2D < 1 ? fmtN(S.fov*R2D, 2) : S.fov*R2D < 10 ? fmtN(S.fov*R2D, 1) : Math.round(S.fov*R2D)) + '°'; if (hudEl.textContent !== txt) hudEl.textContent = txt; }
   render();
   drawTrails();
+  if (shotReq) { const r = shotReq; shotReq = null; r(composeShot()); }
+  updateISS(); soundTick(); perfTick(dt*1000);
   $('timeTxt').textContent = now.toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + (S.speed > 1 ? ' ▸' + S.speed + '×' : S.offset !== 0 && Math.abs(S.offset) > 60000 ? ' •' : '');
   if (nowT - lastChips > 5000 || (S.speed > 1 && nowT - lastChips > 600)) { lastChips = nowT; buildChips(); }
   if (S.sel && sheetMode === 'info' && nowT - lastInfo > (S.speed > 1 ? 400 : 3000)) { lastInfo = nowT; refreshPos(); }
@@ -1642,6 +2100,8 @@ function refreshPos() {
 $('locName').textContent = S.loc.name;
 updateAstro(true); updateCam(); buildChips();
 let autoNight = null;
+applyFolk();
+if (LINK) { if (LINK.loc) setLoc(LINK.loc, true); if (LINK.t) S.offset = LINK.t - Date.now(); updateAstro(true); buildChips(); }
 // open facing the brightest stretch of the Milky Way that is well up, else the brightest planet, else south
 function bestView() {
   const GNP = [-0.8676, -0.1981, 0.4560], GC = [-0.0549, -0.8734, -0.4838], U2 = crs3(GNP, GC);
@@ -1665,6 +2125,7 @@ if (autoNight) setTimeout(() => toast('Şu an gökyüzü aydınlık; sana bu gec
 HOME.az = tAz; HOME.alt = tAlt;
 if (matchMedia('(prefers-reduced-motion: reduce)').matches) { S.az = tAz; S.alt = tAlt; }
 else { S.az = tAz - 0.9; S.alt = 86*D2R; S.fov = 118*D2R; S.fly = { t: 0, az0: S.az, alt0: S.alt, fov0: S.fov, daz: 0.9, alt1: tAlt, fov1: 96*D2R, dur: 4.6 }; }
+if (LINK && LINK.az != null && !isNaN(LINK.az)) { const fa = LINK.az, fl = isNaN(LINK.alt) ? 30*D2R : LINK.alt, ff = LINK.fov && !isNaN(LINK.fov) ? LINK.fov : 96*D2R; HOME.az = fa; HOME.alt = fl; HOME.fov = ff; let daz = fa - S.az; daz = Math.atan2(Math.sin(daz), Math.cos(daz)); S.fly = { t: 0, az0: S.az, alt0: S.alt, fov0: S.fov, daz, alt1: fl, fov1: ff, dur: 4.2 }; }
 /* return-to-start view */
 const homeBtn = $('homeBtn');
 function goHome() {
@@ -1681,7 +2142,7 @@ function updateHome() {
 }
 
 /* first visit: try to use the device location; the city list stays as the fallback */
-if (!savedLoc && navigator.geolocation) {
+if (!savedLoc && !(LINK && LINK.loc) && navigator.geolocation) {
   try {
     navigator.geolocation.getCurrentPosition(p => {
       setLoc({ name: 'Konumum', lat: +p.coords.latitude.toFixed(3), lon: +p.coords.longitude.toFixed(3) }, true);
@@ -1689,6 +2150,24 @@ if (!savedLoc && navigator.geolocation) {
     }, () => {}, { timeout: 8000, maximumAge: 3600000 });
   } catch (e) {}
 }
+
+/* offline support on the published site (the Claude preview cannot register workers) */
+if ('serviceWorker' in navigator && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+/* hub, ISS, first-run guide */
+$('hubBtn').addEventListener('click', openHub);
+setTimeout(loadISS, 1800);
+const ONB = [
+  ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 40V20a4 4 0 0 1 8 0v14"/><path d="M30 32v-4a4 4 0 0 1 8 0v6"/><path d="M38 33a4 4 0 0 1 8 0v8c0 9-6 15-14 15s-12-5-15-11l-4-8a4 4 0 0 1 7-4l2 4"/><path d="M8 14h10M46 14h10M13 9l-5 5 5 5M51 9l5 5-5 5"/></svg>', 'Etrafa bak', 'Ekranı parmağınla sürükle; gökyüzünün her yönüne dönebilirsin. Telefonu göğe tutmak için alttaki "Göğe tut"a bas.'],
+  ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="28" cy="28" r="14"/><path d="M38 38l14 14M22 28h12M28 22v12"/></svg>', 'Yakınlaş', 'İki parmakla aç-kapa ya da fare tekerleğini kullan. Yakınlaştıkça sönük yıldızlar, galaksiler ve Jupiter\'in uyduları ortaya çıkar.'],
+  ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 6l5 15 16 1-12 10 4 16-13-9-13 9 4-16L11 22l16-1z"/></svg>', 'Dokun ve keşfet', 'Bir yıldıza, gezegene ya da takımyıldıza dokun; hikâyesi açılır. Sağ üstteki "Keşfet"te gök turu, doğduğun gecenin gökyüzü ve oyun var.']
+];
+function showOnb(i) {
+  const o = $('onb'), c = $('onbc'); if (i >= ONB.length) { o.hidden = true; store.set('onb', 1); return; }
+  c.innerHTML = ONB[i][0] + '<h3>' + ONB[i][1] + '</h3><p>' + ONB[i][2] + '</p><div class="dots">' + ONB.map((_, k) => '<i class="' + (k === i ? 'on' : '') + '"></i>').join('') + '</div><div class="btns"><button class="btn" id="onbSkip">Geç</button><button class="btn on" id="onbNext">' + (i === ONB.length - 1 ? 'Başla' : 'İleri') + '</button></div>';
+  o.hidden = false; $('onbNext').onclick = () => showOnb(i + 1); $('onbSkip').onclick = () => showOnb(ONB.length);
+}
+if (!store.get('onb', 0) && !LINK) setTimeout(() => showOnb(0), 5600);
 
 /* deep catalogue: ~94.000 faint stars load in the background once the sky is up */
 function addDeep(D) {

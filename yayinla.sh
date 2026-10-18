@@ -4,7 +4,8 @@
 set -e
 cd "$(dirname "$0")"
 mkdir -p docs
-{ printf '<!doctype html>\n<html lang="tr">\n'; cat gokyuzu.html; } > docs/index.html
+{ printf '<!doctype html>\n<html lang="tr">\n<link rel="manifest" href="manifest.webmanifest">\n<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="icon" href="icon-192.png">\n<meta name="theme-color" content="#04060c">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n<meta name="description" content="Konuma ve saate göre gerçek gökyüzü: 119.625 yıldız, gezegenler, galaksiler, Uzay İstasyonu.">\n'; cat gokyuzu.html; } > docs/index.html
+sed "s/SURUM/$(date +%Y%m%d%H%M%S)/" sw-sablon.js > docs/sw.js
 { printf '<!doctype html>\n<html lang="tr">\n'; cat kara-delik.html; } > docs/kara-delik.html
 cp gokyuzu-veri.js gokyuzu-veri-derin.js docs/
 touch docs/.nojekyll
