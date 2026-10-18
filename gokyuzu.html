@@ -1262,10 +1262,12 @@ function drawOverlay(t) {
       const p = proj(e); if (!p) return;
       const dm = String(d.dim || '5').split('x').map(Number);
       const a1 = Math.max(dm[0] || 5, 3)/60*D2R*ppr*0.5, a2 = Math.max(dm[1] || dm[0] || 5, 2)/60*D2R*ppr*0.5;
-      const rad = Math.max(a1*2.6, 14);
+      // at wide view only the famous objects glow; the rest appear once they are big enough to mean something
+      const famous = FAMOUS_DSO.has(d.id); if (!famous && a1 < 5) return;
+      const rad = Math.max(a1*2.6, famous ? 10 : 6);
       if (p[0] < -rad || p[0] > W + rad || p[1] < -rad || p[1] > H + rad) return;
       const col = DSO_GLOW[d.type] || [200, 210, 255];
-      const br = Math.max(0.04, Math.min(0.55, (10 - d.mag)/11))*night*(e[2] < 0 ? 0.4 : 1);
+      const br = Math.max(0.04, Math.min(0.5, (10 - d.mag)/11))*night*(e[2] < 0 ? 0.4 : 1)*Math.min(1, a1/(famous ? 4 : 12));
       ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(-0.6); ctx.scale(1, Math.max(0.25, a2/a1));
       const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rad);
       g.addColorStop(0, rgbS(col, br)); g.addColorStop(0.22, rgbS(col, br*0.5)); g.addColorStop(1, rgbS(col, 0));
@@ -1505,7 +1507,12 @@ function figCanvas(id, file) {
   const c = FIGC[id]; if (c) return c.ready ? c.cv : null;
   const e = FIGC[id] = { ready: false }, im = new Image();
   im.onload = () => { const cv = document.createElement('canvas'); cv.width = im.naturalWidth; cv.height = im.naturalHeight; const g = cv.getContext('2d');
-    g.drawImage(im, 0, 0); g.globalCompositeOperation = 'multiply'; g.fillStyle = '#e8c98a'; g.fillRect(0, 0, cv.width, cv.height); e.cv = cv; e.ready = true; };
+    g.drawImage(im, 0, 0);
+    // keep the engraved lines, fade the soft grey fills that read as haze from afar
+    const id = g.getImageData(0, 0, cv.width, cv.height), px = id.data;
+    for (let i = 0; i < px.length; i += 4) { const v = px[i]/170, o = Math.min(255, Math.pow(Math.max(0, v), 2.4)*300); px[i] = px[i + 1] = px[i + 2] = o; }
+    g.putImageData(id, 0, 0);
+    g.globalCompositeOperation = 'multiply'; g.fillStyle = '#e8c98a'; g.fillRect(0, 0, cv.width, cv.height); e.cv = cv; e.ready = true; };
   im.src = 'figur/' + file; return null;
 }
 function drawFigures(night) {
@@ -1524,7 +1531,11 @@ function drawFigures(night) {
     const det = (x1 - x3)*(y2 - y3) - (x2 - x3)*(y1 - y3); if (Math.abs(det) < 1e-6) continue;
     const solve = (u1, u2, u3) => { const a = ((u1 - u3)*(y2 - y3) - (u2 - u3)*(y1 - y3))/det, b = ((x1 - x3)*(u2 - u3) - (x2 - x3)*(u1 - u3))/det; return [a, b, u3 - a*x3 - b*y3]; };
     const [a, cc, e] = solve(sp[0][0], sp[1][0], sp[2][0]), [b, d, f] = solve(sp[0][1], sp[1][1], sp[2][1]);
-    const scale = Math.sqrt(Math.abs(a*d - b*cc)); if (scale*img.width > 6*Math.max(W, H) || scale*img.width < 30) continue;
+    // reject distorted fits: anchors near the screen edge or almost in a line stretch the art into streaks
+    const sx = Math.hypot(a, b), sy = Math.hypot(cc, d), area = Math.abs(a*d - b*cc), big = Math.max(W, H);
+    if (!(sx > 0 && sy > 0) || Math.max(sx, sy)/Math.min(sx, sy) > 2.2 || area/(sx*sy) < 0.55) continue;
+    if (Math.max(sx, sy)*img.width > 3*big || Math.sqrt(area)*img.width < 30) continue;
+    if (sp.some(q => q[0] < -big || q[0] > W + big || q[1] < -big || q[1] > H + big)) continue;
     ctx.globalAlpha = (hi ? 0.55 : 0.2)*night;
     ctx.setTransform(dpr*a, dpr*b, dpr*cc, dpr*d, dpr*e, dpr*f);
     ctx.drawImage(img, 0, 0);
