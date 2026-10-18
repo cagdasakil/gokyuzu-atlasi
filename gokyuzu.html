@@ -225,6 +225,7 @@ input[type="range"] { accent-color: var(--gilt); }
 <script src="gokyuzu-veri.js"></script>
 <script src="gokyuzu-exo.js"></script>
 <script src="gokyuzu-foto.js"></script>
+<script src="gokyuzu-hareket.js"></script>
 <script>
 (() => {
 'use strict';
@@ -1018,6 +1019,66 @@ function uploadStars() {
   gl.bindBuffer(gl.ARRAY_BUFFER, sbuf); gl.bufferData(gl.ARRAY_BUFFER, sdata, gl.STATIC_DRAW);
 }
 uploadStars();
+
+/* ---------------- time machine: proper motion + constellation lines that follow their stars ---------------- */
+const EPOCH = { dt: 0, linked: false };
+const yearLabel = y => y <= 0 ? (LANG === 'en' ? (1 - y) + ' BC' : 'MÖ ' + (1 - y)) : (y < 1000 ? (LANG === 'en' ? 'AD ' + y : 'MS ' + y) : String(y));
+function linkLines() {
+  if (EPOCH.linked) return; EPOCH.linked = true;
+  const grid = new Map(); STARS.forEach(st => { if (st.mag > 6.8) return; const k = Math.floor(st.ra) + ',' + Math.floor(st.dec + 90); (grid.get(k) || grid.set(k, []).get(k)).push(st); });
+  LINES.forEach(l => { l.base = l.pts.map(v => v.slice()); l.star = l.pts.map(v => {
+    const ra = (Math.atan2(v[1], v[0])*R2D + 360) % 360, dec = Math.asin(v[2])*R2D; let best = null, bd = 0.25;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) (grid.get(((Math.floor(ra) + dx + 360) % 360) + ',' + (Math.floor(dec + 90) + dy)) || []).forEach(st => {
+      const d = Math.hypot((st.ra - ra)*Math.cos(dec*D2R), st.dec - dec); if (d < bd) { bd = d; best = st; } });
+    return best; }); });
+}
+function applyEpoch(force) {
+  const y = now.getUTCFullYear() + now.getUTCMonth()/12, dt = y - 2000;
+  const nd = Math.abs(dt) < 30 ? 0 : Math.round(dt/20)*20; if (nd === EPOCH.dt && !force) return; EPOCH.dt = nd;
+  if (!window.PM) return; linkLines();
+  for (let i = 0; i < PM.length && i < STARS.length; i++) {
+    const st = STARS[i], pm = PM[i];
+    if (!st.v0) st.v0 = st.v;
+    if (!nd || (!pm[0] && !pm[1])) { st.v = st.v0; continue; }
+    const dec = st.dec + pm[1]/3.6e6*nd, ra = st.ra + pm[0]/3.6e6*nd/Math.max(0.05, Math.cos(st.dec*D2R));
+    st.v = eqv(ra, Math.max(-89.99, Math.min(89.99, dec)));
+  }
+  LINES.forEach(l => { l.pts = l.base.map((v, k) => l.star[k] ? l.star[k].v : v); });
+  uploadStars();
+}
+function poleStar() {
+  try {
+    const r = A.Rotation_EQD_EQJ(atime).rot, p = [r[2][0], r[2][1], r[2][2]];
+    let best = null, bd = 9; STARS.forEach(st => { if (st.mag > 4.0) return; const d = Math.acos(Math.max(-1, Math.min(1, dot(st.v, p)))); if (d < bd) { bd = d; best = st; } });
+    return best ? { st: best, deg: bd*R2D } : null;
+  } catch (e) { return null; }
+}
+const TM_PRESETS = [
+  [-11999, 'Vega kutup yıldızıydı', 'Vega was the pole star'], [-2559, 'Büyük Piramit yapılıyor; kutupta Thuban', 'The Great Pyramid is built; Thuban at the pole'],
+  [-499, 'Antik Yunan gökbilimcileri', 'Ancient Greek astronomers'], [1054, 'Yengeç süpernovası parladı', 'The Crab supernova flared'], [1610, 'Galileo teleskobu göğe çevirdi', 'Galileo turns his telescope to the sky'],
+  [3000, 'Kutup yıldızı Gamma Cephei\'ye kayıyor', 'The pole drifts towards Gamma Cephei'], [7500, 'Alderamin kutup yıldızı', 'Alderamin is the pole star'], [13700, 'Vega yeniden kutup yıldızı', 'Vega is the pole star again']
+];
+function setYear(y) {
+  const d = new Date(Date.now() + S.offset); d.setUTCFullYear(Math.round(y));
+  S.offset = d.getTime() - Date.now(); S.speed = 1; updateAstro(true); applyEpoch(true); buildChips();
+}
+function openTimeMachine() {
+  const en = LANG === 'en', y0 = now.getUTCFullYear();
+  let h = '<div class="shead"><div class="grow"><div class="kind">' + (en ? 'Time machine' : 'Zaman makinesi') + '</div><h2>' + (en ? 'Travel through the centuries' : 'Yüzyıllar arasında yolculuk') + '</h2><div class="sub">' + (en ? 'Stars drift and the Earth\'s axis wobbles' : 'Yıldızlar kayar, Dünya\'nın ekseni yalpalar') + '</div></div>' + closeX + '</div>' +
+    '<div class="score"><div class="sv" id="tmYear" style="font-size:28px">' + yearLabel(y0) + '</div><div><b id="tmPole"></b><span id="tmPoleN"></span></div></div>' +
+    '<div class="field"><label for="tmS">' + (en ? 'Year' : 'Yıl') + '</label><input type="range" id="tmS" min="-12000" max="14000" step="50" value="' + y0 + '"></div>' +
+    '<div class="list">' + TM_PRESETS.map((p, i) => '<button class="item" data-tm="' + i + '"><b>' + yearLabel(p[0]) + '</b><span>' + (en ? p[2] : p[1]) + '</span></button>').join('') + '</div>' +
+    '<div class="btns"><button class="btn on" id="tmNow">' + (en ? 'Back to today' : 'Bugüne dön') + '</button></div>' +
+    '<p class="note">' + (en ? 'Constellation shapes change slowly as each star moves through space; over 10,000 years some shift by several degrees. The pole star changes because the Earth\'s axis traces a circle every 26,000 years.' : 'Her yıldız uzayda kendi yolunda ilerlediği için takımyıldızların şekli yavaşça değişir; 10.000 yılda bazıları birkaç derece kayar. Kutup yıldızı ise Dünya\'nın ekseni 26.000 yılda bir daire çizdiği için değişir.') + '</p>';
+  openSheet(h, 'tm');
+  const show = () => { $('tmYear').textContent = yearLabel(now.getUTCFullYear()); const p = poleStar();
+    if (p) { $('tmPole').textContent = (en ? 'Pole star: ' : 'Kutup yıldızı: ') + starTitle(p.st); $('tmPoleN').textContent = (en ? 'distance from the pole ' : 'kutba uzaklığı ') + fmtN(p.deg, 1) + '°' + (p.deg > 3 ? (en ? ' · no bright pole star' : ' · parlak bir kutup yıldızı yok') : ''); } };
+  show();
+  $('tmS').addEventListener('input', e => { setYear(+e.target.value); show(); });
+  sheet.querySelectorAll('[data-tm]').forEach(b => b.addEventListener('click', () => { const y = TM_PRESETS[+b.dataset.tm][0]; $('tmS').value = y; setYear(y); show();
+    const ncp = (() => { try { const r = A.Rotation_EQD_EQJ(atime).rot; return mul(M, [r[2][0], r[2][1], r[2][2]]); } catch (e) { return null; } })(); if (ncp && y !== 1054 && y !== 1610) flyTo(ncp, 70*D2R); }));
+  $('tmNow').addEventListener('click', () => { S.offset = 0; updateAstro(true); applyEpoch(true); buildChips(); show(); $('tmS').value = now.getUTCFullYear(); });
+}
 
 // Milky Way: rasterise the outline polygons into an equirectangular texture
 const mwTex = gl.createTexture();
@@ -2608,9 +2669,9 @@ function openHub() {
     card('hBirth', T('Doğduğun gece'), T('Doğum anının gökyüzü kartı'), '✦') + card('hTour', T('Gök turu'), T('Bu gecenin en güzel cisimleri'), '◎') +
     card('hTonight', T('Bu gece'), T('Saatler, olaylar, gözlem skoru'), '☾') + card('hIss', T('Uzay istasyonu'), T('Ne zaman üstünden geçecek?'), '⌁') +
     card('hQuiz', T('Takımyıldız oyunu'), T('Gökyüzünü ne kadar tanıyorsun?'), '?') + card('hLog', T('Koleksiyonum'), T('Gördüklerin ve rozetlerin'), '★') +
-    card('hShare', T('Paylaş'), T('Görüntü ya da bağlantı gönder'), '↗') + card('hSet', T('Ayarlar'), T('Parlaklık, zemin, ses…'), '⚙') + '</div>', 'hub');
+    card('hTm', LANG === 'en' ? 'Time machine' : 'Zaman makinesi', LANG === 'en' ? 'Thousands of years back or ahead' : 'Binlerce yıl geriye ya da ileriye', '⧗') + card('hShare', T('Paylaş'), T('Görüntü ya da bağlantı gönder'), '↗') + card('hSet', T('Ayarlar'), T('Parlaklık, zemin, ses…'), '⚙') + '</div>', 'hub');
   $('hBirth').onclick = openBirth; $('hTour').onclick = startTour; $('hTonight').onclick = openTonight; $('hQuiz').onclick = startQuiz;
-  $('hLog').onclick = openCollection; $('hShare').onclick = openShare; $('hSet').onclick = openSettings;
+  $('hTm').onclick = openTimeMachine; $('hLog').onclick = openCollection; $('hShare').onclick = openShare; $('hSet').onclick = openSettings;
   $('hIss').onclick = () => { if (ISS.e) select({ kind: 'iss', ref: ISS }, true); else openSheet(issCard(), 'info'); bindPasses(); };
 }
 
@@ -2703,7 +2764,8 @@ function frame(nowT) {
   drawTrails();
   if (shotReq) { const r = shotReq; shotReq = null; r(composeShot()); }
   updateISS(); soundTick(); perfTick(dt*1000);
-  $('timeTxt').textContent = now.toLocaleString(LOCALE, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + (S.speed > 1 ? ' ▸' + S.speed + '×' : S.offset !== 0 && Math.abs(S.offset) > 60000 ? ' •' : '');
+  applyEpoch(false);
+  $('timeTxt').textContent = (Math.abs(now.getUTCFullYear() - new Date().getUTCFullYear()) > 0 ? yearLabel(now.getUTCFullYear()) + ' · ' + now.toLocaleString(LOCALE, { day: 'numeric', month: 'short' }) : now.toLocaleString(LOCALE, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + (S.speed > 1 ? ' ▸' + S.speed + '×' : S.offset !== 0 && Math.abs(S.offset) > 60000 ? ' •' : '');
   if (nowT - lastChips > 5000 || (S.speed > 1 && nowT - lastChips > 600)) { lastChips = nowT; buildChips(); }
   if (S.sel && sheetMode === 'info' && nowT - lastInfo > (S.speed > 1 ? 400 : 3000)) { lastInfo = nowT; refreshPos(); }
   requestAnimationFrame(frame);
