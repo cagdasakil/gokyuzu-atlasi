@@ -230,82 +230,600 @@ input[type="range"] { accent-color: var(--gilt); }
 
 <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 <script src="gokyuzu-veri.js"></script>
+<script src="gokyuzu-exo.js"></script>
 <script>
 (() => {
 'use strict';
+/* ---------------- language ---------------- */
+var LANG = (() => { try { const v = localStorage.getItem('gk_lang'); if (v) return JSON.parse(v); } catch (e) {} return /^tr\b/i.test(navigator.language || '') ? 'tr' : 'en'; })();
+var LOCALE = LANG === 'tr' ? 'tr-TR' : (navigator.language && !/^tr/i.test(navigator.language) ? navigator.language : 'en-GB');
+var EN = {
+  '10.000–30.000 K': '10,000–30,000 K',
+  '7.500–10.000 K': '7,500–10,000 K',
+  '6.000–7.500 K': '6,000–7,500 K',
+  '5.200–6.000 K': '5,200–6,000 K',
+  '3.700–5.200 K': '3,700–5,200 K',
+  '2.400–3.700 K': '2,400–3,700 K',
+  'Dev': 'Giant',
+  'Karanlık gök yerleri': 'Dark-sky places',
+  'Dünyanın en karanlık gökyüzüne sahip yerleri; Samanyolu buralarda gölge düşürecek kadar parlaktır.': 'Some of the darkest skies on Earth; here the Milky Way is bright enough to cast shadows.',
+  'Dil': 'Language',
+  'MS ': 'in AD ',
+  ' / saat': ' / hour',
+  ' Ay tutulması': ' lunar eclipse',
+  ' Bir sonraki doğuş: ': ' Next rise: ',
+  ' Güneş tutulması': ' solar eclipse',
+  ' K yüzey sıcaklığı': ' K surface temperature',
+  ' anına alındı.': '.',
+  ' aydınlık': ' lit',
+  ' bir gece</b><span>Bulut %': ' night</b><span>Clouds %',
+  ' bunlardan biri. Çizgiler yalnızca yön bulmayı kolaylaştırır, yıldızlar aslında birbirinden çok farklı uzaklıklardadır.</p>': ' is one of them. The lines only help you find your way; the stars are actually at very different distances.</p>',
+  ' civarında': ' BC',
+  ' dakikada': ' minutes to reach us',
+  ' dk · en yüksek ': ' min · max ',
+  ' doğru.': ' correct.',
+  ' gökyüzü gösteriliyor.': ' sky shown.',
+  ' gün': ' days',
+  ' gün var': ' days to go',
+  ' gün önce zirve yaptı': ' days after the peak',
+  ' gün önceydi': ' days ago',
+  ' kadir': ' mag',
+  ' meteor (ideal koşulda)': ' meteors (ideal conditions)',
+  ' meteor yağmuru': ' meteor shower',
+  ' milyon km': ' million km',
+  ' milyon yıl önce': ' million years ago',
+  ' milyon ışık yılı': ' million light-years',
+  ' saatte': ' hours to reach us',
+  ' ulaşıyor · ': ' · ',
+  ' yola çıktı.': '.',
+  ' yıldız. Yakınlaştırdıkça sönükler görünür.': ' stars. Zoom in to see the faint ones.',
+  ' yılında': '',
+  ' · Batış ': ' · Sets ',
+  ' · Güneş ufkun üstündeydi': ' · the Sun was up',
+  ' · batış ': ' · sets ',
+  ' · bu gece ': ' · tonight ',
+  ' · görünür': ' · visible',
+  ' · nem %': ' · humidity %',
+  ' · tayf ': ' · spectrum ',
+  ' · zirvede': ' · peaking',
+  ' · özel adı yok': ' · no proper name',
+  ' · şu anki gerçek gökyüzü': ' · the real sky right now',
+  ' × Güneş': ' × Sun',
+  ' × Güneş · ': ' × Sun · ',
+  ' ışık yılı': ' light-years',
+  '" id="trBtn">Yıldız izleri (uzun pozlama)</button></div>': '" id="trBtn">Star trails (long exposure)</button></div>',
+  '"Şeytan yıldızı". Bir eşi önünden geçtiği için her 2,87 günde bir birkaç saatliğine sönükleşir.': '"The Demon Star". A companion passes in front of it every 2.87 days, dimming it for a few hours.',
+  '10 Messier cismi gör': 'See 10 Messier objects',
+  '1054 yılında gözlenen bir süpernovanın kalıntısı. Ortasında saniyede 30 kez dönen bir pulsar var.': 'The remains of a supernova seen in 1054. At its heart spins a pulsar, 30 times a second.',
+  '20 takımyıldız tanı': 'Recognise 20 constellations',
+  '30.000 K üstü': 'above 30,000 K',
+  '</div><div class="btns"><button class="btn" id="onbSkip">Geç</button><button class="btn on" id="onbNext">': '</div><div class="btns"><button class="btn" id="onbSkip">Skip</button><button class="btn on" id="onbNext">',
+  '</div><div class="sect">Gezegenler</div><div class="list">': '</div><div class="sect">Planets</div><div class="list">',
+  '</div><div class="sect">Rozetler</div><div class="badges">': '</div><div class="sect">Badges</div><div class="badges">',
+  '</div><div class="tb2"><button class="btn" id="qEnd">Oyunu bitir</button></div>': '</div><div class="tb2"><button class="btn" id="qEnd">End game</button></div>',
+  '</div><div id="wxBox"><div class="score"><div class="sv">…</div><div><b>Gözlem skoru hesaplanıyor</b><span>Hava durumu alınıyor</span></div></div></div><div class="rows">': '</div><div id="wxBox"><div class="score"><div class="sv">…</div><div><b>Calculating observing score</b><span>Fetching the weather</span></div></div></div><div class="rows">',
+  '</div><h2>Gökyüzünde neler var?</h2><div class="sub">': '</div><h2>What\'s in the sky?</h2><div class="sub">',
+  '</div><p class="note">Bir geçişe dokununca zaman o ana gider ve istasyonun yolunu izlersin.</p>': '</div><p class="note">Tap a pass to jump to that moment and watch the station\'s path.</p>',
+  '</div><p class="note">Bir olaya dokununca zaman o ana gider; gökyüzünü o gün nasıl görüneceğiyle izlersin.</p>': '</div><p class="note">Tap an event to jump to that moment and see how the sky will look.</p>',
+  '</div><p class="note">Güney yarımküreden (Sidney, Cape Town) bakınca bambaşka yıldızlar görünür.</p>': '</div><p class="note">From the southern hemisphere (Sydney, Cape Town) you see a completely different sky.</p>',
+  '</div><p class="note">Meteorlar radyant denen noktadan saçılıyor gibi görünür; en iyi gece yarısından sonra, şehir ışıklarından uzakta izlenir.</p>': '</div><p class="note">Meteors seem to fly out of a point called the radiant; watch after midnight, away from city lights.</p>',
+  '</h2><div class="sub">Konumu şu an için hesaplandı</div></div>': '</h2><div class="sub">Position computed for now</div></div>',
+  '</h2><div class="sub">Radyant: ': '</h2><div class="sub">Radiant: ',
+  '</p><div class="btns"><button class="btn on" id="bSave">Kartı paylaş / kaydet</button><button class="btn" id="bSky">Bu gökyüzüne git</button></div>': '</p><div class="btns"><button class="btn on" id="bSave">Share / save card</button><button class="btn" id="bSky">Go to this sky</button></div>',
+  '</span><span class="dim">Tahmin: Open-Meteo, karanlık saatlerin ortalaması</span></div></div>': '</span><span class="dim">Forecast: Open-Meteo, average over the dark hours</span></div></div>',
+  '<button class="chip" id="nowChip" style="border-color:rgba(255,139,107,.6);color:#ffb39e">⟲ Şimdiye dön</button>': '<button class="chip" id="nowChip" style="border-color:rgba(255,139,107,.6);color:#ffb39e">⟲ Back to now</button>',
+  '<button class="chip" id="tonightChip" style="border-color:rgba(227,194,126,.55);color:var(--gilt)">Bu gece ▸</button><button class="chip" id="tourChip" style="border-color:rgba(140,220,255,.5);color:#9fdcff">Gök turu ▸</button>': '<button class="chip" id="tonightChip" style="border-color:rgba(227,194,126,.55);color:var(--gilt)">Tonight ▸</button><button class="chip" id="tourChip" style="border-color:rgba(140,220,255,.5);color:#9fdcff">Sky tour ▸</button>',
+  '<div class="btns"><button class="btn on" id="bGo">Gökyüzünü oluştur</button></div><div id="bOut"></div>': '<div class="btns"><button class="btn on" id="bGo">Create the sky</button></div><div id="bOut"></div>',
+  '<div class="btns"><button class="btn on" id="shImg">Görüntüyü paylaş / kaydet</button><button class="btn" id="shLink">Bağlantıyı kopyala</button></div>': '<div class="btns"><button class="btn on" id="shImg">Share / save image</button><button class="btn" id="shLink">Copy link</button></div>',
+  '<div class="btns"><button class="btn" id="geo">Konumumu kullan</button></div><div class="list">': '<div class="btns"><button class="btn" id="geo">Use my location</button></div><div class="list">',
+  '<div class="btns"><button class="btn" id="now">Şimdi</button><button class="btn" data-h="-1">−1 saat</button><button class="btn" data-h="1">+1 saat</button><button class="btn" data-h="24">+1 gün</button></div>': '<div class="btns"><button class="btn" id="now">Now</button><button class="btn" data-h="-1">−1 hour</button><button class="btn" data-h="1">+1 hour</button><button class="btn" data-h="24">+1 day</button></div>',
+  '<div class="btns"><button class="btn" id="setReset">Varsayılana dön</button></div>': '<div class="btns"><button class="btn" id="setReset">Reset to defaults</button></div>',
+  '<div class="err">Bu tarayıcıda WebGL açılamadı.</div>': '<div class="err">WebGL could not start in this browser.</div>',
+  '<div class="err">Grafik gölgelendiricisi derlenemedi.</div>': '<div class="err">The graphics shader could not compile.</div>',
+  '<div class="err">Gök verisi yüklenemedi. Sayfayı yenilemeyi dene.</div>': '<div class="err">The sky data did not load. Try reloading the page.</div>',
+  '<div class="field"><input type="search" id="q" placeholder="Saturn, Orion, Andromeda, Vega…" autocomplete="off" aria-label="Gök cismi ara"></div><div class="list" id="res"></div>': '<div class="field"><input type="search" id="q" placeholder="Saturn, Orion, Andromeda, Vega…" autocomplete="off" aria-label="Search the sky"></div><div class="list" id="res"></div>',
+  '<div class="field"><label for="bDate">Doğum tarihi</label><input type="datetime-local" id="bDate" value="1995-03-21T03:30"></div>': '<div class="field"><label for="bDate">Date and time of birth</label><input type="datetime-local" id="bDate" value="1995-03-21T03:30"></div>',
+  '<div class="field"><label for="bName">İsim (isteğe bağlı)</label><input type="search" id="bName" placeholder="Örn. Elif" autocomplete="off"></div>': '<div class="field"><label for="bName">Name (optional)</label><input type="search" id="bName" placeholder="e.g. Emma" autocomplete="off"></div>',
+  '<div class="field"><label for="bPlace">Doğum yeri</label><select id="bPlace" class="sel">': '<div class="field"><label for="bPlace">Place of birth</label><select id="bPlace" class="sel">',
+  '<div class="field"><label for="dt">Tarih ve saat</label><input type="datetime-local" id="dt"></div>': '<div class="field"><label for="dt">Date and time</label><input type="datetime-local" id="dt"></div>',
+  '<div class="field"><label for="scrub">Saati kaydır</label><input type="range" id="scrub" min="-720" max="720" step="5" value="0"></div>': '<div class="field"><label for="scrub">Scrub the hour</label><input type="range" id="scrub" min="-720" max="720" step="5" value="0"></div>',
+  '<div class="field"><label for="shUrl">Bağlantı</label><input type="search" id="shUrl" readonly value="': '<div class="field"><label for="shUrl">Link</label><input type="search" id="shUrl" readonly value="',
+  '<div class="field"><label>Zaman akışı</label></div><div class="btns" id="spd">': '<div class="field"><label>Flow of time</label></div><div class="btns" id="spd">',
+  '<div class="sect">Aktif meteor yağmuru</div><div class="list">': '<div class="sect">Active meteor shower</div><div class="list">',
+  '<div class="sect">Gökyüzü koşulları</div>': '<div class="sect">Sky conditions</div>',
+  '<div class="sect">Görünüm</div>': '<div class="sect">Display</div>',
+  '<div class="sect">Görünür geçişler</div><div class="list">': '<div class="sect">Visible passes</div><div class="list">',
+  '<div class="sect">Kültür ve ses</div><div class="btns">': '<div class="sect">Culture and sound</div><div class="btns">',
+  '<div class="sect">Son gözlemler</div><div class="list">': '<div class="sect">Recent sightings</div><div class="list">',
+  '<div class="sect">Uzay istasyonu (ISS)</div>': '<div class="sect">Space station (ISS)</div>',
+  '<div class="sect">Yaklaşan olaylar</div><div class="list">': '<div class="sect">Coming up</div><div class="list">',
+  '<div class="sect">Yardımcı çizgiler</div><div class="btns">': '<div class="sect">Guides</div><div class="btns">',
+  '<div class="sect">Zemin</div>': '<div class="sect">Ground</div>',
+  '<div class="set"><label for="s_lp">Işık kirliliği</label><output id="o_lp">': '<div class="set"><label for="s_lp">Light pollution</label><output id="o_lp">',
+  '<div class="shead"><div class="grow"><div class="kind">Ara</div><h2>Ne arıyorsun?</h2></div>': '<div class="shead"><div class="grow"><div class="kind">Search</div><h2>What are you looking for?</h2></div>',
+  '<div class="shead"><div class="grow"><div class="kind">Ayarlar</div><h2>Gökyüzünü kendine göre ayarla</h2><div class="sub">Seçimlerin bu cihazda hatırlanır</div></div>': '<div class="shead"><div class="grow"><div class="kind">Settings</div><h2>Make the sky yours</h2><div class="sub">Your choices are remembered on this device</div></div>',
+  '<div class="shead"><div class="grow"><div class="kind">Bu gece · ': '<div class="shead"><div class="grow"><div class="kind">Tonight · ',
+  '<div class="shead"><div class="grow"><div class="kind">Doğduğun gece</div><h2>Doğduğun anın gökyüzü</h2><div class="sub">O an başının üstünde ne vardı?</div></div>': '<div class="shead"><div class="grow"><div class="kind">Your birth night</div><h2>The sky when you were born</h2><div class="sub">What was above you at that moment?</div></div>',
+  '<div class="shead"><div class="grow"><div class="kind">Gözlem günlüğü</div><h2>Koleksiyonum</h2><div class="sub">Bir cisme dokunup "Bunu gördüm" de; buraya eklenir</div></div>': '<div class="shead"><div class="grow"><div class="kind">Observing log</div><h2>My collection</h2><div class="sub">Tap an object and choose "I saw this" to add it here</div></div>',
+  '<div class="shead"><div class="grow"><div class="kind">Jupiter\'in uydusu</div><h2>': '<div class="shead"><div class="grow"><div class="kind">Moon of Jupiter</div><h2>',
+  '<div class="shead"><div class="grow"><div class="kind">Keşfet</div><h2>Ne yapmak istersin?</h2></div>': '<div class="shead"><div class="grow"><div class="kind">Explore</div><h2>What would you like to do?</h2></div>',
+  '<div class="shead"><div class="grow"><div class="kind">Konum</div><h2>Nereden bakıyorsun?</h2><div class="sub">Şu an: ': '<div class="shead"><div class="grow"><div class="kind">Location</div><h2>Where are you looking from?</h2><div class="sub">Now: ',
+  '<div class="shead"><div class="grow"><div class="kind">Meteor yağmuru</div><h2>': '<div class="shead"><div class="grow"><div class="kind">Meteor shower</div><h2>',
+  '<div class="shead"><div class="grow"><div class="kind">Paylaş</div><h2>Bu gökyüzünü gönder</h2><div class="sub">Şu anki görünüm, saat ve konumla</div></div>': '<div class="shead"><div class="grow"><div class="kind">Share</div><h2>Send this sky</h2><div class="sub">With the current view, time and place</div></div>',
+  '<div class="shead"><div class="grow"><div class="kind">Takımyıldız</div><h2>': '<div class="shead"><div class="grow"><div class="kind">Constellation</div><h2>',
+  '<div class="shead"><div class="grow"><div class="kind">Uzay istasyonu</div><h2>ISS</h2><div class="sub">Uluslararası Uzay İstasyonu · ': '<div class="shead"><div class="grow"><div class="kind">Space station</div><h2>ISS</h2><div class="sub">International Space Station · ',
+  '<div class="shead"><div class="grow"><div class="kind">Yıldız': '<div class="shead"><div class="grow"><div class="kind">Star',
+  '<div class="shead"><div class="grow"><div class="kind">Zaman</div><h2>Ne zaman bakalım?</h2><div class="sub">Gökyüzü seçtiğin ana göre yeniden hesaplanır</div></div>': '<div class="shead"><div class="grow"><div class="kind">Time</div><h2>When shall we look?</h2><div class="sub">The sky is recalculated for the moment you choose</div></div>',
+  '<div class="tb"><button class="btn" id="tPrev" aria-label="Önceki durak">‹</button><button class="btn" id="tInfo">Ayrıntı</button><button class="btn" id="tStop">Bitir</button><button class="btn" id="tNext" aria-label="Sonraki durak">›</button></div>': '<div class="tb"><button class="btn" id="tPrev" aria-label="Previous stop">‹</button><button class="btn" id="tInfo">Details</button><button class="btn" id="tStop">End</button><button class="btn" id="tNext" aria-label="Next stop">›</button></div>',
+  '<div class="tk">Gök turu · ': '<div class="tk">Sky tour · ',
+  '<div class="tk">Oyun · ': '<div class="tk">Game · ',
+  '<div class="warn">Radyant şu an ufkun altında; meteorlar gece ilerledikçe artar.</div>': '<div class="warn">The radiant is below the horizon now; meteors increase as the night goes on.</div>',
+  '<div class="warn">Şu an ufkun altında.': '<div class="warn">Below the horizon right now.',
+  '<option value="here">Şu anki konum (': '<option value="here">Current location (',
+  '<p class="fact">Bu yıldızın özel bir adı yok. Yalnızca 450 kadar yıldızın IAU onaylı adı var; geri kalanlar Yunan harfleri (α, β…), Flamsteed numaraları ya da HD ve HIP gibi katalog numaralarıyla anılır.</p>': '<p class="fact">This star has no proper name. Only about 450 stars have IAU-approved names; the rest are known by Greek letters (α, β…), Flamsteed numbers or catalogue numbers such as HD and HIP.</p>',
+  '<p class="fact">Dünya\'nın çevresinde saatte yaklaşık 27.600 km hızla, her 92 dakikada bir tur atıyor. İçinde şu an astronotlar yaşıyor. Gün batımından sonra Güneş ışığını yansıtınca Venüs kadar parlak, yanıp sönmeyen bir nokta olarak birkaç dakikada gökyüzünü geçer.</p><div class="rows">': '<p class="fact">It circles the Earth at about 27,600 km/h, once every 92 minutes, with astronauts living on board. After sunset, lit by the Sun, it crosses the sky in a few minutes as a steady point as bright as Venus.</p><div class="rows">',
+  '<p class="note">3600× hızda bir gece yaklaşık 10 saniyede geçer; yıldızların Kutup Yıldızı çevresinde döndüğünü izleyebilirsin.</p>': '<p class="note">At 3600× a whole night passes in about 10 seconds; watch the stars wheel around Polaris.</p>',
+  '<p class="note">Bağlantıyı açan kişi tam olarak bu saati, bu yeri ve bu açıyı görür. Örneğin "Bak, şu an Jupiter ile Ay yan yana!" demek için.</p>': '<p class="note">Whoever opens the link sees exactly this time, place and view. For example: "Look, Jupiter and the Moon are side by side right now!"</p>',
+  '<p class="note">Ekliptik, Güneş\'in yıl boyunca izlediği yol; gezegenler hep bu çizginin yakınında bulunur.</p>': '<p class="note">The ecliptic is the Sun\'s path through the year; the planets always stay close to it.</p>',
+  '<p class="note">Gerçekçi gündüz açıkken gökyüzü gerçekteki gibi maviye döner ve yıldızlar kaybolur. Kapalıyken gündüz yalnızca hafif bir aydınlıkla belli olur, yıldızlar görünmeye devam eder.</p>': '<p class="note">With realistic daylight on, the sky turns blue and the stars vanish, as in reality. With it off, daytime is only hinted at with a soft glow and the stars stay visible.</p>',
+  '<p class="note">Gökyüzü resmi olarak 88 takımyıldıza bölünmüştür; ': '<p class="note">The sky is officially divided into 88 constellations; ',
+  '<p class="note">Sonuç yok. Türkçe ya da Latince adı dene.</p>': '<p class="note">No results. Try the English or Latin name.</p>',
+  '<p class="note">Türk gök kültürü açıkken bazı cisimler halk ve Osmanlı astronomisindeki adlarıyla görünür: Demir Kazık (Polaris), Yedi Han (Ursa Major), Ülker (Pleiades), Çoban Yıldızı (Venus), Merih (Mars), Müşteri (Jupiter), Zühal (Saturn). Adlar yöreden yöreye değişebilir.</p>': '<p class="note">With Turkish sky culture on, some objects use their names from Anatolian folk and Ottoman astronomy: Demir Kazık (Polaris), Yedi Han (Ursa Major), Ülker (Pleiades), Çoban Yıldızı (Venus), Merih (Mars), Müşteri (Jupiter), Zühal (Saturn).</p>',
+  '<p class="note">Uzay istasyonu verisi yükleniyor…</p>': '<p class="note">Loading space station data…</p>',
+  '<p class="note">Zemini kapatınca aşağı bakabilirsin: ayaklarının altındaki, Dünya\'nın öbür yüzünden görünen yıldızlar ortaya çıkar.</p>': '<p class="note">Turn the ground off to look down: the stars below your feet, on the other side of the Earth, appear.</p>',
+  '<p class="note">Önümüzdeki 3 günde ': '<p class="note">No pass visible to the naked eye from ',
+  '<p class="note">Şehir ışıkları sönük yıldızları ve Samanyolu\'nu siler. Kaydırarak kendi bulunduğun yerin gerçekte ne kadarını gösterdiğini görebilirsin.</p>': '<p class="note">City lights wash out faint stars and the Milky Way. Slide to see how much of the sky your own location really shows.</p>',
+  '<span class="lead">Şu an gökte</span>': '<span class="lead">Up now</span>',
+  'Adı Yunanca "köpekten önce" demek: her gece Sirius\'tan (Köpek Yıldızı) biraz önce doğar.': 'Its name is Greek for "before the dog": every night it rises a little before Sirius, the Dog Star.',
+  'Adı olan 25 yıldız gör': 'See 25 named stars',
+  'Adı olan yıldızlar': 'Named stars',
+  'Akıcılık için görüntü çözünürlüğü düşürüldü.': 'Resolution lowered to keep things smooth.',
+  'Altcüce': 'Subdwarf',
+  'Altdev': 'Subgiant',
+  'Altın elmaları koruyan ejderha Ladon. Uzun gövdesi iki ayı arasında kıvrılır. Mısır piramitleri yapıldığında kutup yıldızı bu takımyıldızdaki Thuban\'dı.': 'Ladon, the dragon guarding the golden apples, coils between the two bears. When the pyramids were built, the pole star was Thuban in this constellation.',
+  'Altın çizgili takımyıldız hangisi?': 'Which constellation is drawn in gold?',
+  'Anakol yıldızı (cüce)': 'Main-sequence star (dwarf)',
+  'Aquarius yönünden': 'from Aquarius',
+  'Atmosfer açık: gündüz ve alacakaranlık hafif bir ışıkla gösterilir.': 'Atmosphere on: day and twilight shown with a soft glow.',
+  'Atmosfer kapalı: gökyüzü her saatte gece gibi görünür.': 'Atmosphere off: the sky looks like night at any hour.',
+  'Avcı Orion\'un büyük köpeği. Ağzında gece gökyüzünün en parlak yıldızı Sirius parlar; eski Mısır\'da Sirius\'un doğuşu Nil\'in taşmasını haber verirdi.': 'The great dog of Orion the hunter. In its mouth shines Sirius, the brightest star of the night; in ancient Egypt its rising announced the flooding of the Nile.',
+  'Ay\'dan sonra gece gökyüzünün en parlak cismi. Halk arasında "Çoban Yıldızı" denir; yüzeyi 460 °C.': 'After the Moon, the brightest object in the night sky. Often called the Evening or Morning Star; its surface is 460 °C.',
+  'Ayarlar': 'Settings',
+  'Ayarlar varsayılana döndü.': 'Settings reset.',
+  'Aydınlanma': 'Illumination',
+  'Aynı uzaklıkta olsalardı.': 'If they were at the same distance.',
+  'Açık yıldız kümesi': 'Open star cluster',
+  'Banliyö': 'Suburb',
+  'Batı': 'West',
+  'Bağlantı kopyalandı.': 'Link copied.',
+  'Bağlantıyı seçtim; kopyala diyebilirsin.': 'Link selected; you can copy it now.',
+  'Başka bir galaksiyi gör (ör. Andromeda)': 'See another galaxy (e.g. Andromeda)',
+  'Başla': 'Start',
+  'Beyaz': 'White',
+  'Beyaz cüce': 'White dwarf',
+  'Bir gök cismini gözlem günlüğüne ekle': 'Add an object to your observing log',
+  'Bir meteor yağmurunu izle': 'Watch a meteor shower',
+  'Bir yıldıza, gezegene ya da takımyıldıza dokun; hikâyesi açılır. Sağ üstteki "Keşfet"te gök turu, doğduğun gecenin gökyüzü ve oyun var.': 'Tap a star, planet or constellation to read its story. "Explore" in the top right has the sky tour, your birth-night sky and a game.',
+  'Birbirine çok yakın dönen iki sıcak mavi yıldız; aralarındaki çekim ikisini de yumurta şekline sokar.': 'Two hot blue stars orbiting so close that their gravity pulls both into egg shapes.',
+  'Bize en yakın yıldız. Uyarı: Güneş\'e asla doğrudan ya da dürbünle bakma.': 'Our nearest star. Warning: never look at the Sun directly or through binoculars.',
+  'Boötes ile Draco arasından': 'between Boötes and Draco',
+  'Bu cihaz konum vermiyor; listeden bir şehir seç.': 'This device does not share its location; pick a city from the list.',
+  'Bu cihaz ya da sayfa hareket sensörüne erişemiyor. Sürükleyerek bakabilirsin.': 'This device or page cannot read the motion sensor. Drag to look around instead.',
+  'Bu cihazda ses başlatılamadı.': 'Sound could not start on this device.',
+  'Bu gece': 'Tonight',
+  'Bu gece için tahmin yok.': 'No forecast for tonight.',
+  'Bu gece yok': 'Not tonight',
+  'Bu gece zirvede': 'Peaks tonight',
+  'Bu gecenin en güzel cisimleri': 'Tonight\'s finest sights',
+  'Bu görünümde dosya kaydedilemiyor; sitede (github.io) dene.': 'Files cannot be saved in this view; try the site (github.io).',
+  'Bugün doğmuyor': 'Does not rise today',
+  'Bugünkü etkinliğin zirveye oranı.': 'Today\'s activity relative to the peak.',
+  'Bunu gördüm, günlüğüme ekle': 'I saw this, add to my log',
+  'Buradan görünmez (Ay ufkun altında)': 'Not visible from here (Moon below the horizon)',
+  'Buz kabuğunun altında küresel bir tuzlu su okyanusu olduğu düşünülüyor; yaşam aranan en umut verici yerlerden.': 'A global salty ocean is thought to lie beneath its icy crust; one of the most promising places to look for life.',
+  'Büyük şehir': 'Big city',
+  'Büyükayı\'yı gökyüzünde kovalayan çoban. Turuncu Arcturus onun en parlak yıldızıdır; Büyük Kepçe\'nin sapını takip ederek bulunur ("arka doğru yay çiz").': 'The herdsman chasing the Great Bear across the sky. Orange Arcturus is his brightest star; follow the arc of the Big Dipper\'s handle to find it.',
+  'DOĞDUĞU ANIN GÖKYÜZÜ': 'THE SKY AT THE MOMENT OF BIRTH',
+  'Dağ silüeti': 'Mountain silhouette',
+  'Derin gök cismi': 'Deep-sky object',
+  'Derin gök gözlemi için en karanlık geceler': 'Darkest nights for deep-sky observing',
+  'Dokun ve keşfet': 'Tap and explore',
+  'Dolunay': 'Full Moon',
+  'Dolunay yaklaşık 31′.': 'The full Moon is about 31′.',
+  'Doğduğum gece': 'The night I was born',
+  'Doğduğum gecenin gökyüzü': 'The sky on the night I was born',
+  'Doğduğun gece': 'Your birth night',
+  'Doğu': 'East',
+  'Doğum anının gökyüzü kartı': 'A sky card for the moment you were born',
+  'Doğuş ': 'Rises ',
+  'Doğuş: ': 'Rises: ',
+  'Draco yönünden': 'from Draco',
+  'Durum': 'Status',
+  'Dünya ekseninin yalpalaması (presesyon) yüzünden yaklaşık 12.000 yıl sonra kutup yıldızı olacak.': 'Because of the wobble of Earth\'s axis (precession) it will become the pole star in about 12,000 years.',
+  'Dünya\'nın tek doğal uydusu. Işığı bize yaklaşık 1,3 saniyede ulaşır.': 'Earth\'s only natural satellite. Its light reaches us in about 1.3 seconds.',
+  'Dürbünle görülebilir.': 'Visible with binoculars.',
+  'Düzensiz galaksi': 'Irregular galaxy',
+  'Ekliptik': 'Ecliptic',
+  'Ekranı parmağınla sürükle; gökyüzünün her yönüne dönebilirsin. Telefonu göğe tutmak için alttaki "Göğe tut"a bas.': 'Drag the screen with your finger to turn in any direction. To point your phone at the sky, tap "Point" at the bottom.',
+  'Ekvator (0°)': 'Equator (0°)',
+  'Ekvator ızgarası': 'Equatorial grid',
+  'Eliptik galaksi': 'Elliptical galaxy',
+  'En büyük gezegen. Basit bir dürbünle dört büyük uydusu yanında nokta nokta görülür.': 'The largest planet. Through simple binoculars its four big moons show up as dots beside it.',
+  'En yoğun yağmurlardan; kaynağı bir kuyruklu yıldız değil, 3200 Phaethon asteroidi.': 'One of the richest showers; its source is not a comet but the asteroid 3200 Phaethon.',
+  'Etiyopya kralı Kefeus, Kassiopeia\'nın eşi ve Andromeda\'nın babası. Göğe çizilmiş bir ev ya da çan şeklindedir.': 'King Cepheus of Ethiopia, husband of Cassiopeia and father of Andromeda. Shaped like a house drawn in the sky.',
+  'Etkinlik': 'Activity',
+  'Etrafa bak': 'Look around',
+  'Evre': 'Class',
+  'Galaksi gözcüsü': 'Galaxy spotter',
+  'Galaksi, bulutsu ve kümeler': 'Galaxies, nebulae and clusters',
+  'Galileo\'nun izinde': 'In Galileo\'s footsteps',
+  'Gece 02:00 ile 05:00 arasında bir gözlem kaydet': 'Log a sighting between 02:00 and 05:00',
+  'Gece boyu gökte': 'Up all night',
+  'Gece gökyüzünün en parlak yıldızı. Yanında, çıplak gözle görülmeyen beyaz cüce bir eşi (Sirius B) var.': 'The brightest star in the night sky. It has a white dwarf companion, Sirius B, invisible to the naked eye.',
+  'Gece ile gündüz eşit': 'Day and night are equal',
+  'Gece kuşu': 'Night owl',
+  'Gece modu: kırmızı ışık gözünün karanlığa alışmasını bozmaz.': 'Night mode: red light does not spoil your dark-adapted eyes.',
+  'Gece sesleri': 'Night sounds',
+  'Gemini yönünden': 'from Gemini',
+  'Gerçek': 'Real',
+  'Gerçekçi gündüz': 'Realistic daylight',
+  'Gezegen': 'Planet',
+  'Gezegen avcısı': 'Planet hunter',
+  'Gezegenimsi bulutsu': 'Planetary nebula',
+  'Giacobini–Zinner kuyruklu yıldızından gelir; bazı yıllar ani patlamalar yapar.': 'From comet Giacobini–Zinner; some years it bursts into sudden outbursts.',
+  'Gök turu': 'Sky tour',
+  'Gökbilimcilerin kullandığı kimlikler.': 'The identifiers astronomers use.',
+  'Gökte ama gündüz': 'Up, but in daylight',
+  'Gökte yeterince takımyıldız yok; zamanı geceye al.': 'Not enough constellations up; set the time to night.',
+  'Gökteki en parlak noktalardan.': 'One of the brightest points in the sky.',
+  'Gökyüzü Atlası': 'Sky Atlas',
+  'Gökyüzünü ne kadar tanıyorsun?': 'How well do you know the sky?',
+  'Gökyüzünün ikinci en parlak yıldızı. Türkiye\'den yalnızca güney kıyılarında, ufkun hemen üstünde görülebilir.': 'The second brightest star in the sky. From Turkey it is only seen just above the horizon along the southern coast.',
+  'Gördüklerin ve rozetlerin': 'What you have seen and your badges',
+  'Gördüğün ışık ': 'The light you see set off ',
+  'Görüntü indirildi.': 'Image downloaded.',
+  'Görüntü kaydedildi.': 'Image saved.',
+  'Görüntü ya da bağlantı gönder': 'Send an image or a link',
+  'Görünür boyut': 'Apparent size',
+  'Gözlem skoru': 'Observing score',
+  'Güney': 'South',
+  'Güneybatı': 'South-west',
+  'Güneydoğu': 'South-east',
+  'Güneş Sistemi\'nin en büyük uydusu; Merkür gezegeninden bile büyük ve kendi manyetik alanı var.': 'The largest moon in the Solar System; bigger even than Mercury, with its own magnetic field.',
+  'Güneş Sistemi\'nin volkanik açıdan en hareketli cismi; yüzeyinde 400\'den fazla aktif yanardağ var.': 'The most volcanically active body in the Solar System, with more than 400 active volcanoes.',
+  'Güneş batışı': 'Sunset',
+  'Güneş doğuşu': 'Sunrise',
+  'Güneş ufkun 18° altında; sönük yıldızlar ancak bu aralıkta görünür.': 'The Sun is 18° below the horizon; faint stars only appear in this window.',
+  'Güneş\'e en yakın gezegen; bir yılı yalnızca 88 gün sürer. Hep alacakaranlıkta, ufka yakın görünür.': 'The planet closest to the Sun; its year lasts only 88 days. Always seen low in twilight.',
+  'Güneş\'e en yakın yıldız sistemi: 4,4 ışık yılı. Türkiye\'den görülmez, ufkun altında kalır.': 'The nearest star system to the Sun: 4.4 light-years. Not visible from mid-northern latitudes.',
+  'Güneş\'e çok yakın, görülmez': 'Too close to the Sun to see',
+  'Güzelliğiyle övünen Etiyopya kraliçesi Kassiopeia, ceza olarak tahtına bağlanıp göğe kondu. Yılın yarısında baş aşağı döner. W harfi şekliyle hemen tanınır.': 'Queen Cassiopeia of Ethiopia boasted of her beauty and was chained to her throne in the sky; for half the year she hangs upside down. Easy to spot by its W shape.',
+  'Halkadaki yıldız hangisi?': 'Which star is in the ring?',
+  'Halkaları küçük bir teleskopla bile seçilebilir.': 'Its rings show even in a small telescope.',
+  'Halkalı': 'Annular',
+  'Halley kuyruklu yıldızının bıraktığı tozlar.': 'Dust left behind by Halley\'s Comet.',
+  'Halley kuyruklu yıldızının tozları; meteorlar saniyede 66 km hızla atmosfere girer.': 'Dust from Halley\'s Comet; the meteors hit the atmosphere at 66 km per second.',
+  'Hareket sensörüne izin verilmedi. Parmağınla sürükleyerek bakabilirsin.': 'Motion sensor permission denied. Drag with your finger to look around.',
+  'Hasat tanrıçası Demeter ya da adalet tanrıçası Astraea. Elindeki başak Spica yıldızıdır. Bu yönde binlerce galaksiden oluşan Virgo Kümesi uzanır.': 'The harvest goddess Demeter or Astraea, goddess of justice. The ear of wheat in her hand is Spica. Thousands of galaxies of the Virgo Cluster lie in this direction.',
+  'Hava durumu bu görünümde alınamıyor; sitede (github.io) çalışır.': 'Weather is unavailable in this view; it works on the site (github.io).',
+  'Herakles\'in ilk görevinde boğduğu, hiçbir silahın işlemediği Nemea aslanı. Göğsünde Regulus yıldızı, başı ters bir soru işaretine benzer.': 'The Nemean lion, immune to all weapons, that Heracles strangled in his first labour. Regulus marks its heart; its head looks like a backwards question mark.',
+  'Hilal': 'Crescent',
+  'Hilal (büyüyen)': 'Waxing crescent',
+  'Hilal (küçülen)': 'Waning crescent',
+  'Hubble\'ın ünlü "Pillars of Creation" fotoğrafı bu bulutsunun içinden.': 'Hubble\'s famous "Pillars of Creation" photo was taken inside this nebula.',
+  'ISS geçişi: ': 'ISS pass: ',
+  'Işık çizgileri (yıldız parıltısı)': 'Star spikes (twinkle)',
+  'Işıma gücü': 'Luminosity',
+  'Işığı ': 'Its light takes ',
+  'Jupiter\'e uzaklık': 'Distance from Jupiter',
+  'Jupiter\'in bir uydusunu gör': 'See one of Jupiter\'s moons',
+  'Kahire': 'Cairo',
+  'Kallisto\'nun oğlu Arkas. Kuyruğunun ucunda Kutup Yıldızı (Polaris) durur; bütün gökyüzü onun çevresinde döner.': 'Arcas, son of Callisto. Polaris sits at the tip of his tail; the whole sky turns around it.',
+  'Kapalı': 'Off',
+  'Karanlık bir yerde çıplak gözle görülebilir.': 'Visible to the naked eye from a dark site.',
+  'Karanlık gök': 'Dark sky',
+  'Kassiopeia\'nın kızı Andromeda, annesinin kibri yüzünden bir deniz canavarına kurban edilmek üzere kayalara zincirlendi; Perseus onu kurtardı. Andromeda Galaksisi bu takımyıldızın içinde görünür.': 'Andromeda, daughter of Cassiopeia, was chained to a rock as a sacrifice to a sea monster because of her mother\'s pride; Perseus saved her. The Andromeda Galaxy appears within this constellation.',
+  'Katalog numaraları': 'Catalogue numbers',
+  'Kayan yıldızlar': 'Shooting stars',
+  'Kaydedilemedi.': 'Could not save.',
+  'Kaynağı 2003 EH1 adlı söner bir kuyruklu yıldız ya da asteroit.': 'Its source is 2003 EH1, an extinct comet or asteroid.',
+  'Kenardan gördüğümüz için ortasındaki koyu toz şeridi şapka kenarı gibi görünür.': 'Seen edge-on, its dark dust lane looks like the brim of a hat.',
+  'Koleksiyonum': 'My collection',
+  'Kollarını, yanındaki küçük galaksiyle olan çekim etkileşimi belirginleştiriyor.': 'Its arms are sharpened by the pull of a small companion galaxy.',
+  'Konum alınamadı; listeden en yakın şehri seç.': 'Could not get your location; pick the nearest city.',
+  'Konumum': 'My location',
+  'Konumun bulundu: gökyüzü bulunduğun yere göre hesaplanıyor.': 'Location found: the sky is calculated for where you are.',
+  'Kraterlerin gölgeleri en iyi aydınlık ile karanlığın sınırında görünür.': 'Crater shadows show best along the line between light and dark.',
+  'Kuzey': 'North',
+  'Kuzey gök kutbuna 1°\'den yakın. Gece boyunca neredeyse hiç yer değiştirmez; yüzyıllardır kuzeyi bulmak için kullanılır.': 'Less than 1° from the north celestial pole. It barely moves all night and has guided travellers north for centuries.',
+  'Kuzey yarımkürenin en parlak yıldızı. Ömrünün sonuna yaklaşmış turuncu bir dev.': 'The brightest star of the northern hemisphere: an orange giant near the end of its life.',
+  'Kuzeybatı': 'North-west',
+  'Kuzeydoğu': 'North-east',
+  'Köy': 'Village',
+  'Küresel yıldız kümesi': 'Globular star cluster',
+  'Kırmızı': 'Red',
+  'Kırmızı bir süperdev. Güneş\'in yerinde olsaydı Mars\'ın yörüngesini aşardı. Bir gün süpernova olarak patlayacak.': 'A red supergiant. In place of the Sun it would reach beyond the orbit of Mars. One day it will explode as a supernova.',
+  'Kırsal': 'Rural',
+  'Kızıl rengini yüzeyindeki demir oksit, yani pas verir.': 'Its red colour comes from iron oxide, rust, on its surface.',
+  'Kış gündönümü': 'December solstice',
+  'Leo yönünden': 'from Leo',
+  'Leo\'nun kalbi. Öyle hızlı döner ki biraz daha hızlı olsa parçalanırdı.': 'The heart of Leo. It spins so fast that a little faster would tear it apart.',
+  'Londra': 'London',
+  'Lyra yönünden': 'from Lyra',
+  'MS 130 civarında Batlamyus tarafından kaydedilmiş.': 'Recorded by Ptolemy around AD 130.',
+  'Mavi, aşırı sıcak': 'Blue, extremely hot',
+  'Mavi-beyaz': 'Blue-white',
+  'Mavi-beyaz bir süperdev; Güneş\'ten yaklaşık 100.000 kat fazla ışık saçar.': 'A blue-white supergiant shining about 100,000 times brighter than the Sun.',
+  'Medusa\'nın başını kesen kahraman Perseus. Elinde tuttuğu Medusa\'nın gözü, parlaklığı değişen Algol yıldızıdır. Her ağustosta Perseids meteorları buradan saçılır.': 'Perseus, the hero who beheaded Medusa. Medusa\'s eye in his hand is Algol, a star that changes brightness. Every August the Perseids fly out from here.',
+  'Merkezindeki dev kara deliğin gölgesi 2019\'da Event Horizon Teleskobu ile ilk kez görüntülendi.': 'The shadow of the giant black hole at its centre was imaged for the first time by the Event Horizon Telescope in 2019.',
+  'Messier cisimleri': 'Messier objects',
+  'Messier kâşifi': 'Messier explorer',
+  'Meteor avcısı': 'Meteor hunter',
+  'Meteorlar radyanttan saçılıyormuş gibi görünür': 'Meteors appear to fly out of the radiant',
+  'MÖ ': 'around ',
+  'Mükemmel': 'Excellent',
+  'Ne zaman üstünden geçecek?': 'When will it pass overhead?',
+  'O ANIN GERÇEK GÖKYÜZÜ': 'THE REAL SKY OF THAT MOMENT',
+  'O an gökyüzünde: ': 'In the sky then: ',
+  'On iki görevi tamamlayan kahraman Herakles, gökte baş aşağı diz çökmüş halde durur. İçinde, yüz binlerce yıldızdan oluşan Great Hercules Cluster bulunur.': 'Heracles, hero of the twelve labours, kneels upside down in the sky. It holds the Great Hercules Cluster of hundreds of thousands of stars.',
+  'Opak': 'Solid',
+  'Orion\'u sokan akrep. Kalbinde kızıl Antares parlar. Yazın güney ufkunun üstünde, kıvrık kuyruğuyla en kolay tanınan takımyıldızlardandır.': 'The scorpion that stung Orion. Red Antares glows at its heart; with its curling tail it is one of the easiest summer constellations to spot.',
+  'Orion\'un omzunun yakınından': 'near Orion\'s shoulder',
+  'Orta': 'Fair',
+  'Oyun bitti: ': 'Game over: ',
+  'Ozan Orpheus\'un lirı. Orpheus çaldığında taşlar bile ağlarmış; öldükten sonra Zeus lirini göğe koydu. Gökyüzünün en parlak yıldızlarından Vega bu lirin içindedir.': 'The lyre of the poet Orpheus, whose music moved even stones; after his death Zeus placed it in the sky. Vega, one of the brightest stars, sits in it.',
+  'Parlak dev': 'Bright giant',
+  'Parlaklık': 'Brightness',
+  'Parlaklık, zemin, ses…': 'Brightness, ground, sound…',
+  'Parçalı': 'Partial',
+  'Paylaş': 'Share',
+  'Paylaşılan konum': 'Shared location',
+  'Perseus Medusa\'nın başını kestiğinde onun kanından doğan kanatlı at. Büyük dört yıldızı "Pegasus Karesi" sonbahar gökyüzünün kılavuzudur.': 'The winged horse born from Medusa\'s blood when Perseus beheaded her. Its four big stars, the "Great Square of Pegasus", guide you through the autumn sky.',
+  'Perseus yönünden': 'from Perseus',
+  'Radyant tepedeyken, kusursuz karanlık gökte.': 'With the radiant overhead under a perfectly dark sky.',
+  'Renk ve sıcaklık': 'Colour and temperature',
+  'Rozet kazandın: ': 'Badge earned: ',
+  'Saatler, olaylar, gözlem skoru': 'Times, events, observing score',
+  'Samanyolu parlaklığı': 'Milky Way brightness',
+  'Sarmal galaksi': 'Spiral galaxy',
+  'Sarı, Güneş gibi': 'Yellow, like the Sun',
+  'Sarımsı beyaz': 'Yellowish white',
+  'Sayı küçüldükçe daha parlak.': 'Smaller numbers are brighter.',
+  'Scorpius\'un kalbi. Adı "Mars\'ın rakibi" anlamına gelir; rengi gezegenle karıştırılır.': 'The heart of Scorpius. Its name means "rival of Mars"; its colour is easily mistaken for the planet.',
+  'Sidney': 'Sydney',
+  'Son batış: ': 'Last set: ',
+  'Son dördün': 'Last quarter',
+  'Sonbahar ekinoksu': 'September equinox',
+  'Sun ve Moon dahil': 'Including the Sun and Moon',
+  'Sönük yıldızlar': 'Faint stars',
+  'Süperdev': 'Supergiant',
+  'Süpernova kalıntısı': 'Supernova remnant',
+  'Takımyıldız': 'Constellation',
+  'Takımyıldız oyunu': 'Constellation game',
+  'Takımyıldız sınırları': 'Constellation boundaries',
+  'Takımyıldız ustası': 'Constellation master',
+  'Takımyıldız çizgileri': 'Constellation lines',
+  'Takımyıldızlar': 'Constellations',
+  'Tam karanlık': 'Full darkness',
+  'Tanrılara su taşıyan Ganymedes. Testisinden dökülen su Piscis Austrinus\'un ağzındaki Fomalhaut\'a akar.': 'Ganymede, cup-bearer of the gods. The water from his jar flows to Fomalhaut in the mouth of Piscis Austrinus.',
+  'Tarih ve saati seç.': 'Pick a date and time.',
+  'Taurus\'un kızıl gözü. Hyades kümesinin önünde görünür ama ona ait değildir; ondan iki kat daha yakındır.': 'The red eye of Taurus. It sits in front of the Hyades cluster but is not part of it; it is twice as close.',
+  'Tek bir yıldız gibi görünse de iki çift halinde dört yıldızdan oluşan bir sistem.': 'It looks like one star but is a system of four, in two pairs.',
+  'Telefonu göğe doğru tut.': 'Hold your phone up to the sky.',
+  'Teleskop gerekir.': 'Needs a telescope.',
+  'Tempel–Tuttle kuyruklu yıldızının tozları; 1833 ve 1966\'da saatte binlerce meteor görüldü.': 'Dust from comet Tempel–Tuttle; in 1833 and 1966 thousands of meteors an hour were seen.',
+  'Temsili görünüm': 'Illustration',
+  'Thatcher kuyruklu yıldızının tozları; 2.700 yıldır kayıtlarda geçiyor.': 'Dust from comet Thatcher; recorded for 2,700 years.',
+  'Tur bitti. Gökyüzü senin.': 'Tour finished. The sky is yours.',
+  'Turuncu': 'Orange',
+  'Tuttle kuyruklu yıldızının tozları; kış gündönümü civarında.': 'Dust from comet Tuttle; around the December solstice.',
+  'Tüm katalog yüklendi: ': 'Full catalogue loaded: ',
+  'Türk gök kültürü adları': 'Turkish sky-culture names',
+  'Ufkun altında': 'Below the horizon',
+  'Ufkun üstünde, Dünya\'nın gölgesinde': 'Up, in Earth\'s shadow',
+  'Ufkun üstünde, güneş alıyor': 'Up and sunlit',
+  'Ufuk ızgarası': 'Horizon grid',
+  'Uluslararası Uzay İstasyonu\'nun geçişini gör': 'See a pass of the International Space Station',
+  'Ursa Major\'un kulpundaki bu yıldızın yanındaki sönük Alcor\'u görebilmek eskiden göz testi sayılırdı.': 'Seeing faint Alcor next to this star in the handle of Ursa Major was once an eyesight test.',
+  'Ursa Minor yönünden': 'from Ursa Minor',
+  'Uydu': 'Moon',
+  'Uzaklık': 'Distance',
+  'Uzay istasyonu': 'Space station',
+  'Uzun pozlama: yıldızlar gökyüzünün dönüşüyle iz bırakıyor. Kutup Yıldızı\'na bakarsan iç içe daireler görürsün.': 'Long exposure: the stars leave trails as the sky turns. Look at Polaris to see nested circles.',
+  'Yaklaşık ': 'About ',
+  'Yaklaşık 11 aylık döngüyle parlayıp sönen bir dev; en sönük halinde çıplak gözle görülmez.': 'A giant that brightens and fades over about 11 months; at its faintest it is invisible to the naked eye.',
+  'Yaklaşık 9 saatte bir kendi çevresinde döner; bu hız yüzünden ekvatoru belirgin şekilde basıktır.': 'It spins once in about 9 hours, which flattens its equator noticeably.',
+  'Yakınlaş': 'Zoom in',
+  'Yan yatmış dönen bir buz devi. Çok karanlık bir yerde çıplak gözle zor seçilir.': 'An ice giant spinning on its side. Barely visible to the naked eye from a very dark site.',
+  'Yansıma bulutsusu': 'Reflection nebula',
+  'Yanındaki dört nokta, Galileo\'nun 1610\'da keşfettiği uydular: Io, Europa, Ganymede, Callisto.': 'The four dots beside it are the moons Galileo discovered in 1610: Io, Europa, Ganymede, Callisto.',
+  'Yarı saydam': 'See-through',
+  'Yarıgölge': 'Penumbral',
+  'Yay geren bir kentaur. Okunun ucu Samanyolu\'nun merkezine, galaksimizin ortasındaki dev kara deliğe (Sgr A*) doğru bakar. Şekli bir çaydanlığa da benzer.': 'A centaur drawing a bow. His arrow points at the centre of the Milky Way and the giant black hole there (Sgr A*). It also looks like a teapot.',
+  'Yaz gündönümü': 'June solstice',
+  'Yeni Ay': 'New Moon',
+  'Yeni yıldızların doğduğu dev bir gaz bulutu. Orion\'un kılıcında çıplak gözle bulanık bir leke olarak görülür.': 'A giant gas cloud where new stars are born. Seen with the naked eye as a fuzzy patch in Orion\'s sword.',
+  'Yoğun yıldız oluşumu yüzünden merkezinden gaz fışkıran bir galaksi.': 'A galaxy with gas blasting from its centre because of intense star formation.',
+  'Yoğunluk': 'Rate',
+  'Yunan mitolojisinde dev avcı Orion, yeryüzündeki bütün hayvanları avlayacağını söyleyince Gaia ona bir akrep gönderdi. Akrep onu soktu; tanrılar ikisini de göğe koydu ama birbirinden olabildiğince uzağa. Bu yüzden Orion batarken Scorpius doğar; ikisi aynı anda gökte görünmez.': 'In Greek myth the giant hunter Orion boasted he would kill every animal on Earth, so Gaia sent a scorpion that stung him. The gods placed both in the sky, as far apart as possible: when Orion sets, Scorpius rises.',
+  'Yön': 'Direction',
+  'Yükseklik': 'Altitude',
+  'Yüz binlerce yaşlı yıldızdan oluşan bir küre. 1974\'te Arecibo radyo mesajı buraya gönderildi.': 'A ball of hundreds of thousands of old stars. In 1974 the Arecibo radio message was sent towards it.',
+  'Yüzeyi milyarlarca yıldır neredeyse hiç değişmemiş; Güneş Sistemi\'nin en kraterli yüzeylerinden.': 'Its surface has barely changed in billions of years; one of the most cratered in the Solar System.',
+  'Yıldız': 'Star',
+  'Yıldız boyutu': 'Star size',
+  'Yıldız doğum bölgesi (bulutsu)': 'Star-forming region (nebula)',
+  'Yıldız grubu': 'Star group',
+  'Yıldız koleksiyoncusu': 'Star collector',
+  'Yıldız parlaklığı': 'Star brightness',
+  'Yıldız · ': 'Star · ',
+  'Yılın en sevilen yağmuru; Swift–Tuttle kuyruklu yıldızının tozları.': 'The best-loved shower of the year; dust from comet Swift–Tuttle.',
+  'Yılın en uzun gecesi': 'Longest night of the year (north)',
+  'Yılın en uzun günü': 'Longest day of the year (north)',
+  'Zaman ': 'Time set to ',
+  'Zayıf': 'Poor',
+  'Zeus\'un Europa\'yı kaçırmak için büründüğü beyaz boğa. Kızıl gözü Aldebaran; omzunda Ülker (Pleiades) kümesi parlar.': 'The white bull Zeus became to carry off Europa. Aldebaran is its red eye; the Pleiades ride on its shoulder.',
+  'Zeus\'un kuğu kılığına girdiği hikâyeden gelir. Kanatlarını Samanyolu boyunca açmış bir kuğu gibi uçar; kuyruğunda Deneb parlar. "Kuzey Haçı" diye de bilinir.': 'From the story of Zeus disguised as a swan. It flies with wings spread along the Milky Way, Deneb in its tail. Also called the Northern Cross.',
+  'Zeus\'un sevdiği Kallisto, Hera\'nın kıskançlığıyla ayıya dönüştürüldü ve sonunda göğe yerleştirildi. İçindeki yedi parlak yıldız (Büyük Kepçe) binlerce yıldır kuzeyi bulmak için kullanılır.': 'Callisto, loved by Zeus, was turned into a bear by jealous Hera and finally set in the sky. Its seven bright stars, the Big Dipper, have pointed north for thousands of years.',
+  'Zeus\'un yıldırımlarını taşıyan kartal. Gözündeki Altair, Vega ve Deneb ile birlikte yaz gecelerinin "Yaz Üçgeni"ni oluşturur.': 'The eagle that carried Zeus\'s thunderbolts. Altair in its eye forms the "Summer Triangle" with Vega and Deneb.',
+  'Zirve': 'Peak',
+  'Zirve ': 'Peak ',
+  'Zirve · saatte ~': 'Peak · about ',
+  'Zirveye ': 'Peak in ',
+  '\'dan görünür': ' · visible from here',
+  '\'dan görünür · koruyucu gözlük şart': ' · visible from here · eclipse glasses required',
+  '\'dan çıplak gözle görülebilecek bir geçiş yok.</p>': ' in the next 3 days.</p>',
+  'canlı yörünge verisi': 'live orbit data',
+  'dogdugun-gece.png': 'my-birth-sky.png',
+  'kapalı': 'off',
+  'kayıtlı yörünge verisi': 'saved orbit data',
+  'ufkun altında': 'below the horizon',
+  'ufkun üstünde': 'above the horizon',
+  'ufkun üstünde parlak gezegen yoktu': 'above the horizon',
+  '° yükseklikte': '° up',
+  '° · görüş ': '° · field ',
+  '° · yükseklik ': '° · altitude ',
+  'Çap 1,39 milyon km': 'Diameter 1.39 million km',
+  'Çap ≈ ': 'Diameter ≈ ',
+  'Çevresinde bir gezegen keşfedilmiş turuncu bir dev.': 'An orange giant with a known planet.',
+  'Çevresindeki toz kuşağı teleskoplarla doğrudan görüntülenmiştir.': 'Its surrounding dust belt has been imaged directly by telescopes.',
+  'Çizgiler yön bulmayı kolaylaştırır; yıldızlar aslında birbirinden çok farklı uzaklıklardadır.': 'The lines only help you find your way; the stars are actually at very different distances.',
+  'Çok karanlık bir gökyüzünde çıplak gözle görülebilen en uzak cisim adayı.': 'A candidate for the most distant object visible to the naked eye under a very dark sky.',
+  'Çok uzak olmasına rağmen parlak görünür; gerçek ışığı Güneş\'in on binlerce katıdır.': 'Bright despite being very far away; it truly shines tens of thousands of times brighter than the Sun.',
+  'Çıplak gözle 6-7 yıldızı seçilir, ama aslında binden fazla genç yıldız içerir. Türkçede Ülker diye bilinir.': 'The naked eye picks out 6 or 7 stars, but it holds over a thousand young stars. Known as the Seven Sisters; in Turkish, Ülker.',
+  'Çıplak gözle görülebilen en uzak cisimlerden biri. Gördüğün ışık, ilk insan türleri ortaya çıkarken yola çıktı. Yaklaşık 4,5 milyar yıl sonra Samanyolu ile çarpışacak.': 'One of the most distant things visible to the naked eye. The light you see set off when the first human species appeared. In about 4.5 billion years it will collide with the Milky Way.',
+  'Çıplak gözle görülen 5 gezegenin hepsini gör': 'See all 5 naked-eye planets',
+  'Çıplak gözle görülmez; dürbün ya da teleskop gerekir.': 'Not visible to the naked eye; needs binoculars or a telescope.',
+  'Ölen bir yıldızın dışarı attığı gaz kabuğu.': 'The shell of gas thrown off by a dying star.',
+  'Ölmekte olan bir yıldızın dışarı attığı gaz halkası.': 'A ring of gas cast off by a dying star.',
+  'çok': 'many',
+  'İki parmakla aç-kapa ya da fare tekerleğini kullan. Yakınlaştıkça sönük yıldızlar, galaksiler ve Jupiter\'in uyduları ortaya çıkar.': 'Pinch with two fingers or use the mouse wheel. Zoom in to reveal faint stars, galaxies and Jupiter\'s moons.',
+  'İkiz kardeşler Kastor ve Polluks. Biri ölümlü, biri ölümsüzdü; Polluks kardeşinden ayrılmamak için ölümsüzlüğünü paylaştı. İki parlak yıldız ikizlerin başlarıdır.': 'The twins Castor and Pollux: one mortal, one immortal. Pollux shared his immortality so as not to be parted from his brother. The two bright stars are their heads.',
+  'İleri': 'Next',
+  'İlk adım': 'First step',
+  'İlk dördün': 'First quarter',
+  'İlkbahar ekinoksu': 'March equinox',
+  'İsim yoğunluğu': 'Label density',
+  'İstanbul–Ankara arasından biraz fazla': 'Roughly the distance from London to Paris',
+  'İyi': 'Good',
+  'Şehir': 'City',
+  'Şişkin Ay': 'Gibbous',
+  'Şişkin Ay (büyüyen)': 'Waxing gibbous',
+  'Şişkin Ay (küçülen)': 'Waning gibbous',
+  'Şu an gökyüzü aydınlık; sana bu gecenin karanlık gökyüzünü gösteriyorum.': 'The sky is bright right now; showing you tonight\'s dark sky.',
+  'Şu an görünür · ': 'Visible now · ',
+  'Şu an turda gösterecek bir şey yok.': 'Nothing to show on a tour right now.',
+  'Şu an zirvede!': 'Peaking now!',
+  'Şu anki gökyüzüne dönüldü.': 'Back to the sky right now.',
+  'Şu anki konumu; uydular saatler içinde yer değiştirir.': 'Its current position; the moons shift within hours.',
+  '✓ Gördüm · ': '✓ Seen · '
+};
+function pct(n) { return LANG === 'en' ? n + '%' : '%' + n; }
+function T(s) { return LANG === 'en' && typeof EN !== 'undefined' && EN[s] != null ? EN[s] : s; }
+document.documentElement.lang = LANG;
 const $ = id => document.getElementById(id);
 const app = $('app');
-if (!window.SKY || !window.Astronomy) { app.insertAdjacentHTML('beforeend', '<div class="err">Gök verisi yüklenemedi. Sayfayı yenilemeyi dene.</div>'); return; }
+if (!window.SKY || !window.Astronomy) { app.insertAdjacentHTML('beforeend', T('<div class="err">Gök verisi yüklenemedi. Sayfayı yenilemeyi dene.</div>')); return; }
 const A = window.Astronomy, SKY = window.SKY;
 const D2R = Math.PI/180, R2D = 180/Math.PI;
 const store = { get(k, d) { try { const v = localStorage.getItem('gk_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('gk_' + k, JSON.stringify(v)); } catch (e) {} } };
 
 /* ---------------- reference content (Turkish) ---------------- */
-const CITIES = [
-  ['İstanbul', 41.01, 28.98], ['Ankara', 39.93, 32.86], ['İzmir', 38.42, 27.14], ['Antalya', 36.89, 30.71], ['Bursa', 40.19, 29.06],
+const CITIES_TR = [
+  ['İstanbul', 41.01, 28.98, 'Istanbul'], ['Ankara', 39.93, 32.86], ['İzmir', 38.42, 27.14], ['Antalya', 36.89, 30.71], ['Bursa', 40.19, 29.06],
   ['Adana', 37.00, 35.32], ['Konya', 37.87, 32.48], ['Kayseri', 38.73, 35.48], ['Eskişehir', 39.78, 30.52], ['Samsun', 41.29, 36.33],
   ['Trabzon', 41.00, 39.72], ['Erzurum', 39.90, 41.27], ['Van', 38.49, 43.38], ['Diyarbakır', 37.91, 40.24], ['Gaziantep', 37.07, 37.38],
-  ['Muğla', 37.22, 28.36], ['Hatay', 36.20, 36.16], ['Londra', 51.51, -0.13], ['New York', 40.71, -74.01], ['Tokyo', 35.68, 139.69],
-  ['Reykjavik', 64.15, -21.94], ['Kahire', 30.04, 31.24], ['Cape Town', -33.92, 18.42], ['Sidney', -33.87, 151.21], ['Ekvator (0°)', 0, 30]
+  ['Muğla', 37.22, 28.36], ['Hatay', 36.20, 36.16]
 ];
+const CITIES_WORLD = [
+  ['Londra', 51.51, -0.13, 'London'], ['Paris', 48.86, 2.35], ['Berlin', 52.52, 13.40], ['Madrid', 40.42, -3.70], ['Roma', 41.90, 12.50, 'Rome'], ['Amsterdam', 52.37, 4.90],
+  ['Stockholm', 59.33, 18.07], ['Moskova', 55.76, 37.62, 'Moscow'], ['Atina', 37.98, 23.73, 'Athens'], ['Kahire', 30.04, 31.24, 'Cairo'], ['Dubai', 25.20, 55.27],
+  ['Tahran', 35.69, 51.39, 'Tehran'], ['Bakü', 40.41, 49.87, 'Baku'], ['Mumbai', 19.08, 72.88], ['Delhi', 28.61, 77.21], ['Bangkok', 13.76, 100.50],
+  ['Singapur', 1.35, 103.82, 'Singapore'], ['Cakarta', -6.21, 106.85, 'Jakarta'], ['Pekin', 39.90, 116.40, 'Beijing'], ['Şangay', 31.23, 121.47, 'Shanghai'],
+  ['Hong Kong', 22.32, 114.17], ['Seul', 37.57, 126.98, 'Seoul'], ['Tokyo', 35.68, 139.69], ['Sidney', -33.87, 151.21, 'Sydney'], ['Melbourne', -37.81, 144.96],
+  ['Auckland', -36.85, 174.76], ['Honolulu', 21.31, -157.86], ['Anchorage', 61.22, -149.90], ['Los Angeles', 34.05, -118.24], ['San Francisco', 37.77, -122.42],
+  ['Chicago', 41.88, -87.63], ['New York', 40.71, -74.01], ['Toronto', 43.65, -79.38], ['Meksiko', 19.43, -99.13, 'Mexico City'], ['Bogota', 4.71, -74.07],
+  ['Lima', -12.05, -77.04], ['São Paulo', -23.55, -46.63], ['Buenos Aires', -34.60, -58.38], ['Santiago', -33.45, -70.67], ['Lagos', 6.52, 3.38],
+  ['Nairobi', -1.29, 36.82], ['Johannesburg', -26.20, 28.05], ['Cape Town', -33.92, 18.42], ['Reykjavik', 64.15, -21.94], ['Ekvator (0°)', 0, 30, 'Equator (0°)']
+];
+const DARK_SITES = [
+  ['Atacama Çölü, Şili', -22.91, -68.20, 'Atacama Desert, Chile'], ['Mauna Kea, Hawaii', 19.82, -155.47], ['La Palma, Kanarya Adaları', 28.76, -17.89, 'La Palma, Canary Islands'],
+  ['NamibRand, Namibya', -25.00, 16.00, 'NamibRand, Namibia'], ['Aoraki Mackenzie, Yeni Zelanda', -43.98, 170.46, 'Aoraki Mackenzie, New Zealand'],
+  ['Uluru, Avustralya', -25.34, 131.04, 'Uluru, Australia'], ['Death Valley, ABD', 36.46, -116.87, 'Death Valley, USA'], ['Jasper, Kanada', 52.87, -118.08, 'Jasper, Canada'],
+  ['Kerry, İrlanda', 51.95, -10.15, 'Kerry, Ireland'], ['Pic du Midi, Fransa', 42.94, 0.14, 'Pic du Midi, France'], ['Alqueva, Portekiz', 38.20, -7.50, 'Alqueva, Portugal'],
+  ['Saklıkent Gözlemevi, Antalya', 36.82, 30.34, 'Saklıkent Observatory, Turkey'], ['Doğu Anadolu Gözlemevi, Erzurum', 39.78, 41.23, 'Eastern Anatolia Observatory, Turkey'],
+  ['Nemrut Dağı, Adıyaman', 37.98, 38.74, 'Mount Nemrut, Turkey'], ['Salda Gölü, Burdur', 37.55, 29.68, 'Lake Salda, Turkey'], ['Kapadokya, Nevşehir', 38.64, 34.83, 'Cappadocia, Turkey']
+];
+const cityName = c => LANG === 'en' && c[3] ? c[3] : c[0];
+const CITIES = (LANG === 'en' ? CITIES_WORLD.concat(CITIES_TR) : CITIES_TR.concat(CITIES_WORLD)).map(c => [cityName(c), c[1], c[2]]);
+const DARK = DARK_SITES.map(c => [cityName(c), c[1], c[2]]);
+// first visit without location: guess from the time zone, e.g. Europe/Paris -> Paris
+function guessLoc() {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '', city = tz.split('/').pop().replace(/_/g, ' ');
+    const all = CITIES_TR.concat(CITIES_WORLD), hit = all.find(c => c[0] === city || c[3] === city || (city === 'Istanbul' && c[0] === 'İstanbul'));
+    if (hit) return { name: cityName(hit), lat: hit[1], lon: hit[2] };
+    const off = -new Date().getTimezoneOffset()/60; return { name: city || 'UTC' + (off >= 0 ? '+' : '') + off, lat: 40, lon: off*15 };
+  } catch (e) { return { name: 'İstanbul', lat: 41.01, lon: 28.98 }; }
+}
 const STAR_TR = {};
 const STAR_FACT = {
-  Sirius: 'Gece gökyüzünün en parlak yıldızı. Yanında, çıplak gözle görülmeyen beyaz cüce bir eşi (Sirius B) var.',
-  Polaris: 'Kuzey gök kutbuna 1°\'den yakın. Gece boyunca neredeyse hiç yer değiştirmez; yüzyıllardır kuzeyi bulmak için kullanılır.',
-  Vega: 'Dünya ekseninin yalpalaması (presesyon) yüzünden yaklaşık 12.000 yıl sonra kutup yıldızı olacak.',
-  Betelgeuse: 'Kırmızı bir süperdev. Güneş\'in yerinde olsaydı Mars\'ın yörüngesini aşardı. Bir gün süpernova olarak patlayacak.',
-  Rigel: 'Mavi-beyaz bir süperdev; Güneş\'ten yaklaşık 100.000 kat fazla ışık saçar.',
-  Arcturus: 'Kuzey yarımkürenin en parlak yıldızı. Ömrünün sonuna yaklaşmış turuncu bir dev.',
-  Capella: 'Tek bir yıldız gibi görünse de iki çift halinde dört yıldızdan oluşan bir sistem.',
-  Aldebaran: 'Taurus\'un kızıl gözü. Hyades kümesinin önünde görünür ama ona ait değildir; ondan iki kat daha yakındır.',
-  Antares: 'Scorpius\'un kalbi. Adı "Mars\'ın rakibi" anlamına gelir; rengi gezegenle karıştırılır.',
-  Altair: 'Yaklaşık 9 saatte bir kendi çevresinde döner; bu hız yüzünden ekvatoru belirgin şekilde basıktır.',
-  Deneb: 'Çok uzak olmasına rağmen parlak görünür; gerçek ışığı Güneş\'in on binlerce katıdır.',
-  Spica: 'Birbirine çok yakın dönen iki sıcak mavi yıldız; aralarındaki çekim ikisini de yumurta şekline sokar.',
-  Procyon: 'Adı Yunanca "köpekten önce" demek: her gece Sirius\'tan (Köpek Yıldızı) biraz önce doğar.',
-  Fomalhaut: 'Çevresindeki toz kuşağı teleskoplarla doğrudan görüntülenmiştir.',
-  Canopus: 'Gökyüzünün ikinci en parlak yıldızı. Türkiye\'den yalnızca güney kıyılarında, ufkun hemen üstünde görülebilir.',
-  'Rigil Kentaurus': 'Güneş\'e en yakın yıldız sistemi: 4,4 ışık yılı. Türkiye\'den görülmez, ufkun altında kalır.',
-  Pollux: 'Çevresinde bir gezegen keşfedilmiş turuncu bir dev.',
-  Regulus: 'Leo\'nun kalbi. Öyle hızlı döner ki biraz daha hızlı olsa parçalanırdı.',
-  Mizar: 'Ursa Major\'un kulpundaki bu yıldızın yanındaki sönük Alcor\'u görebilmek eskiden göz testi sayılırdı.',
-  Algol: '"Şeytan yıldızı". Bir eşi önünden geçtiği için her 2,87 günde bir birkaç saatliğine sönükleşir.',
-  Mira: 'Yaklaşık 11 aylık döngüyle parlayıp sönen bir dev; en sönük halinde çıplak gözle görülmez.'
+  Sirius: T('Gece gökyüzünün en parlak yıldızı. Yanında, çıplak gözle görülmeyen beyaz cüce bir eşi (Sirius B) var.'),
+  Polaris: T('Kuzey gök kutbuna 1°\'den yakın. Gece boyunca neredeyse hiç yer değiştirmez; yüzyıllardır kuzeyi bulmak için kullanılır.'),
+  Vega: T('Dünya ekseninin yalpalaması (presesyon) yüzünden yaklaşık 12.000 yıl sonra kutup yıldızı olacak.'),
+  Betelgeuse: T('Kırmızı bir süperdev. Güneş\'in yerinde olsaydı Mars\'ın yörüngesini aşardı. Bir gün süpernova olarak patlayacak.'),
+  Rigel: T('Mavi-beyaz bir süperdev; Güneş\'ten yaklaşık 100.000 kat fazla ışık saçar.'),
+  Arcturus: T('Kuzey yarımkürenin en parlak yıldızı. Ömrünün sonuna yaklaşmış turuncu bir dev.'),
+  Capella: T('Tek bir yıldız gibi görünse de iki çift halinde dört yıldızdan oluşan bir sistem.'),
+  Aldebaran: T('Taurus\'un kızıl gözü. Hyades kümesinin önünde görünür ama ona ait değildir; ondan iki kat daha yakındır.'),
+  Antares: T('Scorpius\'un kalbi. Adı "Mars\'ın rakibi" anlamına gelir; rengi gezegenle karıştırılır.'),
+  Altair: T('Yaklaşık 9 saatte bir kendi çevresinde döner; bu hız yüzünden ekvatoru belirgin şekilde basıktır.'),
+  Deneb: T('Çok uzak olmasına rağmen parlak görünür; gerçek ışığı Güneş\'in on binlerce katıdır.'),
+  Spica: T('Birbirine çok yakın dönen iki sıcak mavi yıldız; aralarındaki çekim ikisini de yumurta şekline sokar.'),
+  Procyon: T('Adı Yunanca "köpekten önce" demek: her gece Sirius\'tan (Köpek Yıldızı) biraz önce doğar.'),
+  Fomalhaut: T('Çevresindeki toz kuşağı teleskoplarla doğrudan görüntülenmiştir.'),
+  Canopus: T('Gökyüzünün ikinci en parlak yıldızı. Türkiye\'den yalnızca güney kıyılarında, ufkun hemen üstünde görülebilir.'),
+  'Rigil Kentaurus': T('Güneş\'e en yakın yıldız sistemi: 4,4 ışık yılı. Türkiye\'den görülmez, ufkun altında kalır.'),
+  Pollux: T('Çevresinde bir gezegen keşfedilmiş turuncu bir dev.'),
+  Regulus: T('Leo\'nun kalbi. Öyle hızlı döner ki biraz daha hızlı olsa parçalanırdı.'),
+  Mizar: T('Ursa Major\'un kulpundaki bu yıldızın yanındaki sönük Alcor\'u görebilmek eskiden göz testi sayılırdı.'),
+  Algol: T('"Şeytan yıldızı". Bir eşi önünden geçtiği için her 2,87 günde bir birkaç saatliğine sönükleşir.'),
+  Mira: T('Yaklaşık 11 aylık döngüyle parlayıp sönen bir dev; en sönük halinde çıplak gözle görülmez.')
 };
 const PLANETS = [
-  { b: 'Sun', tr: 'Sun', k: 'güneş', col: '#ffe9b0', fact: 'Bize en yakın yıldız. Uyarı: Güneş\'e asla doğrudan ya da dürbünle bakma.' },
-  { b: 'Moon', tr: 'Moon', k: 'ay', col: '#e9e6dc', fact: 'Dünya\'nın tek doğal uydusu. Işığı bize yaklaşık 1,3 saniyede ulaşır.' },
-  { b: 'Mercury', tr: 'Mercury', k: 'merkür', col: '#c9b9a4', fact: 'Güneş\'e en yakın gezegen; bir yılı yalnızca 88 gün sürer. Hep alacakaranlıkta, ufka yakın görünür.' },
-  { b: 'Venus', tr: 'Venus', k: 'venüs çoban yıldızı', col: '#fff4d6', fact: 'Ay\'dan sonra gece gökyüzünün en parlak cismi. Halk arasında "Çoban Yıldızı" denir; yüzeyi 460 °C.' },
-  { b: 'Mars', tr: 'Mars', k: 'mars', col: '#ff9a6b', fact: 'Kızıl rengini yüzeyindeki demir oksit, yani pas verir.' },
-  { b: 'Jupiter', tr: 'Jupiter', k: 'jüpiter', col: '#ffe2b8', fact: 'En büyük gezegen. Basit bir dürbünle dört büyük uydusu yanında nokta nokta görülür.' },
-  { b: 'Saturn', tr: 'Saturn', k: 'satürn', col: '#f3dca0', fact: 'Halkaları küçük bir teleskopla bile seçilebilir.' },
-  { b: 'Uranus', tr: 'Uranus', k: 'uranüs', col: '#b9ecf0', fact: 'Yan yatmış dönen bir buz devi. Çok karanlık bir yerde çıplak gözle zor seçilir.' },
-  { b: 'Neptune', tr: 'Neptune', k: 'neptün', col: '#9db8ff', fact: 'Çıplak gözle görülmez; dürbün ya da teleskop gerekir.' }
+  { b: 'Sun', tr: 'Sun', k: 'güneş', col: '#ffe9b0', fact: T('Bize en yakın yıldız. Uyarı: Güneş\'e asla doğrudan ya da dürbünle bakma.') },
+  { b: 'Moon', tr: 'Moon', k: 'ay', col: '#e9e6dc', fact: T('Dünya\'nın tek doğal uydusu. Işığı bize yaklaşık 1,3 saniyede ulaşır.') },
+  { b: 'Mercury', tr: 'Mercury', k: 'merkür', col: '#c9b9a4', fact: T('Güneş\'e en yakın gezegen; bir yılı yalnızca 88 gün sürer. Hep alacakaranlıkta, ufka yakın görünür.') },
+  { b: 'Venus', tr: 'Venus', k: 'venüs çoban yıldızı', col: '#fff4d6', fact: T('Ay\'dan sonra gece gökyüzünün en parlak cismi. Halk arasında "Çoban Yıldızı" denir; yüzeyi 460 °C.') },
+  { b: 'Mars', tr: 'Mars', k: 'mars', col: '#ff9a6b', fact: T('Kızıl rengini yüzeyindeki demir oksit, yani pas verir.') },
+  { b: 'Jupiter', tr: 'Jupiter', k: 'jüpiter', col: '#ffe2b8', fact: T('En büyük gezegen. Basit bir dürbünle dört büyük uydusu yanında nokta nokta görülür.') },
+  { b: 'Saturn', tr: 'Saturn', k: 'satürn', col: '#f3dca0', fact: T('Halkaları küçük bir teleskopla bile seçilebilir.') },
+  { b: 'Uranus', tr: 'Uranus', k: 'uranüs', col: '#b9ecf0', fact: T('Yan yatmış dönen bir buz devi. Çok karanlık bir yerde çıplak gözle zor seçilir.') },
+  { b: 'Neptune', tr: 'Neptune', k: 'neptün', col: '#9db8ff', fact: T('Çıplak gözle görülmez; dürbün ya da teleskop gerekir.') }
 ];
 const FAMOUS_DSO = new Set(['M31', 'M42', 'M45', 'M13', 'M44', 'M8', 'M1', 'M57', 'M27', 'M51', 'M104', 'M33']);
 const DSO_GLOW = { s: [255,226,196], e: [255,226,196], i: [255,226,196], sfr: [255,95,145], pn: [100,235,215], snr: [255,150,115], rn: [130,165,255], oc: [165,195,255], gc: [255,238,205], pos: [190,205,255] };
-const DSO_TYPE = { s: 'Sarmal galaksi', e: 'Eliptik galaksi', i: 'Düzensiz galaksi', gc: 'Küresel yıldız kümesi', oc: 'Açık yıldız kümesi', sfr: 'Yıldız doğum bölgesi (bulutsu)', pn: 'Gezegenimsi bulutsu', snr: 'Süpernova kalıntısı', rn: 'Yansıma bulutsusu', pos: 'Yıldız grubu' };
+const DSO_TYPE = { s: T('Sarmal galaksi'), e: T('Eliptik galaksi'), i: T('Düzensiz galaksi'), gc: T('Küresel yıldız kümesi'), oc: T('Açık yıldız kümesi'), sfr: T('Yıldız doğum bölgesi (bulutsu)'), pn: T('Gezegenimsi bulutsu'), snr: T('Süpernova kalıntısı'), rn: T('Yansıma bulutsusu'), pos: T('Yıldız grubu') };
 const DSO_TR = {
-  M1: ['Crab Nebula', 6500, '1054 yılında gözlenen bir süpernovanın kalıntısı. Ortasında saniyede 30 kez dönen bir pulsar var.', 'yengeç bulutsusu'],
-  M6: ['Butterfly Cluster', 1600, '', 'kelebek kümesi'], M7: ['Ptolemy Cluster', 980, 'MS 130 civarında Batlamyus tarafından kaydedilmiş.', 'batlamyus'], M8: ['Lagoon Nebula', 4100, '', 'lagün bulutsusu'],
-  M11: ['Wild Duck Cluster', 6200, '', 'yaban ördeği'], M13: ['Great Hercules Cluster', 22200, 'Yüz binlerce yaşlı yıldızdan oluşan bir küre. 1974\'te Arecibo radyo mesajı buraya gönderildi.', 'herkül kümesi'],
-  M16: ['Eagle Nebula', 7000, 'Hubble\'ın ünlü "Pillars of Creation" fotoğrafı bu bulutsunun içinden.', 'kartal bulutsusu yaratılış sütunları'], M17: ['Omega Nebula', 5500, '', 'omega bulutsusu'], M20: ['Trifid Nebula', 5200, '', 'trifid bulutsusu'],
-  M24: ['Sagittarius Star Cloud', 10000, '', 'yay yıldız bulutu'], M27: ['Dumbbell Nebula', 1360, 'Ölen bir yıldızın dışarı attığı gaz kabuğu.', 'dambıl bulutsusu'],
-  M31: ['Andromeda Galaxy', 2500000, 'Çıplak gözle görülebilen en uzak cisimlerden biri. Gördüğün ışık, ilk insan türleri ortaya çıkarken yola çıktı. Yaklaşık 4,5 milyar yıl sonra Samanyolu ile çarpışacak.', 'andromeda galaksisi'],
-  M32: ['M32', 2490000, '', ''], M33: ['Triangulum Galaxy', 2730000, 'Çok karanlık bir gökyüzünde çıplak gözle görülebilen en uzak cisim adayı.', 'üçgen galaksisi'],
-  M42: ['Orion Nebula', 1344, 'Yeni yıldızların doğduğu dev bir gaz bulutu. Orion\'un kılıcında çıplak gözle bulanık bir leke olarak görülür.', 'orion bulutsusu avcı'],
-  M44: ['Beehive Cluster', 577, '', 'arı kovanı praesepe'], M45: ['Pleiades', 444, 'Çıplak gözle 6-7 yıldızı seçilir, ama aslında binden fazla genç yıldız içerir. Türkçede Ülker diye bilinir.', 'ülker yedi kız kardeş'],
-  M51: ['Whirlpool Galaxy', 31000000, 'Kollarını, yanındaki küçük galaksiyle olan çekim etkileşimi belirginleştiriyor.', 'girdap galaksisi'], M57: ['Ring Nebula', 2570, 'Ölmekte olan bir yıldızın dışarı attığı gaz halkası.', 'halka bulutsusu'],
+  M1: ['Crab Nebula', 6500, T('1054 yılında gözlenen bir süpernovanın kalıntısı. Ortasında saniyede 30 kez dönen bir pulsar var.'), 'yengeç bulutsusu'],
+  M6: ['Butterfly Cluster', 1600, '', 'kelebek kümesi'], M7: ['Ptolemy Cluster', 980, T('MS 130 civarında Batlamyus tarafından kaydedilmiş.'), 'batlamyus'], M8: ['Lagoon Nebula', 4100, '', 'lagün bulutsusu'],
+  M11: ['Wild Duck Cluster', 6200, '', 'yaban ördeği'], M13: ['Great Hercules Cluster', 22200, T('Yüz binlerce yaşlı yıldızdan oluşan bir küre. 1974\'te Arecibo radyo mesajı buraya gönderildi.'), 'herkül kümesi'],
+  M16: ['Eagle Nebula', 7000, T('Hubble\'ın ünlü "Pillars of Creation" fotoğrafı bu bulutsunun içinden.'), 'kartal bulutsusu yaratılış sütunları'], M17: ['Omega Nebula', 5500, '', 'omega bulutsusu'], M20: ['Trifid Nebula', 5200, '', 'trifid bulutsusu'],
+  M24: ['Sagittarius Star Cloud', 10000, '', 'yay yıldız bulutu'], M27: ['Dumbbell Nebula', 1360, T('Ölen bir yıldızın dışarı attığı gaz kabuğu.'), 'dambıl bulutsusu'],
+  M31: ['Andromeda Galaxy', 2500000, T('Çıplak gözle görülebilen en uzak cisimlerden biri. Gördüğün ışık, ilk insan türleri ortaya çıkarken yola çıktı. Yaklaşık 4,5 milyar yıl sonra Samanyolu ile çarpışacak.'), 'andromeda galaksisi'],
+  M32: ['M32', 2490000, '', ''], M33: ['Triangulum Galaxy', 2730000, T('Çok karanlık bir gökyüzünde çıplak gözle görülebilen en uzak cisim adayı.'), 'üçgen galaksisi'],
+  M42: ['Orion Nebula', 1344, T('Yeni yıldızların doğduğu dev bir gaz bulutu. Orion\'un kılıcında çıplak gözle bulanık bir leke olarak görülür.'), 'orion bulutsusu avcı'],
+  M44: ['Beehive Cluster', 577, '', 'arı kovanı praesepe'], M45: ['Pleiades', 444, T('Çıplak gözle 6-7 yıldızı seçilir, ama aslında binden fazla genç yıldız içerir. Türkçede Ülker diye bilinir.'), 'ülker yedi kız kardeş'],
+  M51: ['Whirlpool Galaxy', 31000000, T('Kollarını, yanındaki küçük galaksiyle olan çekim etkileşimi belirginleştiriyor.'), 'girdap galaksisi'], M57: ['Ring Nebula', 2570, T('Ölmekte olan bir yıldızın dışarı attığı gaz halkası.'), 'halka bulutsusu'],
   M63: ['Sunflower Galaxy', 29000000, '', 'ayçiçeği galaksisi'], M64: ['Black Eye Galaxy', 17000000, '', 'kara göz galaksisi'], M76: ['Little Dumbbell Nebula', 2500, '', 'küçük dambıl'], M77: ['Cetus A', 47000000, '', ''],
-  M81: ['Bode\'s Galaxy', 11800000, '', 'bode galaksisi'], M82: ['Cigar Galaxy', 12000000, 'Yoğun yıldız oluşumu yüzünden merkezinden gaz fışkıran bir galaksi.', 'puro galaksisi'],
-  M83: ['Southern Pinwheel Galaxy', 15000000, '', 'güney fırıldak'], M87: ['Virgo A', 53000000, 'Merkezindeki dev kara deliğin gölgesi 2019\'da Event Horizon Teleskobu ile ilk kez görüntülendi.', 'kara delik'],
-  M97: ['Owl Nebula', 2030, '', 'baykuş bulutsusu'], M101: ['Pinwheel Galaxy', 21000000, '', 'fırıldak galaksisi'], M104: ['Sombrero Galaxy', 31000000, 'Kenardan gördüğümüz için ortasındaki koyu toz şeridi şapka kenarı gibi görünür.', 'sombrero galaksisi']
+  M81: ['Bode\'s Galaxy', 11800000, '', 'bode galaksisi'], M82: ['Cigar Galaxy', 12000000, T('Yoğun yıldız oluşumu yüzünden merkezinden gaz fışkıran bir galaksi.'), 'puro galaksisi'],
+  M83: ['Southern Pinwheel Galaxy', 15000000, '', 'güney fırıldak'], M87: ['Virgo A', 53000000, T('Merkezindeki dev kara deliğin gölgesi 2019\'da Event Horizon Teleskobu ile ilk kez görüntülendi.'), 'kara delik'],
+  M97: ['Owl Nebula', 2030, '', 'baykuş bulutsusu'], M101: ['Pinwheel Galaxy', 21000000, '', 'fırıldak galaksisi'], M104: ['Sombrero Galaxy', 31000000, T('Kenardan gördüğümüz için ortasındaki koyu toz şeridi şapka kenarı gibi görünür.'), 'sombrero galaksisi']
 };
 const GREEK = { Alp:'α',Bet:'β',Gam:'γ',Del:'δ',Eps:'ε',Zet:'ζ',Eta:'η',The:'θ',Iot:'ι',Kap:'κ',Lam:'λ',Mu:'μ',Nu:'ν',Xi:'ξ',Omi:'ο',Pi:'π',Rho:'ρ',Sig:'σ',Tau:'τ',Ups:'υ',Phi:'φ',Chi:'χ',Psi:'ψ',Ome:'ω' };
-const SPEC = { O: ['Mavi, aşırı sıcak', '30.000 K üstü'], B: ['Mavi-beyaz', '10.000–30.000 K'], A: ['Beyaz', '7.500–10.000 K'], F: ['Sarımsı beyaz', '6.000–7.500 K'], G: ['Sarı, Güneş gibi', '5.200–6.000 K'], K: ['Turuncu', '3.700–5.200 K'], M: ['Kırmızı', '2.400–3.700 K'] };
-const COMPASS = ['Kuzey', 'Kuzeydoğu', 'Doğu', 'Güneydoğu', 'Güney', 'Güneybatı', 'Batı', 'Kuzeybatı'];
-const COMPASS_SHORT = ['K', 'KD', 'D', 'GD', 'G', 'GB', 'B', 'KB'];
+const SPEC = { O: [T('Mavi, aşırı sıcak'), T('30.000 K üstü')], B: [T('Mavi-beyaz'), T('10.000–30.000 K')], A: [T('Beyaz'), T('7.500–10.000 K')], F: [T('Sarımsı beyaz'), T('6.000–7.500 K')], G: [T('Sarı, Güneş gibi'), T('5.200–6.000 K')], K: [T('Turuncu'), T('3.700–5.200 K')], M: [T('Kırmızı'), T('2.400–3.700 K')] };
+const COMPASS = [T('Kuzey'), T('Kuzeydoğu'), T('Doğu'), T('Güneydoğu'), T('Güney'), T('Güneybatı'), T('Batı'), T('Kuzeybatı')];
+const COMPASS_SHORT = LANG === 'en' ? ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] : ['K', 'KD', 'D', 'GD', 'G', 'GB', 'B', 'KB'];
 
 /* ---------------- data prep ---------------- */
 const eqv = (raDeg, decDeg) => { const a = raDeg*D2R, d = decDeg*D2R, c = Math.cos(d); return [c*Math.cos(a), c*Math.sin(a), Math.sin(d)]; };
@@ -348,7 +866,7 @@ const saveSet = () => store.set('set', SET);
 /* ---------------- state ---------------- */
 const savedLoc = store.get('loc', null);
 const S = {
-  loc: savedLoc || { name: 'İstanbul', lat: 41.01, lon: 28.98 },
+  loc: savedLoc || guessLoc(),
   az: 180*D2R, alt: 32*D2R, fov: 95*D2R,
   offset: 0, speed: 1,
   cons: store.get('cons', true), names: store.get('names', true), dso: store.get('dso', true), mw: store.get('mw', true), atmo: store.get('atmo', true), red: false, gyro: false,
@@ -358,7 +876,7 @@ const S = {
 /* ---------------- WebGL ---------------- */
 const glc = $('gl'), ov = $('ov'), ctx = ov.getContext('2d');
 const gl = glc.getContext('webgl', { antialias: false, alpha: false, premultipliedAlpha: false });
-if (!gl) { app.insertAdjacentHTML('beforeend', '<div class="err">Bu tarayıcıda WebGL açılamadı.</div>'); return; }
+if (!gl) { app.insertAdjacentHTML('beforeend', T('<div class="err">Bu tarayıcıda WebGL açılamadı.</div>')); return; }
 function prog(vs, fs) {
   const mk = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
   const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, vs)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p);
@@ -497,7 +1015,7 @@ void main(){
 }`;
 let skyP, starP;
 try { skyP = prog(SKY_VS, SKY_FS); starP = prog(STAR_VS, STAR_FS); }
-catch (e) { console.error(e); app.insertAdjacentHTML('beforeend', '<div class="err">Grafik gölgelendiricisi derlenemedi.</div>'); return; }
+catch (e) { console.error(e); app.insertAdjacentHTML('beforeend', T('<div class="err">Grafik gölgelendiricisi derlenemedi.</div>')); return; }
 const quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
 const sbuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, sbuf);
 function uploadStars() {
@@ -795,7 +1313,7 @@ function drawOverlay(t) {
       const r = Math.max(11, 0.0045*ppr);
       drawMoon(p, r, b, dim);
       picks.push({ x: p[0], y: p[1], r: r + 14, pri: 0, obj: { kind: 'body', ref: b } });
-      label(b.tr + ' · %' + Math.round(b.phase*100), p[0] + r + 7, p[1] + 4, '700 14px Manrope, sans-serif', 'rgba(233,230,220,.95)');
+      label(b.tr + ' · ' + pct(Math.round(b.phase*100)), p[0] + r + 7, p[1] + 4, '700 14px Manrope, sans-serif', 'rgba(233,230,220,.95)');
     } else {
       const v = Math.max(0, Math.min(1, (3 - b.mag)/7));
       const Rpx = (PLANET_KM[b.b] || 0)/(b.dist*149597870.7)*ppr;
@@ -823,6 +1341,13 @@ function drawOverlay(t) {
   drawBounds(night);
   drawJMoons(night);
   drawISS(night);
+  // stars with known planets: a small orbit ring once zoomed in
+  if (S.fov*R2D < 45 && window.EXO) {
+    if (!window.EXO_STARS || window.EXO_STARS.n !== STARS.length) { window.EXO_STARS = STARS.filter(st => st.hip && window.EXO[st.hip]); window.EXO_STARS.n = STARS.length; }
+    ctx.strokeStyle = 'rgba(120,230,200,' + (0.55*night + 0.1) + ')'; ctx.lineWidth = 1;
+    window.EXO_STARS.forEach(st => { if (st.mag > magLimit(S.fov*R2D)) return; const e = mul(M, st.v); if (!visible(e)) return; const p = proj(e); if (!p || p[0] < 0 || p[0] > W || p[1] < 0 || p[1] > H) return;
+      ctx.beginPath(); ctx.ellipse(p[0], p[1], 9, 4, -0.4, 0, Math.PI*2); ctx.stroke(); });
+  }
   drawRadiants(night);
   drawMeteors();
 
@@ -963,8 +1488,8 @@ function bindToggle(id, key, after) {
   b.addEventListener('click', () => { S[key] = !S[key]; b.setAttribute('aria-pressed', String(S[key])); if (key !== 'red' && key !== 'gyro') store.set(key, S[key]); after && after(); });
 }
 bindToggle('tCons', 'cons'); bindToggle('tNames', 'names'); bindToggle('tDso', 'dso'); bindToggle('tMw', 'mw');
-bindToggle('tAtmo', 'atmo', () => toast(S.atmo ? 'Atmosfer açık: gündüz ve alacakaranlık hafif bir ışıkla gösterilir.' : 'Atmosfer kapalı: gökyüzü her saatte gece gibi görünür.'));
-bindToggle('tRed', 'red', () => { $('red').hidden = !S.red; if (S.red) toast('Gece modu: kırmızı ışık gözünün karanlığa alışmasını bozmaz.'); });
+bindToggle('tAtmo', 'atmo', () => toast(S.atmo ? T('Atmosfer açık: gündüz ve alacakaranlık hafif bir ışıkla gösterilir.') : T('Atmosfer kapalı: gökyüzü her saatte gece gibi görünür.')));
+bindToggle('tRed', 'red', () => { $('red').hidden = !S.red; if (S.red) toast(T('Gece modu: kırmızı ışık gözünün karanlığa alışmasını bozmaz.')); });
 const gyroBtn = $('tGyro');
 gyroBtn.addEventListener('click', () => setGyro(!S.gyro));
 
@@ -988,13 +1513,13 @@ async function setGyro(on) {
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') throw new Error('denied');
       }
-    } catch (e) { toast('Hareket sensörüne izin verilmedi. Parmağınla sürükleyerek bakabilirsin.'); return; }
+    } catch (e) { toast(T('Hareket sensörüne izin verilmedi. Parmağınla sürükleyerek bakabilirsin.')); return; }
     gyroGot = false;
     addEventListener('deviceorientationabsolute', onOrient); addEventListener('deviceorientation', onOrient);
     S.gyro = true; gyroBtn.setAttribute('aria-pressed', 'true');
-    toast('Telefonu göğe doğru tut.');
+    toast(T('Telefonu göğe doğru tut.'));
     clearTimeout(gyroTimer);
-    gyroTimer = setTimeout(() => { if (!gyroGot) { setGyro(false); toast('Bu cihaz ya da sayfa hareket sensörüne erişemiyor. Sürükleyerek bakabilirsin.'); } }, 2500);
+    gyroTimer = setTimeout(() => { if (!gyroGot) { setGyro(false); toast(T('Bu cihaz ya da sayfa hareket sensörüne erişemiyor. Sürükleyerek bakabilirsin.')); } }, 2500);
   } else {
     removeEventListener('deviceorientationabsolute', onOrient); removeEventListener('deviceorientation', onOrient);
     S.gyro = false; gyroBtn.setAttribute('aria-pressed', 'false');
@@ -1008,16 +1533,16 @@ function openSheet(html, mode) { sheet.innerHTML = '<div class="grab"></div>' + 
 function closeSheet() { sheet.classList.add('closed'); sheetMode = null; S.sel = null; seeThrough = 0; }
 const closeX = '<button class="x" aria-label="Kapat"><svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.6"><path d="M1 1l10 10M11 1L1 11"/></svg></button>';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const fmtN = (x, d = 0) => x.toLocaleString('tr-TR', { maximumFractionDigits: d, minimumFractionDigits: d });
+const fmtN = (x, d = 0) => x.toLocaleString(LOCALE, { maximumFractionDigits: d, minimumFractionDigits: d });
 function fmtLy(ly) {
-  if (ly >= 1e6) return fmtN(ly/1e6, ly >= 1e7 ? 0 : 1) + ' milyon ışık yılı';
-  return fmtN(ly, ly < 100 ? 1 : 0) + ' ışık yılı';
+  if (ly >= 1e6) return fmtN(ly/1e6, ly >= 1e7 ? 0 : 1) + T(' milyon ışık yılı');
+  return fmtN(ly, ly < 100 ? 1 : 0) + T(' ışık yılı');
 }
 function lightYear(ly) {
   const y = now.getFullYear() - ly;
-  if (ly >= 1e6) return 'Yaklaşık ' + fmtN(ly/1e6, 1) + ' milyon yıl önce';
-  if (y > 0) return 'MS ' + Math.round(y) + ' yılında';
-  return 'MÖ ' + fmtN(Math.round(-y + 1)) + ' civarında';
+  if (ly >= 1e6) return T('Yaklaşık ') + fmtN(ly/1e6, 1) + T(' milyon yıl önce');
+  if (y > 0) return T('MS ') + Math.round(y) + T(' yılında');
+  return T('MÖ ') + fmtN(Math.round(-y + 1)) + T(' civarında');
 }
 function altAzTxt(e) {
   const { az, alt } = lookAtE(e); let a = (az*R2D + 360) % 360;
@@ -1025,13 +1550,13 @@ function altAzTxt(e) {
 }
 function row(k, v, n, wide) { return '<div class="row' + (wide ? ' wide' : '') + '"><div class="k">' + k + '</div><div class="v">' + v + '</div>' + (n ? '<div class="n">' + n + '</div>' : '') + '</div>'; }
 function riseTxt(body) {
-  try { const r = A.SearchRiseSet(body, observer, +1, atime, 2); if (r) return r.date.toLocaleString('tr-TR', { weekday: 'long', hour: '2-digit', minute: '2-digit' }); } catch (e) {}
+  try { const r = A.SearchRiseSet(body, observer, +1, atime, 2); if (r) return r.date.toLocaleString(LOCALE, { weekday: 'long', hour: '2-digit', minute: '2-digit' }); } catch (e) {}
   return null;
 }
 function lumClass(sp) {
-  if (/IV/.test(sp)) return 'Altdev'; if (/VI/.test(sp)) return 'Altcüce'; if (/V/.test(sp)) return 'Anakol yıldızı (cüce)';
-  if (/III/.test(sp)) return 'Dev'; if (/II/.test(sp)) return 'Parlak dev'; if (/I/.test(sp)) return 'Süperdev';
-  if (/^D/.test(sp)) return 'Beyaz cüce'; return '';
+  if (/IV/.test(sp)) return T('Altdev'); if (/VI/.test(sp)) return T('Altcüce'); if (/V/.test(sp)) return T('Anakol yıldızı (cüce)');
+  if (/III/.test(sp)) return T('Dev'); if (/II/.test(sp)) return T('Parlak dev'); if (/I/.test(sp)) return T('Süperdev');
+  if (/^D/.test(sp)) return T('Beyaz cüce'); return '';
 }
 function select(obj, fly) {
   S.sel = obj;
@@ -1043,62 +1568,73 @@ function renderInfo() {
   const o = S.sel; if (!o) return;
   const e = selE(o), [altT, azT] = altAzTxt(e), up = e[2] >= 0;
   let h = '';
-  const pos = row('Yükseklik', altT, up ? 'ufkun üstünde' : 'ufkun altında') + row('Yön', azT);
+  const pos = row(T('Yükseklik'), altT, up ? T('ufkun üstünde') : T('ufkun altında')) + row(T('Yön'), azT);
   if (o.kind === 'star') {
     const s = o.ref, con = CONS[s.con], des = starDesig(s);
     const sp = SPEC[s.sp.charAt(0)], lc = lumClass(s.sp);
     const title = starTitle(s), alias = [des, ...starCats(s)].filter(x => x && x !== title);
-    h += '<div class="shead"><div class="grow"><div class="kind">Yıldız' + (s.name ? '' : ' · özel adı yok') + '</div><h2>' + esc(title) + '</h2><div class="sub">' + (alias[0] ? esc(alias[0]) + ' · ' : '') + (con ? esc(con.la) : '') + '</div></div>' + closeX + '</div><canvas class="portrait" id="pc"></canvas>';
+    h += T('<div class="shead"><div class="grow"><div class="kind">Yıldız') + (s.name ? '' : T(' · özel adı yok')) + '</div><h2>' + esc(title) + '</h2><div class="sub">' + (alias[0] ? esc(alias[0]) + ' · ' : '') + (con ? esc(con.la) : '') + '</div></div>' + closeX + '</div><canvas class="portrait" id="pc"></canvas>';
     if (s.name && STAR_FACT[s.name]) h += '<p class="fact">' + STAR_FACT[s.name] + '</p>';
-    else if (!s.name) h += '<p class="fact">Bu yıldızın özel bir adı yok. Yalnızca 450 kadar yıldızın IAU onaylı adı var; geri kalanlar Yunan harfleri (α, β…), Flamsteed numaraları ya da HD ve HIP gibi katalog numaralarıyla anılır.</p>';
+    else if (!s.name) h += T('<p class="fact">Bu yıldızın özel bir adı yok. Yalnızca 450 kadar yıldızın IAU onaylı adı var; geri kalanlar Yunan harfleri (α, β…), Flamsteed numaraları ya da HD ve HIP gibi katalog numaralarıyla anılır.</p>');
     h += '<div class="rows">';
-    if (s.ly) h += row('Uzaklık', fmtLy(s.ly), 'Gördüğün ışık ' + lightYear(s.ly) + ' yola çıktı.', true);
-    h += row('Parlaklık', fmtN(s.mag, 2) + ' kadir', 'Sayı küçüldükçe daha parlak.');
-    if (s.lum) h += row('Işıma gücü', (s.lum >= 10 ? fmtN(s.lum, 0) : fmtN(s.lum, 2)) + ' × Güneş', 'Aynı uzaklıkta olsalardı.');
-    if (sp) h += row('Renk ve sıcaklık', sp[0], sp[1] + ' · tayf ' + esc(s.sp), !lc);
-    if (lc) h += row('Evre', lc);
-    const cats = starCats(s); if (cats.length) h += row('Katalog numaraları', esc(cats.join(' · ')), 'Gökbilimcilerin kullandığı kimlikler.', true);
+    if (s.ly) h += row(T('Uzaklık'), fmtLy(s.ly), T('Gördüğün ışık ') + lightYear(s.ly) + T(' yola çıktı.'), true);
+    h += row(T('Parlaklık'), fmtN(s.mag, 2) + T(' kadir'), T('Sayı küçüldükçe daha parlak.'));
+    if (s.lum) h += row(T('Işıma gücü'), (s.lum >= 10 ? fmtN(s.lum, 0) : fmtN(s.lum, 2)) + T(' × Güneş'), T('Aynı uzaklıkta olsalardı.'));
+    if (sp) h += row(T('Renk ve sıcaklık'), sp[0], sp[1] + T(' · tayf ') + esc(s.sp), !lc);
+    if (lc) h += row(T('Evre'), lc);
+    const ex = (window.EXO || {})[s.hip];
+    if (ex) {
+      h += '</div><div class="sect">' + (LANG === 'en' ? 'Known planets · ' : 'Bilinen gezegenleri · ') + ex.length + '</div><div class="list">' + ex.map(p => {
+        const bits = [];
+        if (p[3]) bits.push((LANG === 'en' ? 'year: ' : 'yılı: ') + (p[3] < 2 ? fmtN(p[3]*24, 0) + (LANG === 'en' ? ' h' : ' sa') : p[3] > 900 ? fmtN(p[3]/365.25, 1) + (LANG === 'en' ? ' yr' : ' yıl') : fmtN(p[3], 0) + (LANG === 'en' ? ' d' : ' gün')));
+        if (p[1]) bits.push(fmtN(p[1], p[1] < 0.1 ? 3 : 1) + ' × ' + (LANG === 'en' ? 'Jupiter mass' : 'Jüpiter kütlesi'));
+        else if (p[2]) bits.push(fmtN(p[2]*11.2, 1) + ' × ' + (LANG === 'en' ? 'Earth size' : 'Dünya boyutu'));
+        if (p[5]) bits.push(String(p[5]));
+        return '<div class="item"><b>' + esc(p[0]) + '</b><span>' + bits.join(' · ') + '</span></div>';
+      }).join('') + '</div><p class="note">' + (LANG === 'en' ? 'Planets found around this star (Open Exoplanet Catalogue).' : 'Bu yıldızın çevresinde keşfedilmiş gezegenler (Open Exoplanet Catalogue).') + '</p><div class="rows">';
+    }
+    const cats = starCats(s); if (cats.length) h += row(T('Katalog numaraları'), esc(cats.join(' · ')), T('Gökbilimcilerin kullandığı kimlikler.'), true);
     h += pos + '</div>';
   } else if (o.kind === 'body') {
     const b = o.ref;
-    h += '<div class="shead"><div class="grow"><div class="kind">' + (b.b === 'Sun' ? 'Yıldız' : b.b === 'Moon' ? 'Uydu' : 'Gezegen') + '</div><h2>' + b.tr + '</h2><div class="sub">Konumu şu an için hesaplandı</div></div>' + closeX + '</div><canvas class="portrait" id="pc"></canvas>';
+    h += '<div class="shead"><div class="grow"><div class="kind">' + (b.b === 'Sun' ? T('Yıldız') : b.b === 'Moon' ? T('Uydu') : T('Gezegen')) + '</div><h2>' + b.tr + T('</h2><div class="sub">Konumu şu an için hesaplandı</div></div>') + closeX + '</div><canvas class="portrait" id="pc"></canvas>';
     h += '<p class="fact">' + b.fact + '</p><div class="rows">';
     const km = b.dist*149597870.7, lmin = b.dist*8.3167;
-    if (b.b === 'Moon') { h += row('Uzaklık', fmtN(km, 0) + ' km', null, true); h += row('Aydınlanma', '%' + Math.round(b.phase*100), moonName()); }
-    else h += row('Uzaklık', fmtN(b.dist, 2) + ' AU', 'Işığı ' + (lmin < 60 ? fmtN(lmin, 1) + ' dakikada' : fmtN(lmin/60, 1) + ' saatte') + ' ulaşıyor · ' + fmtN(km/1e6, 0) + ' milyon km', true);
-    if (b.b !== 'Sun') h += row('Parlaklık', fmtN(b.mag, 1) + ' kadir', b.mag < 0 ? 'Gökteki en parlak noktalardan.' : null);
+    if (b.b === 'Moon') { h += row(T('Uzaklık'), fmtN(km, 0) + ' km', null, true); h += row(T('Aydınlanma'), pct(Math.round(b.phase*100)), moonName()); }
+    else h += row(T('Uzaklık'), fmtN(b.dist, 2) + ' AU', T('Işığı ') + (lmin < 60 ? fmtN(lmin, 1) + T(' dakikada') : fmtN(lmin/60, 1) + T(' saatte')) + T(' ulaşıyor · ') + fmtN(km/1e6, 0) + T(' milyon km'), true);
+    if (b.b !== 'Sun') h += row(T('Parlaklık'), fmtN(b.mag, 1) + T(' kadir'), b.mag < 0 ? T('Gökteki en parlak noktalardan.') : null);
     h += pos + '</div>';
-    if (!up) { const r = riseTxt(b.b); h += '<div class="warn">Şu an ufkun altında.' + (r ? ' Bir sonraki doğuş: ' + r + '.' : '') + '</div>'; }
+    if (!up) { const r = riseTxt(b.b); h += T('<div class="warn">Şu an ufkun altında.') + (r ? T(' Bir sonraki doğuş: ') + r + '.' : '') + '</div>'; }
   } else if (o.kind === 'dso') {
     const d = o.ref;
-    h += '<div class="shead"><div class="grow"><div class="kind">' + (DSO_TYPE[d.type] || 'Derin gök cismi') + '</div><h2>' + esc(d.tr || d.alt || d.id) + '</h2><div class="sub">' + d.id + (d.desig ? ' · ' + esc(d.desig) : '') + '</div></div>' + closeX + '</div><canvas class="portrait" id="pc"></canvas>';
+    h += '<div class="shead"><div class="grow"><div class="kind">' + (DSO_TYPE[d.type] || T('Derin gök cismi')) + '</div><h2>' + esc(d.tr || d.alt || d.id) + '</h2><div class="sub">' + d.id + (d.desig ? ' · ' + esc(d.desig) : '') + '</div></div>' + closeX + '</div><canvas class="portrait" id="pc"></canvas>';
     if (d.fact) h += '<p class="fact">' + d.fact + '</p>';
     h += '<div class="rows">';
-    if (d.ly) h += row('Uzaklık', fmtLy(d.ly), 'Gördüğün ışık ' + lightYear(d.ly) + ' yola çıktı.', true);
-    h += row('Parlaklık', fmtN(d.mag, 1) + ' kadir', d.mag <= 5 ? 'Karanlık bir yerde çıplak gözle görülebilir.' : d.mag <= 8 ? 'Dürbünle görülebilir.' : 'Teleskop gerekir.');
-    if (d.dim) h += row('Görünür boyut', esc(d.dim.replace('x', ' × ')) + '′', 'Dolunay yaklaşık 31′.');
+    if (d.ly) h += row(T('Uzaklık'), fmtLy(d.ly), T('Gördüğün ışık ') + lightYear(d.ly) + T(' yola çıktı.'), true);
+    h += row(T('Parlaklık'), fmtN(d.mag, 1) + T(' kadir'), d.mag <= 5 ? T('Karanlık bir yerde çıplak gözle görülebilir.') : d.mag <= 8 ? T('Dürbünle görülebilir.') : T('Teleskop gerekir.'));
+    if (d.dim) h += row(T('Görünür boyut'), esc(d.dim.replace('x', ' × ')) + '′', T('Dolunay yaklaşık 31′.'));
     h += pos + '</div>';
   } else if (o.kind === 'jmoon') {
     const m = o.ref;
-    h += '<div class="shead"><div class="grow"><div class="kind">Jupiter\'in uydusu</div><h2>' + m.n + '</h2><div class="sub">Galileo Galilei, 1610</div></div>' + closeX + '</div>';
-    h += '<p class="fact">' + m.fact + '</p><div class="rows">' + row('Jupiter\'e uzaklık', fmtN(m.km, 0) + ' km', 'Şu anki konumu; uydular saatler içinde yer değiştirir.', true) + pos + '</div>';
+    h += T('<div class="shead"><div class="grow"><div class="kind">Jupiter\'in uydusu</div><h2>') + m.n + '</h2><div class="sub">Galileo Galilei, 1610</div></div>' + closeX + '</div>';
+    h += '<p class="fact">' + m.fact + '</p><div class="rows">' + row(T('Jupiter\'e uzaklık'), fmtN(m.km, 0) + ' km', T('Şu anki konumu; uydular saatler içinde yer değiştirir.'), true) + pos + '</div>';
   } else if (o.kind === 'shower') {
     const sh = o.ref, a = showerAct(sh, now), pk = nextPeak(sh, new Date(now.getTime() - 5*86400000));
-    h += '<div class="shead"><div class="grow"><div class="kind">Meteor yağmuru</div><h2>' + sh.n + '</h2><div class="sub">Radyant: ' + sh.from + '</div></div>' + closeX + '</div><canvas class="portrait" id="pc"></canvas>';
+    h += T('<div class="shead"><div class="grow"><div class="kind">Meteor yağmuru</div><h2>') + sh.n + T('</h2><div class="sub">Radyant: ') + sh.from + '</div></div>' + closeX + '</div><canvas class="portrait" id="pc"></canvas>';
     h += '<p class="fact">' + sh.fact + '</p><div class="rows">';
-    h += row('Zirve', pk ? dateTxt(pk) : '—', Math.abs(a.days) < 1 ? 'Şu an zirvede!' : a.days < 0 ? 'Zirveye ' + Math.round(-a.days) + ' gün var' : Math.round(a.days) + ' gün önce zirve yaptı', true);
-    h += row('Yoğunluk', '~' + sh.zhr + ' / saat', 'Radyant tepedeyken, kusursuz karanlık gökte.');
-    h += row('Etkinlik', Math.round(a.a*100) + '%', 'Bugünkü etkinliğin zirveye oranı.');
+    h += row(T('Zirve'), pk ? dateTxt(pk) : '—', Math.abs(a.days) < 1 ? T('Şu an zirvede!') : a.days < 0 ? T('Zirveye ') + Math.round(-a.days) + T(' gün var') : Math.round(a.days) + T(' gün önce zirve yaptı'), true);
+    h += row(T('Yoğunluk'), '~' + sh.zhr + T(' / saat'), T('Radyant tepedeyken, kusursuz karanlık gökte.'));
+    h += row(T('Etkinlik'), Math.round(a.a*100) + '%', T('Bugünkü etkinliğin zirveye oranı.'));
     h += pos + '</div>';
-    if (!up) h += '<div class="warn">Radyant şu an ufkun altında; meteorlar gece ilerledikçe artar.</div>';
+    if (!up) h += T('<div class="warn">Radyant şu an ufkun altında; meteorlar gece ilerledikçe artar.</div>');
   } else if (o.kind === 'con') {
     const c = o.ref;
     const top = STARS.filter(s => s.con === c.id).slice(0, 4);
-    h += '<div class="shead"><div class="grow"><div class="kind">Takımyıldız</div><h2>' + esc(c.la) + '</h2><div class="sub">' + esc(c.gen) + ' · ' + c.id + '</div></div>' + closeX + '</div><canvas class="portrait" id="pc"></canvas>';
+    h += T('<div class="shead"><div class="grow"><div class="kind">Takımyıldız</div><h2>') + esc(c.la) + '</h2><div class="sub">' + esc(c.gen) + ' · ' + c.id + '</div></div>' + closeX + '</div><canvas class="portrait" id="pc"></canvas>';
     if (MYTH[c.id]) h += '<p class="fact">' + MYTH[c.id] + '</p>';
-    h += '<p class="note">Gökyüzü resmi olarak 88 takımyıldıza bölünmüştür; ' + esc(c.la) + ' bunlardan biri. Çizgiler yalnızca yön bulmayı kolaylaştırır, yıldızlar aslında birbirinden çok farklı uzaklıklardadır.</p>';
+    h += T('<p class="note">Gökyüzü resmi olarak 88 takımyıldıza bölünmüştür; ') + esc(c.la) + T(' bunlardan biri. Çizgiler yalnızca yön bulmayı kolaylaştırır, yıldızlar aslında birbirinden çok farklı uzaklıklardadır.</p>');
     h += '<div class="rows">' + pos + '</div>';
-    if (top.length) h += '<div class="list">' + top.map(s => '<button class="item" data-star="' + s.i + '"><b>' + esc(starTitle(s)) + '</b><span>' + fmtN(s.mag, 1) + ' kadir' + (s.ly ? ' · ' + fmtLy(s.ly) : '') + '</span></button>').join('') + '</div>';
+    if (top.length) h += '<div class="list">' + top.map(s => '<button class="item" data-star="' + s.i + '"><b>' + esc(starTitle(s)) + '</b><span>' + fmtN(s.mag, 1) + T(' kadir') + (s.ly ? ' · ' + fmtLy(s.ly) : '') + '</span></button>').join('') + '</div>';
   }
   if (o.kind === 'iss') h = issCard();
   h += logButton(o);
@@ -1134,8 +1670,8 @@ function drawPortrait(o) {
   const r = rng(key); backdrop(g, w, h, r);
   g.save(); g.beginPath(); g.rect(0, 0, w, h); g.clip();
   if (o.kind === 'star') {
-    const s = o.ref, T = 4600*(1/(0.92*s.ci + 1.7) + 1/(0.92*s.ci + 0.62));
-    const R = s.lum ? Math.sqrt(s.lum)*Math.pow(5778/T, 2) : 1;
+    const s = o.ref, Tk = 4600*(1/(0.92*s.ci + 1.7) + 1/(0.92*s.ci + 0.62));
+    const R = s.lum ? Math.sqrt(s.lum)*Math.pow(5778/Tk, 2) : 1;
     const col = s.rgb.map(v => v*255);
     const sunR = Math.max(0.7, Math.min(16, h*0.36/R)), starR = R*sunR;
     const cx = starR < w*0.3 ? w*0.62 : w*0.42 + starR*0.92, cy = h/2;
@@ -1151,7 +1687,7 @@ function drawPortrait(o) {
     const sx = Math.min(w*0.16, cx - starR - 30) > 20 ? Math.min(w*0.16, cx - starR - 30) : 28;
     g.fillStyle = '#ffe9b0'; g.beginPath(); g.arc(sx, cy, Math.max(1.2, sunR), 0, Math.PI*2); g.fill();
     g.font = '500 10.5px Manrope, sans-serif'; g.fillStyle = 'rgba(255,233,176,.85)'; g.fillText('Sun', sx - 9, cy + Math.max(1.2, sunR) + 15);
-    caption(g, s.lum ? 'Çap ≈ ' + (R >= 10 ? fmtN(R, 0) : fmtN(R, 1)) + ' × Güneş · ' + fmtN(Math.round(T/100)*100) + ' K' : fmtN(Math.round(T/100)*100) + ' K yüzey sıcaklığı', w, h);
+    caption(g, s.lum ? T('Çap ≈ ') + (R >= 10 ? fmtN(R, 0) : fmtN(R, 1)) + T(' × Güneş · ') + fmtN(Math.round(Tk/100)*100) + ' K' : fmtN(Math.round(Tk/100)*100) + T(' K yüzey sıcaklığı'), w, h);
   } else if (o.kind === 'body') {
     const b = o.ref, cx = w/2, cy = h/2, R = h*0.36;
     if (b.b === 'Sun') {
@@ -1203,7 +1739,7 @@ function drawPortrait(o) {
       g.fillStyle = glow; g.fillRect(0, 0, w, h);
       sphere(g, cx, cy, R, base);
     }
-    caption(g, b.b === 'Sun' ? 'Çap 1,39 milyon km' : 'Temsili görünüm', w, h);
+    caption(g, b.b === 'Sun' ? T('Çap 1,39 milyon km') : T('Temsili görünüm'), w, h);
   } else if (o.kind === 'dso') {
     const d = o.ref, cx = w/2, cy = h/2, Rr = h*0.42;
     g.globalCompositeOperation = 'lighter';
@@ -1249,7 +1785,7 @@ function drawPortrait(o) {
       for (let i = 0; i < 14; i++) { g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(cx + gauss(r)*Rr, cy + gauss(r)*Rr*0.5, 1.6, 1.6); }
     }
     g.globalCompositeOperation = 'source-over';
-    caption(g, 'Temsili görünüm' + (d.dim ? ' · ' + String(d.dim).replace('x', ' × ') + '′' : ''), w, h);
+    caption(g, T('Temsili görünüm') + (d.dim ? ' · ' + String(d.dim).replace('x', ' × ') + '′' : ''), w, h);
   } else if (o.kind === 'shower') {
     const cx = w*0.72, cy = h*0.3;
     g.globalCompositeOperation = 'lighter';
@@ -1259,7 +1795,7 @@ function drawPortrait(o) {
       g.strokeStyle = lg; g.lineWidth = 1.3; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); }
     const rg = g.createRadialGradient(cx, cy, 0, cx, cy, 14); rg.addColorStop(0, 'rgba(140,220,255,.8)'); rg.addColorStop(1, 'rgba(140,220,255,0)'); g.fillStyle = rg; g.beginPath(); g.arc(cx, cy, 14, 0, Math.PI*2); g.fill();
     g.globalCompositeOperation = 'source-over';
-    caption(g, 'Meteorlar radyanttan saçılıyormuş gibi görünür', w, h);
+    caption(g, T('Meteorlar radyanttan saçılıyormuş gibi görünür'), w, h);
   } else if (o.kind === 'con') {
     const cc = o.ref.v, east = (() => { const e = [-cc[1], cc[0], 0]; const l = Math.hypot(e[0], e[1]) || 1; return [e[0]/l, e[1]/l, 0]; })();
     const north = [cc[1]*east[2] - cc[2]*east[1], cc[2]*east[0] - cc[0]*east[2], cc[0]*east[1] - cc[1]*east[0]];
@@ -1280,25 +1816,25 @@ function drawPortrait(o) {
 }
 function moonName() {
   const a = A.MoonPhase(atime);
-  const n = ['Yeni Ay', 'Hilal (büyüyen)', 'İlk dördün', 'Şişkin Ay (büyüyen)', 'Dolunay', 'Şişkin Ay (küçülen)', 'Son dördün', 'Hilal (küçülen)'];
+  const n = [T('Yeni Ay'), T('Hilal (büyüyen)'), T('İlk dördün'), T('Şişkin Ay (büyüyen)'), T('Dolunay'), T('Şişkin Ay (küçülen)'), T('Son dördün'), T('Hilal (küçülen)')];
   return n[Math.round(a/45) % 8];
 }
 
 /* search */
 const nrm = s => s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ı/g, 'i');
 const INDEX = [];
-bodies.forEach(b => INDEX.push({ t: b.tr, s: b.b === 'Sun' ? 'Yıldız' : b.b === 'Moon' ? 'Uydu' : 'Gezegen', k: nrm(b.tr + ' ' + b.k), o: { kind: 'body', ref: b } }));
-Object.values(CONS).forEach(c => INDEX.push({ t: c.la, s: 'Takımyıldız', k: nrm(c.la + ' ' + c.tr), o: { kind: 'con', ref: c } }));
+bodies.forEach(b => INDEX.push({ t: b.tr, s: b.b === 'Sun' ? T('Yıldız') : b.b === 'Moon' ? T('Uydu') : T('Gezegen'), k: nrm(b.tr + ' ' + b.k), o: { kind: 'body', ref: b } }));
+Object.values(CONS).forEach(c => INDEX.push({ t: c.la, s: T('Takımyıldız'), k: nrm(c.la + ' ' + c.tr), o: { kind: 'con', ref: c } }));
 DSOS.forEach(d => INDEX.push({ t: d.tr || d.alt || d.id, s: (DSO_TYPE[d.type] || '') + ' · ' + d.id, k: nrm([d.tr, d.alt, d.id, d.desig, d.trk].join(' ')), o: { kind: 'dso', ref: d } }));
-STARS.forEach(s => { const t = starTitle(s); INDEX.push({ t, s: 'Yıldız · ' + (CONS[s.con] ? CONS[s.con].la : ''), k: nrm(t + ' ' + (s.name || '') + ' ' + starDesig(s) + ' ' + starCats(s).join(' ')), o: { kind: 'star', ref: s } }); });
+STARS.forEach(s => { const t = starTitle(s); INDEX.push({ t, s: T('Yıldız · ') + (CONS[s.con] ? CONS[s.con].la : ''), k: nrm(t + ' ' + (s.name || '') + ' ' + starDesig(s) + ' ' + starCats(s).join(' ')), o: { kind: 'star', ref: s } }); });
 function openSearch() {
-  openSheet('<div class="shead"><div class="grow"><div class="kind">Ara</div><h2>Ne arıyorsun?</h2></div>' + closeX + '</div>' +
-    '<div class="field"><input type="search" id="q" placeholder="Saturn, Orion, Andromeda, Vega…" autocomplete="off" aria-label="Gök cismi ara"></div><div class="list" id="res"></div>', 'search');
+  openSheet(T('<div class="shead"><div class="grow"><div class="kind">Ara</div><h2>Ne arıyorsun?</h2></div>') + closeX + '</div>' +
+    T('<div class="field"><input type="search" id="q" placeholder="Saturn, Orion, Andromeda, Vega…" autocomplete="off" aria-label="Gök cismi ara"></div><div class="list" id="res"></div>'), 'search');
   const q = $('q'), res = $('res');
   const run = () => {
     const v = nrm(q.value.trim());
     let list = v ? INDEX.filter(x => x.k.includes(v)).sort((a, b) => (a.k.startsWith(v) ? 0 : 1) - (b.k.startsWith(v) ? 0 : 1)).slice(0, 24) : INDEX.slice(0, 9);
-    res.innerHTML = list.length ? list.map((x, i) => '<button class="item" data-i="' + i + '"><b>' + esc(x.t) + '</b><span>' + esc(x.s) + '</span></button>').join('') : '<p class="note">Sonuç yok. Türkçe ya da Latince adı dene.</p>';
+    res.innerHTML = list.length ? list.map((x, i) => '<button class="item" data-i="' + i + '"><b>' + esc(x.t) + '</b><span>' + esc(x.s) + '</span></button>').join('') : T('<p class="note">Sonuç yok. Türkçe ya da Latince adı dene.</p>');
     res.querySelectorAll('.item').forEach(b => b.addEventListener('click', () => select(list[+b.dataset.i].o, true)));
   };
   q.addEventListener('input', run); run();
@@ -1307,41 +1843,43 @@ function openSearch() {
 $('searchBtn').addEventListener('click', openSearch);
 /* settings panel */
 const SLIDERS = [
-  ['starB', 'Yıldız parlaklığı', 0.3, 2.5, 0.05, v => '×' + fmtN(v, 2)],
-  ['starS', 'Yıldız boyutu', 0.5, 2, 0.05, v => '×' + fmtN(v, 2)],
-  ['spikes', 'Işık çizgileri (yıldız parıltısı)', 0, 2, 0.05, v => v === 0 ? 'kapalı' : '×' + fmtN(v, 2)],
-  ['mwB', 'Samanyolu parlaklığı', 0, 2.5, 0.05, v => v === 0 ? 'kapalı' : '×' + fmtN(v, 2)],
-  ['depth', 'Sönük yıldızlar', -2, 3, 0.1, v => (v > 0 ? '+' : '') + fmtN(v, 1) + ' kadir'],
-  ['lines', 'Takımyıldız çizgileri', 0, 2.5, 0.05, v => v === 0 ? 'gizli' : '×' + fmtN(v, 2)],
-  ['labels', 'İsim yoğunluğu', 0.5, 2, 0.05, v => v < 0.8 ? 'az' : v > 1.3 ? 'çok' : 'normal']
+  ['starB', T('Yıldız parlaklığı'), 0.3, 2.5, 0.05, v => '×' + fmtN(v, 2)],
+  ['starS', T('Yıldız boyutu'), 0.5, 2, 0.05, v => '×' + fmtN(v, 2)],
+  ['spikes', T('Işık çizgileri (yıldız parıltısı)'), 0, 2, 0.05, v => v === 0 ? T('kapalı') : '×' + fmtN(v, 2)],
+  ['mwB', T('Samanyolu parlaklığı'), 0, 2.5, 0.05, v => v === 0 ? T('kapalı') : '×' + fmtN(v, 2)],
+  ['depth', T('Sönük yıldızlar'), -2, 3, 0.1, v => (v > 0 ? '+' : '') + fmtN(v, 1) + T(' kadir')],
+  ['lines', T('Takımyıldız çizgileri'), 0, 2.5, 0.05, v => v === 0 ? 'gizli' : '×' + fmtN(v, 2)],
+  ['labels', T('İsim yoğunluğu'), 0.5, 2, 0.05, v => v < 0.8 ? 'az' : v > 1.3 ? T('çok') : 'normal']
 ];
-const LP_NAMES = ['Karanlık gök', 'Kırsal', 'Köy', 'Banliyö', 'Şehir', 'Büyük şehir'];
+const LP_NAMES = [T('Karanlık gök'), T('Kırsal'), T('Köy'), T('Banliyö'), T('Şehir'), T('Büyük şehir')];
 const lpName = v => LP_NAMES[Math.min(5, Math.round(v*5))];
 function openSettings() {
   const seg = (key, opts) => '<div class="seg">' + opts.map(([v, t]) => '<button class="btn' + (SET[key] === v ? ' on' : '') + '" data-k="' + key + '" data-v="' + v + '">' + t + '</button>').join('') + '</div>';
   const tog = (key, t) => '<button class="btn' + (SET[key] ? ' on' : '') + '" data-t="' + key + '" aria-pressed="' + SET[key] + '">' + t + '</button>';
-  openSheet('<div class="shead"><div class="grow"><div class="kind">Ayarlar</div><h2>Gökyüzünü kendine göre ayarla</h2><div class="sub">Seçimlerin bu cihazda hatırlanır</div></div>' + closeX + '</div>' +
-    '<div class="sect">Görünüm</div>' +
+  openSheet(T('<div class="shead"><div class="grow"><div class="kind">Ayarlar</div><h2>Gökyüzünü kendine göre ayarla</h2><div class="sub">Seçimlerin bu cihazda hatırlanır</div></div>') + closeX + '</div>' +
+    T('<div class="sect">Görünüm</div>') +
     SLIDERS.map(([k, t, mn, mx, st, f]) => '<div class="set"><label for="s_' + k + '">' + t + '</label><output id="o_' + k + '">' + f(SET[k]) + '</output><input type="range" id="s_' + k + '" min="' + mn + '" max="' + mx + '" step="' + st + '" value="' + SET[k] + '"></div>').join('') +
-    '<div class="sect">Zemin</div>' + seg('ground', [['solid', 'Opak'], ['glass', 'Yarı saydam'], ['off', 'Kapalı']]) +
-    '<p class="note">Zemini kapatınca aşağı bakabilirsin: ayaklarının altındaki, Dünya\'nın öbür yüzünden görünen yıldızlar ortaya çıkar.</p>' +
-    '<div class="btns">' + tog('land', 'Dağ silüeti') + tog('realDay', 'Gerçekçi gündüz') + '</div>' +
-    '<div class="sect">Kültür ve ses</div><div class="btns">' + tog('folk', 'Türk gök kültürü adları') + tog('sound', 'Gece sesleri') + '</div>' +
-    '<p class="note">Türk gök kültürü açıkken bazı cisimler halk ve Osmanlı astronomisindeki adlarıyla görünür: Demir Kazık (Polaris), Yedi Han (Ursa Major), Ülker (Pleiades), Çoban Yıldızı (Venus), Merih (Mars), Müşteri (Jupiter), Zühal (Saturn). Adlar yöreden yöreye değişebilir.</p>' +
-    '<p class="note">Gerçekçi gündüz açıkken gökyüzü gerçekteki gibi maviye döner ve yıldızlar kaybolur. Kapalıyken gündüz yalnızca hafif bir aydınlıkla belli olur, yıldızlar görünmeye devam eder.</p>' +
-    '<div class="sect">Gökyüzü koşulları</div>' +
-    '<div class="set"><label for="s_lp">Işık kirliliği</label><output id="o_lp">' + lpName(SET.lp) + '</output><input type="range" id="s_lp" min="0" max="1" step="0.01" value="' + SET.lp + '"></div>' +
-    '<p class="note">Şehir ışıkları sönük yıldızları ve Samanyolu\'nu siler. Kaydırarak kendi bulunduğun yerin gerçekte ne kadarını gösterdiğini görebilirsin.</p>' +
-    '<div class="sect">Yardımcı çizgiler</div><div class="btns">' + tog('gridAz', 'Ufuk ızgarası') + tog('gridEq', 'Ekvator ızgarası') + tog('ecl', 'Ekliptik') + tog('meteors', 'Kayan yıldızlar') + tog('bounds', 'Takımyıldız sınırları') + '</div>' +
-    '<p class="note">Ekliptik, Güneş\'in yıl boyunca izlediği yol; gezegenler hep bu çizginin yakınında bulunur.</p>' +
-    '<div class="btns"><button class="btn" id="setReset">Varsayılana dön</button></div>', 'settings');
+    T('<div class="sect">Zemin</div>') + seg('ground', [['solid', T('Opak')], ['glass', T('Yarı saydam')], ['off', T('Kapalı')]]) +
+    T('<p class="note">Zemini kapatınca aşağı bakabilirsin: ayaklarının altındaki, Dünya\'nın öbür yüzünden görünen yıldızlar ortaya çıkar.</p>') +
+    '<div class="btns">' + tog('land', T('Dağ silüeti')) + tog('realDay', T('Gerçekçi gündüz')) + '</div>' +
+    '<div class="sect">' + T('Dil') + ' · Language</div><div class="seg"><button class="btn' + (LANG === 'tr' ? ' on' : '') + '" data-lang="tr">Türkçe</button><button class="btn' + (LANG === 'en' ? ' on' : '') + '" data-lang="en">English</button></div>' +
+    T('<div class="sect">Kültür ve ses</div><div class="btns">') + tog('folk', T('Türk gök kültürü adları')) + tog('sound', T('Gece sesleri')) + '</div>' +
+    T('<p class="note">Türk gök kültürü açıkken bazı cisimler halk ve Osmanlı astronomisindeki adlarıyla görünür: Demir Kazık (Polaris), Yedi Han (Ursa Major), Ülker (Pleiades), Çoban Yıldızı (Venus), Merih (Mars), Müşteri (Jupiter), Zühal (Saturn). Adlar yöreden yöreye değişebilir.</p>') +
+    T('<p class="note">Gerçekçi gündüz açıkken gökyüzü gerçekteki gibi maviye döner ve yıldızlar kaybolur. Kapalıyken gündüz yalnızca hafif bir aydınlıkla belli olur, yıldızlar görünmeye devam eder.</p>') +
+    T('<div class="sect">Gökyüzü koşulları</div>') +
+    T('<div class="set"><label for="s_lp">Işık kirliliği</label><output id="o_lp">') + lpName(SET.lp) + '</output><input type="range" id="s_lp" min="0" max="1" step="0.01" value="' + SET.lp + '"></div>' +
+    T('<p class="note">Şehir ışıkları sönük yıldızları ve Samanyolu\'nu siler. Kaydırarak kendi bulunduğun yerin gerçekte ne kadarını gösterdiğini görebilirsin.</p>') +
+    T('<div class="sect">Yardımcı çizgiler</div><div class="btns">') + tog('gridAz', T('Ufuk ızgarası')) + tog('gridEq', T('Ekvator ızgarası')) + tog('ecl', T('Ekliptik')) + tog('meteors', T('Kayan yıldızlar')) + tog('bounds', T('Takımyıldız sınırları')) + '</div>' +
+    T('<p class="note">Ekliptik, Güneş\'in yıl boyunca izlediği yol; gezegenler hep bu çizginin yakınında bulunur.</p>') +
+    T('<div class="btns"><button class="btn" id="setReset">Varsayılana dön</button></div>'), 'settings');
   SLIDERS.map(x => x[0]).concat('lp').forEach(k => {
     const el = $('s_' + k), out = $('o_' + k), sl = SLIDERS.find(x => x[0] === k);
     el.addEventListener('input', () => { SET[k] = +el.value; out.textContent = k === 'lp' ? lpName(SET[k]) : sl[5](SET[k]); saveSet(); });
   });
   sheet.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => { SET[b.dataset.k] = b.dataset.v; saveSet(); sheet.querySelectorAll('[data-k="' + b.dataset.k + '"]').forEach(x => x.classList.toggle('on', x === b)); }));
   sheet.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.t; SET[k] = !SET[k]; saveSet(); if (k === 'folk') applyFolk(); if (k === 'sound') soundOn(SET[k]); b.classList.toggle('on', SET[k]); b.setAttribute('aria-pressed', String(SET[k])); }));
-  $('setReset').addEventListener('click', () => { Object.assign(SET, SET_DEF); saveSet(); openSettings(); toast('Ayarlar varsayılana döndü.'); });
+  sheet.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click', () => { if (b.dataset.lang === LANG) return; store.set('lang', b.dataset.lang); location.reload(); }));
+  $('setReset').addEventListener('click', () => { Object.assign(SET, SET_DEF); saveSet(); openSettings(); toast(T('Ayarlar varsayılana döndü.')); });
 }
 $('setBtn').addEventListener('click', openSettings);
 
@@ -1350,18 +1888,21 @@ $('setBtn').addEventListener('click', openSettings);
 function setLoc(loc, quiet) {
   setTimeout(() => { if (ISS.rec) computePasses(); }, 50);
   S.loc = loc; store.set('loc', loc); observer = new A.Observer(loc.lat, loc.lon, 0); $('locName').textContent = loc.name;
-  updateAstro(true); buildChips(); if (!quiet) toast(loc.name + ' gökyüzü gösteriliyor.');
+  updateAstro(true); buildChips(); if (!quiet) toast(loc.name + T(' gökyüzü gösteriliyor.'));
 }
 $('locBtn').addEventListener('click', () => {
-  openSheet('<div class="shead"><div class="grow"><div class="kind">Konum</div><h2>Nereden bakıyorsun?</h2><div class="sub">Şu an: ' + esc(S.loc.name) + ' · ' + fmtN(S.loc.lat, 2) + '°, ' + fmtN(S.loc.lon, 2) + '°</div></div>' + closeX + '</div>' +
-    '<div class="btns"><button class="btn" id="geo">Konumumu kullan</button></div><div class="list">' +
-    CITIES.map((c, i) => '<button class="item" data-c="' + i + '"><b>' + c[0] + '</b><span>' + fmtN(c[1], 1) + '°' + (c[1] >= 0 ? 'K' : 'G') + '</span></button>').join('') +
-    '</div><p class="note">Güney yarımküreden (Sidney, Cape Town) bakınca bambaşka yıldızlar görünür.</p>', 'loc');
+  openSheet(T('<div class="shead"><div class="grow"><div class="kind">Konum</div><h2>Nereden bakıyorsun?</h2><div class="sub">Şu an: ') + esc(S.loc.name) + ' · ' + fmtN(S.loc.lat, 2) + '°, ' + fmtN(S.loc.lon, 2) + '°</div></div>' + closeX + '</div>' +
+    T('<div class="btns"><button class="btn" id="geo">Konumumu kullan</button></div><div class="list">') +
+    CITIES.map((c, i) => '<button class="item" data-c="' + i + '"><b>' + c[0] + '</b><span>' + fmtN(Math.abs(c[1]), 1) + '°' + (c[1] >= 0 ? COMPASS_SHORT[0] : COMPASS_SHORT[4]) + '</span></button>').join('') +
+    '</div><div class="sect">' + T('Karanlık gök yerleri') + '</div><p class="note">' + T('Dünyanın en karanlık gökyüzüne sahip yerleri; Samanyolu buralarda gölge düşürecek kadar parlaktır.') + '</p><div class="list">' +
+    DARK.map((c, i) => '<button class="item" data-d="' + i + '"><b>' + esc(c[0]) + '</b><span>' + fmtN(Math.abs(c[1]), 1) + '°' + (c[1] >= 0 ? COMPASS_SHORT[0] : COMPASS_SHORT[4]) + '</span></button>').join('') +
+    T('</div><p class="note">Güney yarımküreden (Sidney, Cape Town) bakınca bambaşka yıldızlar görünür.</p>'), 'loc');
   sheet.querySelectorAll('[data-c]').forEach(b => b.addEventListener('click', () => { const c = CITIES[+b.dataset.c]; setLoc({ name: c[0], lat: c[1], lon: c[2] }); closeSheet(); }));
+  sheet.querySelectorAll('[data-d]').forEach(b => b.addEventListener('click', () => { const c = DARK[+b.dataset.d]; setLoc({ name: c[0], lat: c[1], lon: c[2] }); SET.lp = 0; saveSet(); closeSheet(); }));
   $('geo').addEventListener('click', () => {
-    if (!navigator.geolocation) { toast('Bu cihaz konum vermiyor; listeden bir şehir seç.'); return; }
-    navigator.geolocation.getCurrentPosition(p => { setLoc({ name: 'Konumum', lat: p.coords.latitude, lon: p.coords.longitude }); closeSheet(); },
-      () => toast('Konum alınamadı; listeden en yakın şehri seç.'), { timeout: 8000 });
+    if (!navigator.geolocation) { toast(T('Bu cihaz konum vermiyor; listeden bir şehir seç.')); return; }
+    navigator.geolocation.getCurrentPosition(p => { setLoc({ name: T('Konumum'), lat: p.coords.latitude, lon: p.coords.longitude }); closeSheet(); },
+      () => toast(T('Konum alınamadı; listeden en yakın şehri seç.')), { timeout: 8000 });
   });
 });
 
@@ -1369,13 +1910,13 @@ $('locBtn').addEventListener('click', () => {
 const SPEEDS = [1, 60, 600, 3600];
 function toLocalInput(d) { const p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()); }
 function openTime() {
-  openSheet('<div class="shead"><div class="grow"><div class="kind">Zaman</div><h2>Ne zaman bakalım?</h2><div class="sub">Gökyüzü seçtiğin ana göre yeniden hesaplanır</div></div>' + closeX + '</div>' +
-    '<div class="field"><label for="dt">Tarih ve saat</label><input type="datetime-local" id="dt"></div>' +
-    '<div class="field"><label for="scrub">Saati kaydır</label><input type="range" id="scrub" min="-720" max="720" step="5" value="0"></div>' +
-    '<div class="btns"><button class="btn" id="now">Şimdi</button><button class="btn" data-h="-1">−1 saat</button><button class="btn" data-h="1">+1 saat</button><button class="btn" data-h="24">+1 gün</button></div>' +
-    '<div class="field"><label>Zaman akışı</label></div><div class="btns" id="spd">' + SPEEDS.map(s => '<button class="btn' + (S.speed === s ? ' on' : '') + '" data-s="' + s + '">' + (s === 1 ? 'Gerçek' : s + '×') + '</button>').join('') + '</div>' +
-    '<div class="btns"><button class="btn' + (trails.on ? ' on' : '') + '" id="trBtn">Yıldız izleri (uzun pozlama)</button></div>' +
-    '<p class="note">3600× hızda bir gece yaklaşık 10 saniyede geçer; yıldızların Kutup Yıldızı çevresinde döndüğünü izleyebilirsin.</p>', 'time');
+  openSheet(T('<div class="shead"><div class="grow"><div class="kind">Zaman</div><h2>Ne zaman bakalım?</h2><div class="sub">Gökyüzü seçtiğin ana göre yeniden hesaplanır</div></div>') + closeX + '</div>' +
+    T('<div class="field"><label for="dt">Tarih ve saat</label><input type="datetime-local" id="dt"></div>') +
+    T('<div class="field"><label for="scrub">Saati kaydır</label><input type="range" id="scrub" min="-720" max="720" step="5" value="0"></div>') +
+    T('<div class="btns"><button class="btn" id="now">Şimdi</button><button class="btn" data-h="-1">−1 saat</button><button class="btn" data-h="1">+1 saat</button><button class="btn" data-h="24">+1 gün</button></div>') +
+    T('<div class="field"><label>Zaman akışı</label></div><div class="btns" id="spd">') + SPEEDS.map(s => '<button class="btn' + (S.speed === s ? ' on' : '') + '" data-s="' + s + '">' + (s === 1 ? T('Gerçek') : s + '×') + '</button>').join('') + '</div>' +
+    '<div class="btns"><button class="btn' + (trails.on ? ' on' : '') + T('" id="trBtn">Yıldız izleri (uzun pozlama)</button></div>') +
+    T('<p class="note">3600× hızda bir gece yaklaşık 10 saniyede geçer; yıldızların Kutup Yıldızı çevresinde döndüğünü izleyebilirsin.</p>'), 'time');
   const dt = $('dt'), sc = $('scrub'); dt.value = toLocalInput(now);
   let base = S.offset;
   dt.addEventListener('change', () => { const d = new Date(dt.value); if (!isNaN(d)) { S.offset = d - Date.now(); base = S.offset; sc.value = 0; updateAstro(true); } });
@@ -1395,15 +1936,15 @@ const comb = (a, ka, b, kb) => [a[0]*ka + b[0]*kb, a[1]*ka + b[1]*kb, a[2]*ka + 
 
 /* ---------------- meteor showers & shooting stars ---------------- */
 const SHOWERS = [
-  ['Quadrantids', 1, 3, 230, 49, 110, 'Boötes ile Draco arasından', 'Kaynağı 2003 EH1 adlı söner bir kuyruklu yıldız ya da asteroit.'],
-  ['Lyrids', 4, 22, 271, 34, 18, 'Lyra yönünden', 'Thatcher kuyruklu yıldızının tozları; 2.700 yıldır kayıtlarda geçiyor.'],
-  ['Eta Aquariids', 5, 6, 338, -1, 50, 'Aquarius yönünden', 'Halley kuyruklu yıldızının bıraktığı tozlar.'],
-  ['Perseids', 8, 12, 48, 58, 100, 'Perseus yönünden', 'Yılın en sevilen yağmuru; Swift–Tuttle kuyruklu yıldızının tozları.'],
-  ['Draconids', 10, 8, 262, 54, 10, 'Draco yönünden', 'Giacobini–Zinner kuyruklu yıldızından gelir; bazı yıllar ani patlamalar yapar.'],
-  ['Orionids', 10, 21, 95, 16, 20, 'Orion\'un omzunun yakınından', 'Halley kuyruklu yıldızının tozları; meteorlar saniyede 66 km hızla atmosfere girer.'],
-  ['Leonids', 11, 17, 152, 22, 15, 'Leo yönünden', 'Tempel–Tuttle kuyruklu yıldızının tozları; 1833 ve 1966\'da saatte binlerce meteor görüldü.'],
-  ['Geminids', 12, 14, 112, 33, 150, 'Gemini yönünden', 'En yoğun yağmurlardan; kaynağı bir kuyruklu yıldız değil, 3200 Phaethon asteroidi.'],
-  ['Ursids', 12, 22, 217, 76, 10, 'Ursa Minor yönünden', 'Tuttle kuyruklu yıldızının tozları; kış gündönümü civarında.']
+  ['Quadrantids', 1, 3, 230, 49, 110, T('Boötes ile Draco arasından'), T('Kaynağı 2003 EH1 adlı söner bir kuyruklu yıldız ya da asteroit.')],
+  ['Lyrids', 4, 22, 271, 34, 18, T('Lyra yönünden'), T('Thatcher kuyruklu yıldızının tozları; 2.700 yıldır kayıtlarda geçiyor.')],
+  ['Eta Aquariids', 5, 6, 338, -1, 50, T('Aquarius yönünden'), T('Halley kuyruklu yıldızının bıraktığı tozlar.')],
+  ['Perseids', 8, 12, 48, 58, 100, T('Perseus yönünden'), T('Yılın en sevilen yağmuru; Swift–Tuttle kuyruklu yıldızının tozları.')],
+  ['Draconids', 10, 8, 262, 54, 10, T('Draco yönünden'), T('Giacobini–Zinner kuyruklu yıldızından gelir; bazı yıllar ani patlamalar yapar.')],
+  ['Orionids', 10, 21, 95, 16, 20, T('Orion\'un omzunun yakınından'), T('Halley kuyruklu yıldızının tozları; meteorlar saniyede 66 km hızla atmosfere girer.')],
+  ['Leonids', 11, 17, 152, 22, 15, T('Leo yönünden'), T('Tempel–Tuttle kuyruklu yıldızının tozları; 1833 ve 1966\'da saatte binlerce meteor görüldü.')],
+  ['Geminids', 12, 14, 112, 33, 150, T('Gemini yönünden'), T('En yoğun yağmurlardan; kaynağı bir kuyruklu yıldız değil, 3200 Phaethon asteroidi.')],
+  ['Ursids', 12, 22, 217, 76, 10, T('Ursa Minor yönünden'), T('Tuttle kuyruklu yıldızının tozları; kış gündönümü civarında.')]
 ].map(([n, m, d, ra, dec, zhr, from, fact]) => ({ n, m, d, v: eqv(ra, dec), zhr, from, fact }));
 function showerAct(sh, date) {
   let best = 1e9, peak = null;
@@ -1468,7 +2009,7 @@ function drawRadiants(night) {
     ctx.save(); ctx.translate(p[0], p[1]); ctx.strokeStyle = 'rgba(140,220,255,' + (0.35 + 0.5*a.a)*night + ')'; ctx.lineWidth = 1.2;
     for (let i = 0; i < 8; i++) { const an = i*Math.PI/4; ctx.beginPath(); ctx.moveTo(Math.cos(an)*7, Math.sin(an)*7); ctx.lineTo(Math.cos(an)*(14 + (i % 2)*6), Math.sin(an)*(14 + (i % 2)*6)); ctx.stroke(); }
     ctx.restore();
-    label(sh.n + (Math.abs(a.days) < 1 ? ' · zirvede' : ''), p[0] + 18, p[1] + 4, '600 11.5px Manrope, sans-serif', 'rgba(140,220,255,' + (0.9*night + 0.1) + ')', { force: true });
+    label(sh.n + (Math.abs(a.days) < 1 ? T(' · zirvede') : ''), p[0] + 18, p[1] + 4, '600 11.5px Manrope, sans-serif', 'rgba(140,220,255,' + (0.9*night + 0.1) + ')', { force: true });
     picks.push({ x: p[0], y: p[1], r: 22, pri: 1, obj: { kind: 'shower', ref: sh, v: sh.v } });
   });
 }
@@ -1478,7 +2019,7 @@ const trc = $('tr'), tctx = trc.getContext('2d');
 const trails = { on: false, key: '', prevSpeed: 1 };
 function setTrails(on) {
   trails.on = on; tctx.setTransform(1, 0, 0, 1, 0, 0); tctx.clearRect(0, 0, trc.width, trc.height); trails.key = '';
-  if (on) { trails.prevSpeed = S.speed; S.speed = 900; toast('Uzun pozlama: yıldızlar gökyüzünün dönüşüyle iz bırakıyor. Kutup Yıldızı\'na bakarsan iç içe daireler görürsün.'); }
+  if (on) { trails.prevSpeed = S.speed; S.speed = 900; toast(T('Uzun pozlama: yıldızlar gökyüzünün dönüşüyle iz bırakıyor. Kutup Yıldızı\'na bakarsan iç içe daireler görürsün.')); }
   else S.speed = trails.prevSpeed === 900 ? 1 : trails.prevSpeed;
   const b = $('trBtn'); if (b) b.classList.toggle('on', on); markSpeed();
 }
@@ -1501,29 +2042,29 @@ function drawTrails() {
 }
 
 /* ---------------- tonight & upcoming events ---------------- */
-const hm = d => d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-const dayHm = d => d.toLocaleString('tr-TR', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-const dateTxt = d => d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+const hm = d => d.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
+const dayHm = d => d.toLocaleString(LOCALE, { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+const dateTxt = d => d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'long', year: 'numeric' });
 function rs(body, dir, from, days = 1.5, alt) {
   try { const r = alt == null ? A.SearchRiseSet(body, observer, dir, from, days) : A.SearchAltitude(body, observer, dir, from, days, alt); return r ? r.date : null; } catch (e) { return null; }
 }
 function upcomingEvents() {
   const ev = [], t0 = atime, nowD = now, end = nowD.getTime() + 400*86400000;
   const add = (d, t, sub, act) => { if (d && d > nowD && d.getTime() < end) ev.push({ d, t, sub, act }); };
-  try { let t = t0; for (let i = 0; i < 3; i++) { const fm = A.SearchMoonPhase(180, t, 40); if (!fm) break; add(fm.date, 'Dolunay', 'Gece boyu gökte', { body: 'Moon' }); t = fm.AddDays(1); } } catch (e) {}
-  try { let t = t0; for (let i = 0; i < 2; i++) { const nm = A.SearchMoonPhase(0, t, 40); if (!nm) break; add(nm.date, 'Yeni Ay', 'Derin gök gözlemi için en karanlık geceler', null); t = nm.AddDays(1); } } catch (e) {}
+  try { let t = t0; for (let i = 0; i < 3; i++) { const fm = A.SearchMoonPhase(180, t, 40); if (!fm) break; add(fm.date, T('Dolunay'), T('Gece boyu gökte'), { body: 'Moon' }); t = fm.AddDays(1); } } catch (e) {}
+  try { let t = t0; for (let i = 0; i < 2; i++) { const nm = A.SearchMoonPhase(0, t, 40); if (!nm) break; add(nm.date, T('Yeni Ay'), T('Derin gök gözlemi için en karanlık geceler'), null); t = nm.AddDays(1); } } catch (e) {}
   try { for (const y of [nowD.getFullYear(), nowD.getFullYear() + 1]) { const ss = A.Seasons(y);
-    add(ss.mar_equinox.date, 'İlkbahar ekinoksu', 'Gece ile gündüz eşit', null); add(ss.jun_solstice.date, 'Yaz gündönümü', 'Yılın en uzun günü', null);
-    add(ss.sep_equinox.date, 'Sonbahar ekinoksu', 'Gece ile gündüz eşit', null); add(ss.dec_solstice.date, 'Kış gündönümü', 'Yılın en uzun gecesi', null); } } catch (e) {}
-  const LK = { penumbral: 'Yarıgölge', partial: 'Parçalı', total: 'Tam', annular: 'Halkalı' };
+    add(ss.mar_equinox.date, T('İlkbahar ekinoksu'), T('Gece ile gündüz eşit'), null); add(ss.jun_solstice.date, T('Yaz gündönümü'), T('Yılın en uzun günü'), null);
+    add(ss.sep_equinox.date, T('Sonbahar ekinoksu'), T('Gece ile gündüz eşit'), null); add(ss.dec_solstice.date, T('Kış gündönümü'), T('Yılın en uzun gecesi'), null); } } catch (e) {}
+  const LK = { penumbral: T('Yarıgölge'), partial: T('Parçalı'), total: 'Tam', annular: T('Halkalı') };
   try { let le = A.SearchLunarEclipse(t0); for (let i = 0; i < 3 && le; i++) {
       const eq = A.Equator('Moon', le.peak, observer, true, true), hz = A.Horizon(le.peak, observer, eq.ra, eq.dec, 'normal');
-      add(le.peak.date, (LK[le.kind] || '') + ' Ay tutulması', hz.altitude > 0 ? S.loc.name + '\'dan görünür' : 'Buradan görünmez (Ay ufkun altında)', { body: 'Moon' });
+      add(le.peak.date, (LK[le.kind] || '') + T(' Ay tutulması'), hz.altitude > 0 ? S.loc.name + T('\'dan görünür') : T('Buradan görünmez (Ay ufkun altında)'), { body: 'Moon' });
       le = A.NextLunarEclipse(le.peak); } } catch (e) {}
   try { let se = A.SearchLocalSolarEclipse(t0, observer); for (let i = 0; i < 2 && se; i++) {
-      add(se.peak.time.date, (LK[se.kind] || '') + ' Güneş tutulması', S.loc.name + '\'dan görünür · koruyucu gözlük şart', { body: 'Sun' });
+      add(se.peak.time.date, (LK[se.kind] || '') + T(' Güneş tutulması'), S.loc.name + T('\'dan görünür · koruyucu gözlük şart'), { body: 'Sun' });
       se = A.NextLocalSolarEclipse(se.peak.time, observer); } } catch (e) {}
-  SHOWERS.forEach(sh => { const pk = nextPeak(sh, nowD); add(pk, sh.n + ' meteor yağmuru', 'Zirve · saatte ~' + sh.zhr + ' meteor (ideal koşulda)', { shower: sh }); });
+  SHOWERS.forEach(sh => { const pk = nextPeak(sh, nowD); add(pk, sh.n + T(' meteor yağmuru'), T('Zirve · saatte ~') + sh.zhr + T(' meteor (ideal koşulda)'), { shower: sh }); });
   return ev.sort((a, b) => a.d - b.d).slice(0, 14);
 }
 function openTonight() {
@@ -1531,30 +2072,30 @@ function openTonight() {
   const set = rs('Sun', -1, t0), rise = rs('Sun', +1, t0), dusk = rs('Sun', -1, t0, 1.5, -18), dawn = rs('Sun', +1, t0, 1.5, -18);
   const mr = rs('Moon', +1, t0), ms = rs('Moon', -1, t0);
   const sunUp = sunE[2] > 0;
-  let h = '<div class="shead"><div class="grow"><div class="kind">Bu gece · ' + esc(S.loc.name) + '</div><h2>Gökyüzünde neler var?</h2><div class="sub">' + dateTxt(now) + '</div></div>' + closeX + '</div><div id="wxBox"><div class="score"><div class="sv">…</div><div><b>Gözlem skoru hesaplanıyor</b><span>Hava durumu alınıyor</span></div></div></div><div class="rows">';
-  h += row(sunUp ? 'Güneş batışı' : 'Güneş doğuşu', sunUp ? (set ? hm(set) : '—') : (rise ? hm(rise) : '—'), sunUp ? (rise ? 'Doğuş: ' + dayHm(rise) : '') : (set ? 'Son batış: ' + hm(set) : ''));
-  h += row('Tam karanlık', dusk && dawn ? hm(dusk) + ' – ' + hm(dawn) : 'Bu gece yok', 'Güneş ufkun 18° altında; sönük yıldızlar ancak bu aralıkta görünür.');
+  let h = T('<div class="shead"><div class="grow"><div class="kind">Bu gece · ') + esc(S.loc.name) + T('</div><h2>Gökyüzünde neler var?</h2><div class="sub">') + dateTxt(now) + '</div></div>' + closeX + T('</div><div id="wxBox"><div class="score"><div class="sv">…</div><div><b>Gözlem skoru hesaplanıyor</b><span>Hava durumu alınıyor</span></div></div></div><div class="rows">');
+  h += row(sunUp ? T('Güneş batışı') : T('Güneş doğuşu'), sunUp ? (set ? hm(set) : '—') : (rise ? hm(rise) : '—'), sunUp ? (rise ? T('Doğuş: ') + dayHm(rise) : '') : (set ? T('Son batış: ') + hm(set) : ''));
+  h += row(T('Tam karanlık'), dusk && dawn ? hm(dusk) + ' – ' + hm(dawn) : T('Bu gece yok'), T('Güneş ufkun 18° altında; sönük yıldızlar ancak bu aralıkta görünür.'));
   const moon = bodies[1];
-  h += row('Ay', '%' + Math.round(moon.phase*100) + ' · ' + moonName(), (mr ? 'Doğuş ' + dayHm(mr) : '') + (ms ? ' · Batış ' + dayHm(ms) : ''), true);
-  h += '</div><div class="sect">Gezegenler</div><div class="list">';
+  h += row(LANG === 'en' ? 'Moon' : 'Ay', pct(Math.round(moon.phase*100)) + ' · ' + moonName(), (mr ? T('Doğuş ') + dayHm(mr) : '') + (ms ? T(' · Batış ') + dayHm(ms) : ''), true);
+  h += T('</div><div class="sect">Gezegenler</div><div class="list">');
   bodies.slice(2, 7).forEach((b, i) => {
     const up = b.e[2] > 0.03, r1 = rs(b.b, +1, t0), s1 = rs(b.b, -1, t0);
     const nearSun = Math.acos(Math.max(-1, Math.min(1, dot(b.e, sunE))))*R2D < 15;
-    const st = nearSun ? 'Güneş\'e çok yakın, görülmez' : up ? (sunUp ? 'Gökte ama gündüz' : 'Şu an görünür · ' + fmtN(Math.asin(b.e[2])*R2D, 0) + '° yükseklikte') : (r1 ? 'Doğuş ' + dayHm(r1) : 'Bugün doğmuyor');
-    h += '<button class="item" data-pl="' + (i + 2) + '"><b>' + b.tr + '</b><span>' + st + (up && s1 && !nearSun ? ' · batış ' + hm(s1) : '') + '</span></button>';
+    const st = nearSun ? T('Güneş\'e çok yakın, görülmez') : up ? (sunUp ? T('Gökte ama gündüz') : T('Şu an görünür · ') + fmtN(Math.asin(b.e[2])*R2D, 0) + T('° yükseklikte')) : (r1 ? T('Doğuş ') + dayHm(r1) : T('Bugün doğmuyor'));
+    h += '<button class="item" data-pl="' + (i + 2) + '"><b>' + b.tr + '</b><span>' + st + (up && s1 && !nearSun ? T(' · batış ') + hm(s1) : '') + '</span></button>';
   });
   h += '</div>';
   const act = SHOWERS.map(sh => [sh, showerAct(sh, now)]).filter(([, a]) => Math.abs(a.days) < 7);
   if (act.length) {
-    h += '<div class="sect">Aktif meteor yağmuru</div><div class="list">';
-    act.forEach(([sh, a]) => { const d = Math.round(a.days); h += '<button class="item" data-sh="' + sh.n + '"><b>' + sh.n + '</b><span>' + (d === 0 ? 'Bu gece zirvede' : d < 0 ? 'Zirveye ' + (-d) + ' gün' : 'Zirve ' + d + ' gün önceydi') + ' · ' + sh.from + '</span></button>'; });
-    h += '</div><p class="note">Meteorlar radyant denen noktadan saçılıyor gibi görünür; en iyi gece yarısından sonra, şehir ışıklarından uzakta izlenir.</p>';
+    h += T('<div class="sect">Aktif meteor yağmuru</div><div class="list">');
+    act.forEach(([sh, a]) => { const d = Math.round(a.days); h += '<button class="item" data-sh="' + sh.n + '"><b>' + sh.n + '</b><span>' + (d === 0 ? T('Bu gece zirvede') : d < 0 ? T('Zirveye ') + (-d) + T(' gün') : T('Zirve ') + d + T(' gün önceydi')) + ' · ' + sh.from + '</span></button>'; });
+    h += T('</div><p class="note">Meteorlar radyant denen noktadan saçılıyor gibi görünür; en iyi gece yarısından sonra, şehir ışıklarından uzakta izlenir.</p>');
   }
-  h += '<div class="sect">Uzay istasyonu (ISS)</div>' + passList();
-  h += '<div class="sect">Yaklaşan olaylar</div><div class="list">';
+  h += T('<div class="sect">Uzay istasyonu (ISS)</div>') + passList();
+  h += T('<div class="sect">Yaklaşan olaylar</div><div class="list">');
   const evs = upcomingEvents();
-  evs.forEach((e, i) => { h += '<button class="item" data-ev="' + i + '"><b>' + esc(e.t) + '</b><span>' + e.d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) + '</span></button><p class="note" style="margin:-4px 4px 6px">' + esc(e.sub) + '</p>'; });
-  h += '</div><p class="note">Bir olaya dokununca zaman o ana gider; gökyüzünü o gün nasıl görüneceğiyle izlersin.</p>';
+  evs.forEach((e, i) => { h += '<button class="item" data-ev="' + i + '"><b>' + esc(e.t) + '</b><span>' + e.d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' }) + '</span></button><p class="note" style="margin:-4px 4px 6px">' + esc(e.sub) + '</p>'; });
+  h += T('</div><p class="note">Bir olaya dokununca zaman o ana gider; gökyüzünü o gün nasıl görüneceğiyle izlersin.</p>');
   openSheet(h, 'tonight');
   fillWeather(); bindPasses();
   sheet.querySelectorAll('[data-pl]').forEach(b => b.addEventListener('click', () => select({ kind: 'body', ref: bodies[+b.dataset.pl] }, true)));
@@ -1571,10 +2112,10 @@ function openTonight() {
 
 /* ---------------- Jupiter's Galilean moons ---------------- */
 const JMOONS = [
-  { k: 'io', n: 'Io', fact: 'Güneş Sistemi\'nin volkanik açıdan en hareketli cismi; yüzeyinde 400\'den fazla aktif yanardağ var.' },
-  { k: 'europa', n: 'Europa', fact: 'Buz kabuğunun altında küresel bir tuzlu su okyanusu olduğu düşünülüyor; yaşam aranan en umut verici yerlerden.' },
-  { k: 'ganymede', n: 'Ganymede', fact: 'Güneş Sistemi\'nin en büyük uydusu; Merkür gezegeninden bile büyük ve kendi manyetik alanı var.' },
-  { k: 'callisto', n: 'Callisto', fact: 'Yüzeyi milyarlarca yıldır neredeyse hiç değişmemiş; Güneş Sistemi\'nin en kraterli yüzeylerinden.' }
+  { k: 'io', n: 'Io', fact: T('Güneş Sistemi\'nin volkanik açıdan en hareketli cismi; yüzeyinde 400\'den fazla aktif yanardağ var.') },
+  { k: 'europa', n: 'Europa', fact: T('Buz kabuğunun altında küresel bir tuzlu su okyanusu olduğu düşünülüyor; yaşam aranan en umut verici yerlerden.') },
+  { k: 'ganymede', n: 'Ganymede', fact: T('Güneş Sistemi\'nin en büyük uydusu; Merkür gezegeninden bile büyük ve kendi manyetik alanı var.') },
+  { k: 'callisto', n: 'Callisto', fact: T('Yüzeyi milyarlarca yıldır neredeyse hiç değişmemiş; Güneş Sistemi\'nin en kraterli yüzeylerinden.') }
 ].map(m => ({ ...m, v: [1, 0, 0], km: 0 }));
 function updateJMoons(jup) {
   try {
@@ -1611,27 +2152,27 @@ function drawBounds(night) {
 const tour = { on: false, stops: [], i: 0, timer: 0 };
 function tourStops() {
   const out = [], up = e => e[2] > 0.12;
-  const moon = bodies[1]; if (up(moon.e)) out.push({ obj: { kind: 'body', ref: moon }, fov: 3.2, t: 'Ay · %' + Math.round(moon.phase*100) + ' aydınlık', f: 'Kraterlerin gölgeleri en iyi aydınlık ile karanlığın sınırında görünür.' });
-  ['Jupiter', 'Saturn', 'Venus', 'Mars'].forEach(n => { const b = bodies.find(x => x.b === n); if (up(b.e) && Math.acos(Math.max(-1, Math.min(1, dot(b.e, sunE))))*R2D > 18) out.push({ obj: { kind: 'body', ref: b }, fov: n === 'Jupiter' ? 0.45 : n === 'Saturn' ? 0.14 : n === 'Mars' ? 0.06 : 0.12, t: b.tr, f: n === 'Jupiter' ? 'Yanındaki dört nokta, Galileo\'nun 1610\'da keşfettiği uydular: Io, Europa, Ganymede, Callisto.' : b.fact }); });
+  const moon = bodies[1]; if (up(moon.e)) out.push({ obj: { kind: 'body', ref: moon }, fov: 3.2, t: (LANG === 'en' ? 'Moon · ' : 'Ay · ') + pct(Math.round(moon.phase*100)) + T(' aydınlık'), f: T('Kraterlerin gölgeleri en iyi aydınlık ile karanlığın sınırında görünür.') });
+  ['Jupiter', 'Saturn', 'Venus', 'Mars'].forEach(n => { const b = bodies.find(x => x.b === n); if (up(b.e) && Math.acos(Math.max(-1, Math.min(1, dot(b.e, sunE))))*R2D > 18) out.push({ obj: { kind: 'body', ref: b }, fov: n === 'Jupiter' ? 0.45 : n === 'Saturn' ? 0.14 : n === 'Mars' ? 0.06 : 0.12, t: b.tr, f: n === 'Jupiter' ? T('Yanındaki dört nokta, Galileo\'nun 1610\'da keşfettiği uydular: Io, Europa, Ganymede, Callisto.') : b.fact }); });
   const dsoStop = (id, fov) => { const d = DSOS.find(x => x.id === id); if (d && up(mul(M, d.v))) out.push({ obj: { kind: 'dso', ref: d }, fov, t: d.tr, f: d.fact || DSO_TYPE[d.type] }); };
   dsoStop('M31', 7); dsoStop('M45', 5); dsoStop('M42', 4); dsoStop('M13', 1.6); dsoStop('M8', 4); dsoStop('M44', 4);
-  ['Orion', 'Cygnus', 'Ursa Major', 'Scorpius', 'Cassiopeia'].some(la => { const c = Object.values(CONS).find(x => x.la === la); if (c && up(mul(M, c.v))) { out.push({ obj: { kind: 'con', ref: c }, fov: 55, t: c.la, f: 'Çizgiler yön bulmayı kolaylaştırır; yıldızlar aslında birbirinden çok farklı uzaklıklardadır.' }); return true; } });
+  ['Orion', 'Cygnus', 'Ursa Major', 'Scorpius', 'Cassiopeia'].some(la => { const c = Object.values(CONS).find(x => x.la === la); if (c && up(mul(M, c.v))) { out.push({ obj: { kind: 'con', ref: c }, fov: 55, t: c.la, f: T('Çizgiler yön bulmayı kolaylaştırır; yıldızlar aslında birbirinden çok farklı uzaklıklardadır.') }); return true; } });
   ['Sirius', 'Vega', 'Betelgeuse', 'Arcturus', 'Deneb', 'Polaris'].forEach(n => { if (out.length > 8) return; const s = STARS.find(x => x.name === n); if (s && up(mul(M, s.v))) out.push({ obj: { kind: 'star', ref: s }, fov: 14, t: n, f: STAR_FACT[n] }); });
   return out.slice(0, 8);
 }
 function startTour() {
-  tour.stops = tourStops(); if (!tour.stops.length) { toast('Şu an turda gösterecek bir şey yok.'); return; }
+  tour.stops = tourStops(); if (!tour.stops.length) { toast(T('Şu an turda gösterecek bir şey yok.')); return; }
   closeSheet(); tour.on = true; tour.i = -1; nextStop(1);
 }
 function nextStop(d) {
   if (!tour.on) return;
-  tour.i += d; if (tour.i >= tour.stops.length) { endTour(); toast('Tur bitti. Gökyüzü senin.'); return; } if (tour.i < 0) tour.i = 0;
+  tour.i += d; if (tour.i >= tour.stops.length) { endTour(); toast(T('Tur bitti. Gökyüzü senin.')); return; } if (tour.i < 0) tour.i = 0;
   const st = tour.stops[tour.i];
   S.sel = st.obj; const e = selE(st.obj); seeThrough = 0;
   flyTo(e, st.fov*D2R, st.obj); S.fly.dur = 3.4;
   const c = $('tourCard');
-  c.innerHTML = '<div class="tk">Gök turu · ' + (tour.i + 1) + ' / ' + tour.stops.length + '</div><div class="tt">' + esc(st.t) + '</div>' + (st.f ? '<div class="tf">' + esc(st.f) + '</div>' : '') +
-    '<div class="tb"><button class="btn" id="tPrev" aria-label="Önceki durak">‹</button><button class="btn" id="tInfo">Ayrıntı</button><button class="btn" id="tStop">Bitir</button><button class="btn" id="tNext" aria-label="Sonraki durak">›</button></div>';
+  c.innerHTML = T('<div class="tk">Gök turu · ') + (tour.i + 1) + ' / ' + tour.stops.length + '</div><div class="tt">' + esc(st.t) + '</div>' + (st.f ? '<div class="tf">' + esc(st.f) + '</div>' : '') +
+    T('<div class="tb"><button class="btn" id="tPrev" aria-label="Önceki durak">‹</button><button class="btn" id="tInfo">Ayrıntı</button><button class="btn" id="tStop">Bitir</button><button class="btn" id="tNext" aria-label="Sonraki durak">›</button></div>');
   c.hidden = false;
   $('tPrev').onclick = () => nextStop(-1); $('tNext').onclick = () => nextStop(1); $('tStop').onclick = endTour;
   $('tInfo').onclick = () => { const o = st.obj; endTour(); select(o, false); };
@@ -1643,28 +2184,28 @@ function endTour() { tour.on = false; clearTimeout(tour.timer); $('tourCard').hi
 
 /* ---------- mythology (constellation stories) ---------- */
 const MYTH = {
-  Ori: 'Yunan mitolojisinde dev avcı Orion, yeryüzündeki bütün hayvanları avlayacağını söyleyince Gaia ona bir akrep gönderdi. Akrep onu soktu; tanrılar ikisini de göğe koydu ama birbirinden olabildiğince uzağa. Bu yüzden Orion batarken Scorpius doğar; ikisi aynı anda gökte görünmez.',
-  Sco: 'Orion\'u sokan akrep. Kalbinde kızıl Antares parlar. Yazın güney ufkunun üstünde, kıvrık kuyruğuyla en kolay tanınan takımyıldızlardandır.',
-  UMa: 'Zeus\'un sevdiği Kallisto, Hera\'nın kıskançlığıyla ayıya dönüştürüldü ve sonunda göğe yerleştirildi. İçindeki yedi parlak yıldız (Büyük Kepçe) binlerce yıldır kuzeyi bulmak için kullanılır.',
-  UMi: 'Kallisto\'nun oğlu Arkas. Kuyruğunun ucunda Kutup Yıldızı (Polaris) durur; bütün gökyüzü onun çevresinde döner.',
-  Cas: 'Güzelliğiyle övünen Etiyopya kraliçesi Kassiopeia, ceza olarak tahtına bağlanıp göğe kondu. Yılın yarısında baş aşağı döner. W harfi şekliyle hemen tanınır.',
-  And: 'Kassiopeia\'nın kızı Andromeda, annesinin kibri yüzünden bir deniz canavarına kurban edilmek üzere kayalara zincirlendi; Perseus onu kurtardı. Andromeda Galaksisi bu takımyıldızın içinde görünür.',
-  Per: 'Medusa\'nın başını kesen kahraman Perseus. Elinde tuttuğu Medusa\'nın gözü, parlaklığı değişen Algol yıldızıdır. Her ağustosta Perseids meteorları buradan saçılır.',
-  Cyg: 'Zeus\'un kuğu kılığına girdiği hikâyeden gelir. Kanatlarını Samanyolu boyunca açmış bir kuğu gibi uçar; kuyruğunda Deneb parlar. "Kuzey Haçı" diye de bilinir.',
-  Lyr: 'Ozan Orpheus\'un lirı. Orpheus çaldığında taşlar bile ağlarmış; öldükten sonra Zeus lirini göğe koydu. Gökyüzünün en parlak yıldızlarından Vega bu lirin içindedir.',
-  Gem: 'İkiz kardeşler Kastor ve Polluks. Biri ölümlü, biri ölümsüzdü; Polluks kardeşinden ayrılmamak için ölümsüzlüğünü paylaştı. İki parlak yıldız ikizlerin başlarıdır.',
-  Tau: 'Zeus\'un Europa\'yı kaçırmak için büründüğü beyaz boğa. Kızıl gözü Aldebaran; omzunda Ülker (Pleiades) kümesi parlar.',
-  Leo: 'Herakles\'in ilk görevinde boğduğu, hiçbir silahın işlemediği Nemea aslanı. Göğsünde Regulus yıldızı, başı ters bir soru işaretine benzer.',
-  Peg: 'Perseus Medusa\'nın başını kestiğinde onun kanından doğan kanatlı at. Büyük dört yıldızı "Pegasus Karesi" sonbahar gökyüzünün kılavuzudur.',
-  Her: 'On iki görevi tamamlayan kahraman Herakles, gökte baş aşağı diz çökmüş halde durur. İçinde, yüz binlerce yıldızdan oluşan Great Hercules Cluster bulunur.',
-  Aql: 'Zeus\'un yıldırımlarını taşıyan kartal. Gözündeki Altair, Vega ve Deneb ile birlikte yaz gecelerinin "Yaz Üçgeni"ni oluşturur.',
-  Sgr: 'Yay geren bir kentaur. Okunun ucu Samanyolu\'nun merkezine, galaksimizin ortasındaki dev kara deliğe (Sgr A*) doğru bakar. Şekli bir çaydanlığa da benzer.',
-  CMa: 'Avcı Orion\'un büyük köpeği. Ağzında gece gökyüzünün en parlak yıldızı Sirius parlar; eski Mısır\'da Sirius\'un doğuşu Nil\'in taşmasını haber verirdi.',
-  Cep: 'Etiyopya kralı Kefeus, Kassiopeia\'nın eşi ve Andromeda\'nın babası. Göğe çizilmiş bir ev ya da çan şeklindedir.',
-  Boo: 'Büyükayı\'yı gökyüzünde kovalayan çoban. Turuncu Arcturus onun en parlak yıldızıdır; Büyük Kepçe\'nin sapını takip ederek bulunur ("arka doğru yay çiz").',
-  Vir: 'Hasat tanrıçası Demeter ya da adalet tanrıçası Astraea. Elindeki başak Spica yıldızıdır. Bu yönde binlerce galaksiden oluşan Virgo Kümesi uzanır.',
-  Dra: 'Altın elmaları koruyan ejderha Ladon. Uzun gövdesi iki ayı arasında kıvrılır. Mısır piramitleri yapıldığında kutup yıldızı bu takımyıldızdaki Thuban\'dı.',
-  Aqr: 'Tanrılara su taşıyan Ganymedes. Testisinden dökülen su Piscis Austrinus\'un ağzındaki Fomalhaut\'a akar.'
+  Ori: T('Yunan mitolojisinde dev avcı Orion, yeryüzündeki bütün hayvanları avlayacağını söyleyince Gaia ona bir akrep gönderdi. Akrep onu soktu; tanrılar ikisini de göğe koydu ama birbirinden olabildiğince uzağa. Bu yüzden Orion batarken Scorpius doğar; ikisi aynı anda gökte görünmez.'),
+  Sco: T('Orion\'u sokan akrep. Kalbinde kızıl Antares parlar. Yazın güney ufkunun üstünde, kıvrık kuyruğuyla en kolay tanınan takımyıldızlardandır.'),
+  UMa: T('Zeus\'un sevdiği Kallisto, Hera\'nın kıskançlığıyla ayıya dönüştürüldü ve sonunda göğe yerleştirildi. İçindeki yedi parlak yıldız (Büyük Kepçe) binlerce yıldır kuzeyi bulmak için kullanılır.'),
+  UMi: T('Kallisto\'nun oğlu Arkas. Kuyruğunun ucunda Kutup Yıldızı (Polaris) durur; bütün gökyüzü onun çevresinde döner.'),
+  Cas: T('Güzelliğiyle övünen Etiyopya kraliçesi Kassiopeia, ceza olarak tahtına bağlanıp göğe kondu. Yılın yarısında baş aşağı döner. W harfi şekliyle hemen tanınır.'),
+  And: T('Kassiopeia\'nın kızı Andromeda, annesinin kibri yüzünden bir deniz canavarına kurban edilmek üzere kayalara zincirlendi; Perseus onu kurtardı. Andromeda Galaksisi bu takımyıldızın içinde görünür.'),
+  Per: T('Medusa\'nın başını kesen kahraman Perseus. Elinde tuttuğu Medusa\'nın gözü, parlaklığı değişen Algol yıldızıdır. Her ağustosta Perseids meteorları buradan saçılır.'),
+  Cyg: T('Zeus\'un kuğu kılığına girdiği hikâyeden gelir. Kanatlarını Samanyolu boyunca açmış bir kuğu gibi uçar; kuyruğunda Deneb parlar. "Kuzey Haçı" diye de bilinir.'),
+  Lyr: T('Ozan Orpheus\'un lirı. Orpheus çaldığında taşlar bile ağlarmış; öldükten sonra Zeus lirini göğe koydu. Gökyüzünün en parlak yıldızlarından Vega bu lirin içindedir.'),
+  Gem: T('İkiz kardeşler Kastor ve Polluks. Biri ölümlü, biri ölümsüzdü; Polluks kardeşinden ayrılmamak için ölümsüzlüğünü paylaştı. İki parlak yıldız ikizlerin başlarıdır.'),
+  Tau: T('Zeus\'un Europa\'yı kaçırmak için büründüğü beyaz boğa. Kızıl gözü Aldebaran; omzunda Ülker (Pleiades) kümesi parlar.'),
+  Leo: T('Herakles\'in ilk görevinde boğduğu, hiçbir silahın işlemediği Nemea aslanı. Göğsünde Regulus yıldızı, başı ters bir soru işaretine benzer.'),
+  Peg: T('Perseus Medusa\'nın başını kestiğinde onun kanından doğan kanatlı at. Büyük dört yıldızı "Pegasus Karesi" sonbahar gökyüzünün kılavuzudur.'),
+  Her: T('On iki görevi tamamlayan kahraman Herakles, gökte baş aşağı diz çökmüş halde durur. İçinde, yüz binlerce yıldızdan oluşan Great Hercules Cluster bulunur.'),
+  Aql: T('Zeus\'un yıldırımlarını taşıyan kartal. Gözündeki Altair, Vega ve Deneb ile birlikte yaz gecelerinin "Yaz Üçgeni"ni oluşturur.'),
+  Sgr: T('Yay geren bir kentaur. Okunun ucu Samanyolu\'nun merkezine, galaksimizin ortasındaki dev kara deliğe (Sgr A*) doğru bakar. Şekli bir çaydanlığa da benzer.'),
+  CMa: T('Avcı Orion\'un büyük köpeği. Ağzında gece gökyüzünün en parlak yıldızı Sirius parlar; eski Mısır\'da Sirius\'un doğuşu Nil\'in taşmasını haber verirdi.'),
+  Cep: T('Etiyopya kralı Kefeus, Kassiopeia\'nın eşi ve Andromeda\'nın babası. Göğe çizilmiş bir ev ya da çan şeklindedir.'),
+  Boo: T('Büyükayı\'yı gökyüzünde kovalayan çoban. Turuncu Arcturus onun en parlak yıldızıdır; Büyük Kepçe\'nin sapını takip ederek bulunur ("arka doğru yay çiz").'),
+  Vir: T('Hasat tanrıçası Demeter ya da adalet tanrıçası Astraea. Elindeki başak Spica yıldızıdır. Bu yönde binlerce galaksiden oluşan Virgo Kümesi uzanır.'),
+  Dra: T('Altın elmaları koruyan ejderha Ladon. Uzun gövdesi iki ayı arasında kıvrılır. Mısır piramitleri yapıldığında kutup yıldızı bu takımyıldızdaki Thuban\'dı.'),
+  Aqr: T('Tanrılara su taşıyan Ganymedes. Testisinden dökülen su Piscis Austrinus\'un ağzındaki Fomalhaut\'a akar.')
 };
 
 /* ---------- Turkish sky-culture names (Anadolu & Osmanlı halk astronomisi) ---------- */
@@ -1695,37 +2236,37 @@ function logToggle(o) {
   store.set('log', LOG);
 }
 const BADGES = [
-  ['first', 'İlk adım', 'Bir gök cismini gözlem günlüğüne ekle', L => Object.keys(L).length >= 1],
-  ['planets', 'Gezegen avcısı', 'Çıplak gözle görülen 5 gezegenin hepsini gör', L => ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'].every(p => L['body:' + p])],
-  ['galaxy', 'Galaksi gözcüsü', 'Başka bir galaksiyi gör (ör. Andromeda)', L => Object.keys(L).some(k => k.startsWith('dso:') && 'sei'.includes((DSOS.find(d => 'dso:' + d.id === k) || {}).type))],
-  ['messier10', 'Messier kâşifi', '10 Messier cismi gör', L => Object.keys(L).filter(k => k.startsWith('dso:')).length >= 10],
-  ['con20', 'Takımyıldız ustası', '20 takımyıldız tanı', L => Object.keys(L).filter(k => k.startsWith('con:')).length >= 20],
-  ['iss', 'Uzay istasyonu', 'Uluslararası Uzay İstasyonu\'nun geçişini gör', L => !!L.iss],
-  ['meteor', 'Meteor avcısı', 'Bir meteor yağmurunu izle', L => Object.keys(L).some(k => k.startsWith('shower:'))],
-  ['galileo', 'Galileo\'nun izinde', 'Jupiter\'in bir uydusunu gör', L => Object.keys(L).some(k => k.startsWith('jmoon:'))],
-  ['owl', 'Gece kuşu', 'Gece 02:00 ile 05:00 arasında bir gözlem kaydet', L => Object.values(L).some(v => v.h >= 2 && v.h < 5)],
-  ['stars25', 'Yıldız koleksiyoncusu', 'Adı olan 25 yıldız gör', L => Object.keys(L).filter(k => k.startsWith('star:') && isNaN(+k.slice(5))).length >= 25]
+  ['first', T('İlk adım'), T('Bir gök cismini gözlem günlüğüne ekle'), L => Object.keys(L).length >= 1],
+  ['planets', T('Gezegen avcısı'), T('Çıplak gözle görülen 5 gezegenin hepsini gör'), L => ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'].every(p => L['body:' + p])],
+  ['galaxy', T('Galaksi gözcüsü'), T('Başka bir galaksiyi gör (ör. Andromeda)'), L => Object.keys(L).some(k => k.startsWith('dso:') && 'sei'.includes((DSOS.find(d => 'dso:' + d.id === k) || {}).type))],
+  ['messier10', T('Messier kâşifi'), T('10 Messier cismi gör'), L => Object.keys(L).filter(k => k.startsWith('dso:')).length >= 10],
+  ['con20', T('Takımyıldız ustası'), T('20 takımyıldız tanı'), L => Object.keys(L).filter(k => k.startsWith('con:')).length >= 20],
+  ['iss', T('Uzay istasyonu'), T('Uluslararası Uzay İstasyonu\'nun geçişini gör'), L => !!L.iss],
+  ['meteor', T('Meteor avcısı'), T('Bir meteor yağmurunu izle'), L => Object.keys(L).some(k => k.startsWith('shower:'))],
+  ['galileo', T('Galileo\'nun izinde'), T('Jupiter\'in bir uydusunu gör'), L => Object.keys(L).some(k => k.startsWith('jmoon:'))],
+  ['owl', T('Gece kuşu'), T('Gece 02:00 ile 05:00 arasında bir gözlem kaydet'), L => Object.values(L).some(v => v.h >= 2 && v.h < 5)],
+  ['stars25', T('Yıldız koleksiyoncusu'), T('Adı olan 25 yıldız gör'), L => Object.keys(L).filter(k => k.startsWith('star:') && isNaN(+k.slice(5))).length >= 25]
 ];
 let earnedBefore = new Set(BADGES.filter(b => b[3](LOG)).map(b => b[0]));
 function checkBadges(announce) {
-  BADGES.forEach(b => { if (b[3](LOG) && !earnedBefore.has(b[0])) { earnedBefore.add(b[0]); if (announce) setTimeout(() => toast('Rozet kazandın: ' + b[1] + '!'), 400); } });
+  BADGES.forEach(b => { if (b[3](LOG) && !earnedBefore.has(b[0])) { earnedBefore.add(b[0]); if (announce) setTimeout(() => toast(T('Rozet kazandın: ') + b[1] + '!'), 400); } });
 }
 function logButton(o) {
   const k = logKey(o); if (!k) return '';
   const v = LOG[k];
-  return '<div class="btns"><button class="btn' + (v ? ' on' : '') + '" id="logBtn">' + (v ? '✓ Gördüm · ' + new Date(v.t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : 'Bunu gördüm, günlüğüme ekle') + '</button></div>';
+  return '<div class="btns"><button class="btn' + (v ? ' on' : '') + '" id="logBtn">' + (v ? T('✓ Gördüm · ') + new Date(v.t).toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' }) : T('Bunu gördüm, günlüğüme ekle')) + '</button></div>';
 }
 function openCollection() {
   const cnt = p => Object.keys(LOG).filter(k => k.startsWith(p)).length;
   const named = STARS.filter(s => s.name).length;
-  let h = '<div class="shead"><div class="grow"><div class="kind">Gözlem günlüğü</div><h2>Koleksiyonum</h2><div class="sub">Bir cisme dokunup "Bunu gördüm" de; buraya eklenir</div></div>' + closeX + '</div><div class="rows">';
-  h += row('Gezegenler', cnt('body:') + ' / 9', 'Sun ve Moon dahil') + row('Messier cisimleri', cnt('dso:') + ' / 110', 'Galaksi, bulutsu ve kümeler');
-  h += row('Takımyıldızlar', cnt('con:') + ' / 88') + row('Adı olan yıldızlar', Object.keys(LOG).filter(k => k.startsWith('star:') && isNaN(+k.slice(5))).length + ' / ' + named);
-  h += '</div><div class="sect">Rozetler</div><div class="badges">';
+  let h = T('<div class="shead"><div class="grow"><div class="kind">Gözlem günlüğü</div><h2>Koleksiyonum</h2><div class="sub">Bir cisme dokunup "Bunu gördüm" de; buraya eklenir</div></div>') + closeX + '</div><div class="rows">';
+  h += row('Gezegenler', cnt('body:') + ' / 9', T('Sun ve Moon dahil')) + row(T('Messier cisimleri'), cnt('dso:') + ' / 110', T('Galaksi, bulutsu ve kümeler'));
+  h += row(T('Takımyıldızlar'), cnt('con:') + ' / 88') + row(T('Adı olan yıldızlar'), Object.keys(LOG).filter(k => k.startsWith('star:') && isNaN(+k.slice(5))).length + ' / ' + named);
+  h += T('</div><div class="sect">Rozetler</div><div class="badges">');
   BADGES.forEach(b => { const ok = b[3](LOG); h += '<div class="badge' + (ok ? ' on' : '') + '"><i>' + (ok ? '★' : '☆') + '</i><b>' + b[1] + '</b><span>' + b[2] + '</span></div>'; });
   h += '</div>';
   const items = Object.entries(LOG).sort((a, b) => b[1].t - a[1].t).slice(0, 30);
-  if (items.length) h += '<div class="sect">Son gözlemler</div><div class="list">' + items.map(([k, v]) => '<div class="item"><b>' + esc(k.split(':').slice(1).join(':') || 'ISS') + '</b><span>' + new Date(v.t).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '</span></div>').join('') + '</div>';
+  if (items.length) h += T('<div class="sect">Son gözlemler</div><div class="list">') + items.map(([k, v]) => '<div class="item"><b>' + esc(k.split(':').slice(1).join(':') || 'ISS') + '</b><span>' + new Date(v.t).toLocaleString(LOCALE, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '</span></div>').join('') + '</div>';
   openSheet(h, 'collection');
 }
 
@@ -1737,9 +2278,9 @@ function composeShot() {
   const k = dpr, bh = 58*k;
   const gr = g.createLinearGradient(0, c.height - bh*1.6, 0, c.height); gr.addColorStop(0, 'rgba(4,6,12,0)'); gr.addColorStop(1, 'rgba(4,6,12,.92)');
   g.fillStyle = gr; g.fillRect(0, c.height - bh*1.6, c.width, bh*1.6);
-  g.fillStyle = '#e3c27e'; g.font = 'italic 600 ' + 22*k + 'px "Cormorant Garamond", Georgia, serif'; g.fillText('Gökyüzü Atlası', 18*k, c.height - 30*k);
+  g.fillStyle = '#e3c27e'; g.font = 'italic 600 ' + 22*k + 'px "Cormorant Garamond", Georgia, serif'; g.fillText(T('Gökyüzü Atlası'), 18*k, c.height - 30*k);
   g.fillStyle = 'rgba(233,228,216,.8)'; g.font = '500 ' + 12*k + 'px Manrope, sans-serif';
-  g.fillText(S.loc.name + ' · ' + now.toLocaleString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }), 18*k, c.height - 12*k);
+  g.fillText(S.loc.name + ' · ' + now.toLocaleString(LOCALE, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }), 18*k, c.height - 12*k);
   const site = 'cagdasakil.github.io/gokyuzu-atlasi'; const w = g.measureText(site).width; g.fillText(site, c.width - w - 18*k, c.height - 12*k);
   return c;
 }
@@ -1749,11 +2290,11 @@ async function saveCanvas(c, name, title) {
   const file = new File([blob], name, { type: 'image/png' });
   // inside the Claude viewer, files go through its downloads capability
   if (window.claude && typeof window.claude.use === 'function') {
-    try { const dl = await window.claude.use('downloads'); if (dl) { try { await dl.save({ filename: name, data: blob }); toast('Görüntü kaydedildi.'); } catch (e) { if (e && e.code !== 'declined') toast('Kaydedilemedi.'); } return; } } catch (e) {}
+    try { const dl = await window.claude.use('downloads'); if (dl) { try { await dl.save({ filename: name, data: blob }); toast(T('Görüntü kaydedildi.')); } catch (e) { if (e && e.code !== 'declined') toast(T('Kaydedilemedi.')); } return; } } catch (e) {}
   }
   try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
-  try { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Görüntü indirildi.'); }
-  catch (e) { toast('Bu görünümde dosya kaydedilemiyor; sitede (github.io) dene.'); }
+  try { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast(T('Görüntü indirildi.')); }
+  catch (e) { toast(T('Bu görünümde dosya kaydedilemiyor; sitede (github.io) dene.')); }
 }
 function buildLink() {
   const base = location.href.split(/[?#]/)[0];
@@ -1762,14 +2303,14 @@ function buildLink() {
 }
 function openShare() {
   const link = buildLink();
-  openSheet('<div class="shead"><div class="grow"><div class="kind">Paylaş</div><h2>Bu gökyüzünü gönder</h2><div class="sub">Şu anki görünüm, saat ve konumla</div></div>' + closeX + '</div>' +
-    '<div class="btns"><button class="btn on" id="shImg">Görüntüyü paylaş / kaydet</button><button class="btn" id="shLink">Bağlantıyı kopyala</button></div>' +
-    '<div class="field"><label for="shUrl">Bağlantı</label><input type="search" id="shUrl" readonly value="' + esc(link) + '"></div>' +
-    '<p class="note">Bağlantıyı açan kişi tam olarak bu saati, bu yeri ve bu açıyı görür. Örneğin "Bak, şu an Jupiter ile Ay yan yana!" demek için.</p>', 'share');
-  $('shImg').addEventListener('click', async () => { closeSheet(); await new Promise(r => setTimeout(r, 350)); const c = await grabShot(); saveCanvas(c, 'gokyuzu-' + now.toISOString().slice(0, 10) + '.png', 'Gökyüzü Atlası'); });
+  openSheet(T('<div class="shead"><div class="grow"><div class="kind">Paylaş</div><h2>Bu gökyüzünü gönder</h2><div class="sub">Şu anki görünüm, saat ve konumla</div></div>') + closeX + '</div>' +
+    T('<div class="btns"><button class="btn on" id="shImg">Görüntüyü paylaş / kaydet</button><button class="btn" id="shLink">Bağlantıyı kopyala</button></div>') +
+    T('<div class="field"><label for="shUrl">Bağlantı</label><input type="search" id="shUrl" readonly value="') + esc(link) + '"></div>' +
+    T('<p class="note">Bağlantıyı açan kişi tam olarak bu saati, bu yeri ve bu açıyı görür. Örneğin "Bak, şu an Jupiter ile Ay yan yana!" demek için.</p>'), 'share');
+  $('shImg').addEventListener('click', async () => { closeSheet(); await new Promise(r => setTimeout(r, 350)); const c = await grabShot(); saveCanvas(c, 'gokyuzu-' + now.toISOString().slice(0, 10) + '.png', T('Gökyüzü Atlası')); });
   $('shLink').addEventListener('click', () => {
     const inp = $('shUrl');
-    navigator.clipboard && navigator.clipboard.writeText(link).then(() => toast('Bağlantı kopyalandı.'), () => { inp.focus(); inp.select(); toast('Bağlantıyı seçtim; kopyala diyebilirsin.'); });
+    navigator.clipboard && navigator.clipboard.writeText(link).then(() => toast(T('Bağlantı kopyalandı.')), () => { inp.focus(); inp.select(); toast(T('Bağlantıyı seçtim; kopyala diyebilirsin.')); });
     if (!navigator.clipboard) { inp.focus(); inp.select(); }
   });
 }
@@ -1777,7 +2318,7 @@ const LINK = (() => {
   try {
     const q = new URLSearchParams(location.search); if (!q.has('lat') && !q.has('t')) return null;
     const o = {};
-    if (q.has('lat') && q.has('lon')) o.loc = { name: q.get('n') || 'Paylaşılan konum', lat: +q.get('lat'), lon: +q.get('lon') };
+    if (q.has('lat') && q.has('lon')) o.loc = { name: q.get('n') || T('Paylaşılan konum'), lat: +q.get('lat'), lon: +q.get('lon') };
     if (q.has('t')) { const d = new Date(q.get('t')); if (!isNaN(d)) o.t = d; }
     if (q.has('az')) o.az = +q.get('az')*D2R; if (q.has('alt')) o.alt = +q.get('alt')*D2R; if (q.has('fov')) o.fov = +q.get('fov')*D2R;
     return o;
@@ -1786,22 +2327,22 @@ const LINK = (() => {
 
 /* ---------- birth-night sky card ---------- */
 function openBirth() {
-  const opts = '<option value="here">Şu anki konum (' + esc(S.loc.name) + ')</option>' + CITIES.map((c, i) => '<option value="' + i + '">' + c[0] + '</option>').join('');
-  openSheet('<div class="shead"><div class="grow"><div class="kind">Doğduğun gece</div><h2>Doğduğun anın gökyüzü</h2><div class="sub">O an başının üstünde ne vardı?</div></div>' + closeX + '</div>' +
-    '<div class="field"><label for="bName">İsim (isteğe bağlı)</label><input type="search" id="bName" placeholder="Örn. Elif" autocomplete="off"></div>' +
-    '<div class="field"><label for="bDate">Doğum tarihi</label><input type="datetime-local" id="bDate" value="1995-03-21T03:30"></div>' +
-    '<div class="field"><label for="bPlace">Doğum yeri</label><select id="bPlace" class="sel">' + opts + '</select></div>' +
-    '<div class="btns"><button class="btn on" id="bGo">Gökyüzünü oluştur</button></div><div id="bOut"></div>', 'birth');
+  const opts = T('<option value="here">Şu anki konum (') + esc(S.loc.name) + ')</option>' + CITIES.map((c, i) => '<option value="' + i + '">' + c[0] + '</option>').join('');
+  openSheet(T('<div class="shead"><div class="grow"><div class="kind">Doğduğun gece</div><h2>Doğduğun anın gökyüzü</h2><div class="sub">O an başının üstünde ne vardı?</div></div>') + closeX + '</div>' +
+    T('<div class="field"><label for="bName">İsim (isteğe bağlı)</label><input type="search" id="bName" placeholder="Örn. Elif" autocomplete="off"></div>') +
+    T('<div class="field"><label for="bDate">Doğum tarihi</label><input type="datetime-local" id="bDate" value="1995-03-21T03:30"></div>') +
+    T('<div class="field"><label for="bPlace">Doğum yeri</label><select id="bPlace" class="sel">') + opts + '</select></div>' +
+    T('<div class="btns"><button class="btn on" id="bGo">Gökyüzünü oluştur</button></div><div id="bOut"></div>'), 'birth');
   $('bGo').addEventListener('click', async () => {
-    const d = new Date($('bDate').value); if (isNaN(d)) { toast('Tarih ve saati seç.'); return; }
+    const d = new Date($('bDate').value); if (isNaN(d)) { toast(T('Tarih ve saati seç.')); return; }
     const pv = $('bPlace').value, loc = pv === 'here' ? S.loc : { name: CITIES[+pv][0], lat: CITIES[+pv][1], lon: CITIES[+pv][2] };
     try { await document.fonts.ready; } catch (e) {}
     const { canvas, summary } = birthCard(d, loc, $('bName').value.trim());
     const out = $('bOut'); out.innerHTML = '';
     canvas.className = 'bcard'; out.appendChild(canvas);
-    out.insertAdjacentHTML('beforeend', '<p class="note">' + esc(summary) + '</p><div class="btns"><button class="btn on" id="bSave">Kartı paylaş / kaydet</button><button class="btn" id="bSky">Bu gökyüzüne git</button></div>');
-    $('bSave').onclick = () => saveCanvas(canvas, 'dogdugun-gece.png', 'Doğduğum gecenin gökyüzü');
-    $('bSky').onclick = () => { setLoc(loc, true); S.offset = d - Date.now(); S.speed = 1; updateAstro(true); buildChips(); closeSheet(); goHome(); toast('Zaman ' + d.toLocaleString('tr-TR') + ' anına alındı.'); };
+    out.insertAdjacentHTML('beforeend', '<p class="note">' + esc(summary) + T('</p><div class="btns"><button class="btn on" id="bSave">Kartı paylaş / kaydet</button><button class="btn" id="bSky">Bu gökyüzüne git</button></div>'));
+    $('bSave').onclick = () => saveCanvas(canvas, T('dogdugun-gece.png'), T('Doğduğum gecenin gökyüzü'));
+    $('bSky').onclick = () => { setLoc(loc, true); S.offset = d - Date.now(); S.speed = 1; updateAstro(true); buildChips(); closeSheet(); goHome(); toast(T('Zaman ') + d.toLocaleString(LOCALE) + T(' anına alındı.')); };
   });
 }
 function birthCard(date, loc, name) {
@@ -1835,16 +2376,16 @@ function birthCard(date, loc, name) {
   g.strokeStyle = 'rgba(227,194,126,.35)'; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, R + 14, 0, Math.PI*2); g.stroke();
   for (let a = 0; a < 360; a += 5) { const t = a*D2R, l1 = a % 45 === 0 ? 14 : 6; g.beginPath(); g.moveTo(cx - Math.sin(t)*(R + 14), cy - Math.cos(t)*(R + 14)); g.lineTo(cx - Math.sin(t)*(R + 14 - l1), cy - Math.cos(t)*(R + 14 - l1)); g.stroke(); }
   g.font = '700 22px Manrope, sans-serif'; g.fillStyle = '#e3c27e'; g.textAlign = 'center';
-  [['K', 0], ['D', 90], ['G', 180], ['B', 270]].forEach(([t, a]) => { g.fillText(t, cx - Math.sin(a*D2R)*(R + 40), cy - Math.cos(a*D2R)*(R + 40) + 8); });
+  [[COMPASS_SHORT[0], 0], [COMPASS_SHORT[2], 90], [COMPASS_SHORT[4], 180], [COMPASS_SHORT[6], 270]].forEach(([t, a]) => { g.fillText(t, cx - Math.sin(a*D2R)*(R + 40), cy - Math.cos(a*D2R)*(R + 40) + 8); });
   g.fillStyle = '#efe9dc'; g.font = 'italic 600 64px "Cormorant Garamond", Georgia, serif';
-  g.fillText(name ? name : 'Doğduğum gece', cx, 120);
+  g.fillText(name ? name : T('Doğduğum gece'), cx, 120);
   g.font = '600 20px Manrope, sans-serif'; g.fillStyle = '#e3c27e'; g.letterSpacing = '4px';
-  g.fillText((name ? 'DOĞDUĞU ANIN GÖKYÜZÜ' : 'O ANIN GERÇEK GÖKYÜZÜ'), cx, 162); g.letterSpacing = '0px';
-  const dtxt = date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) + ' · ' + loc.name;
+  g.fillText((name ? T('DOĞDUĞU ANIN GÖKYÜZÜ') : T('O ANIN GERÇEK GÖKYÜZÜ')), cx, 162); g.letterSpacing = '0px';
+  const dtxt = date.toLocaleDateString(LOCALE, { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + date.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' }) + ' · ' + loc.name;
   g.font = '500 26px Manrope, sans-serif'; g.fillStyle = '#efe9dc'; g.fillText(dtxt, cx, 1180);
-  const ph = A.Illumination('Moon', tm).phase_fraction, mn = ['Yeni Ay', 'Hilal', 'İlk dördün', 'Şişkin Ay', 'Dolunay', 'Şişkin Ay', 'Son dördün', 'Hilal'][Math.round(A.MoonPhase(tm)/45) % 8];
+  const ph = A.Illumination('Moon', tm).phase_fraction, mn = [T('Yeni Ay'), T('Hilal'), T('İlk dördün'), T('Şişkin Ay'), T('Dolunay'), T('Şişkin Ay'), T('Son dördün'), T('Hilal')][Math.round(A.MoonPhase(tm)/45) % 8];
   const pls = vis.filter(x => !['Moon', 'Sun'].includes(x)).map(x => (bodies.find(b => b.b === x) || {}).tr || x);
-  const summary = 'O an gökyüzünde: ' + (pls.length ? pls.join(', ') : 'ufkun üstünde parlak gezegen yoktu') + ' · Ay %' + Math.round(ph*100) + ' (' + mn + ')' + (vis.includes('Sun') ? ' · Güneş ufkun üstündeydi' : '');
+  const summary = T('O an gökyüzünde: ') + (pls.length ? pls.join(', ') : T('ufkun üstünde parlak gezegen yoktu')) + (LANG === 'en' ? ' · Moon ' : ' · Ay ') + pct(Math.round(ph*100)) + ' (' + mn + ')' + (vis.includes('Sun') ? T(' · Güneş ufkun üstündeydi') : '');
   g.font = '500 21px Manrope, sans-serif'; g.fillStyle = 'rgba(233,228,216,.75)'; g.fillText(summary, cx, 1224);
   g.font = '500 17px Manrope, sans-serif'; g.fillStyle = 'rgba(233,228,216,.45)'; g.fillText('cagdasakil.github.io/gokyuzu-atlasi', cx, 1300);
   return { canvas: c, summary };
@@ -1908,26 +2449,26 @@ function drawISS(night) {
   ctx.strokeStyle = bright ? '#fff' : 'rgba(200,215,235,.8)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(9, 0); ctx.moveTo(-9, -4); ctx.lineTo(-9, 4); ctx.moveTo(9, -4); ctx.lineTo(9, 4); ctx.stroke();
   ctx.fillStyle = bright ? '#fff' : '#cdd8e8'; ctx.fillRect(-2.5, -2.5, 5, 5);
   ctx.restore();
-  label('ISS' + (bright ? ' · görünür' : ''), p[0] + 14, p[1] - 8, '700 13px Manrope, sans-serif', '#9fdcff', { force: true });
+  label('ISS' + (bright ? T(' · görünür') : ''), p[0] + 14, p[1] - 8, '700 13px Manrope, sans-serif', '#9fdcff', { force: true });
   picks.push({ x: p[0], y: p[1], r: 22, pri: 0, obj: { kind: 'iss', ref: ISS } });
 }
 function issCard() {
-  let h = '<div class="shead"><div class="grow"><div class="kind">Uzay istasyonu</div><h2>ISS</h2><div class="sub">Uluslararası Uzay İstasyonu · ' + (ISS.live ? 'canlı yörünge verisi' : 'kayıtlı yörünge verisi') + '</div></div>' + closeX + '</div>';
-  h += '<p class="fact">Dünya\'nın çevresinde saatte yaklaşık 27.600 km hızla, her 92 dakikada bir tur atıyor. İçinde şu an astronotlar yaşıyor. Gün batımından sonra Güneş ışığını yansıtınca Venüs kadar parlak, yanıp sönmeyen bir nokta olarak birkaç dakikada gökyüzünü geçer.</p><div class="rows">';
-  h += row('Yükseklik', fmtN(ISS.km || 420, 0) + ' km', 'İstanbul–Ankara arasından biraz fazla') + row('Durum', ISS.e && ISS.e[2] > 0 ? (ISS.lit ? 'Ufkun üstünde, güneş alıyor' : 'Ufkun üstünde, Dünya\'nın gölgesinde') : 'Ufkun altında');
+  let h = T('<div class="shead"><div class="grow"><div class="kind">Uzay istasyonu</div><h2>ISS</h2><div class="sub">Uluslararası Uzay İstasyonu · ') + (ISS.live ? T('canlı yörünge verisi') : T('kayıtlı yörünge verisi')) + '</div></div>' + closeX + '</div>';
+  h += T('<p class="fact">Dünya\'nın çevresinde saatte yaklaşık 27.600 km hızla, her 92 dakikada bir tur atıyor. İçinde şu an astronotlar yaşıyor. Gün batımından sonra Güneş ışığını yansıtınca Venüs kadar parlak, yanıp sönmeyen bir nokta olarak birkaç dakikada gökyüzünü geçer.</p><div class="rows">');
+  h += row(T('Yükseklik'), fmtN(ISS.km || 420, 0) + ' km', T('İstanbul–Ankara arasından biraz fazla')) + row(T('Durum'), ISS.e && ISS.e[2] > 0 ? (ISS.lit ? T('Ufkun üstünde, güneş alıyor') : T('Ufkun üstünde, Dünya\'nın gölgesinde')) : T('Ufkun altında'));
   h += '</div>' + passList();
   return h;
 }
 function passList() {
-  if (!ISS.rec) return '<p class="note">Uzay istasyonu verisi yükleniyor…</p>';
+  if (!ISS.rec) return T('<p class="note">Uzay istasyonu verisi yükleniyor…</p>');
   const vis = ISS.passes.filter(p => p.visible).slice(0, 5);
-  if (!vis.length) return '<p class="note">Önümüzdeki 3 günde ' + esc(S.loc.name) + '\'dan çıplak gözle görülebilecek bir geçiş yok.</p>';
-  return '<div class="sect">Görünür geçişler</div><div class="list">' + vis.map((p, i) => '<button class="item" data-pass="' + ISS.passes.indexOf(p) + '"><b>' + dayHm(p.start) + '</b><span>' + Math.round((p.end - p.start)/60000) + ' dk · en yüksek ' + Math.round(p.maxEl*R2D) + '° · ' + COMPASS[Math.round(((p.az0*R2D) % 360 + 360) % 360/45) % 8] + ' → ' + COMPASS[Math.round(((p.az1*R2D) % 360 + 360) % 360/45) % 8] + '</span></button>').join('') + '</div><p class="note">Bir geçişe dokununca zaman o ana gider ve istasyonun yolunu izlersin.</p>';
+  if (!vis.length) return T('<p class="note">Önümüzdeki 3 günde ') + esc(S.loc.name) + T('\'dan çıplak gözle görülebilecek bir geçiş yok.</p>');
+  return T('<div class="sect">Görünür geçişler</div><div class="list">') + vis.map((p, i) => '<button class="item" data-pass="' + ISS.passes.indexOf(p) + '"><b>' + dayHm(p.start) + '</b><span>' + Math.round((p.end - p.start)/60000) + T(' dk · en yüksek ') + Math.round(p.maxEl*R2D) + '° · ' + COMPASS[Math.round(((p.az0*R2D) % 360 + 360) % 360/45) % 8] + ' → ' + COMPASS[Math.round(((p.az1*R2D) % 360 + 360) % 360/45) % 8] + '</span></button>').join('') + T('</div><p class="note">Bir geçişe dokununca zaman o ana gider ve istasyonun yolunu izlersin.</p>');
 }
 function bindPasses() {
   sheet.querySelectorAll('[data-pass]').forEach(b => b.addEventListener('click', () => {
     const p = ISS.passes[+b.dataset.pass]; S.offset = p.start.getTime() - 60000 - Date.now(); S.speed = 1; updateAstro(true); buildChips(); updateISS(); ISS.last = 0;
-    closeSheet(); const x = issAt(p.max, S.loc.lat, S.loc.lon); flyTo(issE(x), 85*D2R); toast('ISS geçişi: ' + dayHm(p.start));
+    closeSheet(); const x = issAt(p.max, S.loc.lat, S.loc.lon); flyTo(issE(x), 85*D2R); toast(T('ISS geçişi: ') + dayHm(p.start));
   }));
 }
 
@@ -1953,12 +2494,12 @@ async function fillWeather() {
   const box = $('wxBox'); if (!box) return;
   const t0 = atime, dusk = rs('Sun', -1, t0, 1.5, -18), dawn = dusk ? rs('Sun', +1, A.MakeTime(dusk), 1, -18) : null;
   const j = await loadWeather(); if (!$('wxBox')) return;
-  if (!j) { box.innerHTML = row('Gözlem skoru', '—', 'Hava durumu bu görünümde alınamıyor; sitede (github.io) çalışır.', true); return; }
+  if (!j) { box.innerHTML = row(T('Gözlem skoru'), '—', T('Hava durumu bu görünümde alınamıyor; sitede (github.io) çalışır.'), true); return; }
   const from = (dusk || now).getTime(), to = (dawn || new Date(from + 8*3600000)).getTime();
   const r = scoreFor(j, from, to);
-  if (!r) { box.innerHTML = row('Gözlem skoru', '—', 'Bu gece için tahmin yok.', true); return; }
-  const word = r.sc >= 8 ? 'Mükemmel' : r.sc >= 6 ? 'İyi' : r.sc >= 4 ? 'Orta' : 'Zayıf';
-  box.innerHTML = '<div class="score"><div class="sv">' + r.sc + '<small>/10</small></div><div><b>' + word + ' bir gece</b><span>Bulut %' + r.cl + ' · nem %' + r.hu + ' · Ay %' + Math.round(bodies[1].phase*100) + '</span><span class="dim">Tahmin: Open-Meteo, karanlık saatlerin ortalaması</span></div></div>';
+  if (!r) { box.innerHTML = row(T('Gözlem skoru'), '—', T('Bu gece için tahmin yok.'), true); return; }
+  const word = r.sc >= 8 ? T('Mükemmel') : r.sc >= 6 ? T('İyi') : r.sc >= 4 ? T('Orta') : T('Zayıf');
+  box.innerHTML = '<div class="score"><div class="sv">' + r.sc + '<small>/10</small></div><div><b>' + word + (LANG === 'en' ? ' night</b><span>Clouds ' + pct(r.cl) + ' · humidity ' + pct(r.hu) + ' · Moon ' : ' bir gece</b><span>Bulut %' + r.cl + ' · nem %' + r.hu + ' · Ay ') + pct(Math.round(bodies[1].phase*100)) + T('</span><span class="dim">Tahmin: Open-Meteo, karanlık saatlerin ortalaması</span></div></div>');
 }
 
 /* ---------- constellation quiz ---------- */
@@ -1966,13 +2507,13 @@ const quiz = { on: false, q: null, score: 0, n: 0, names: true, timer: 0 };
 function startQuiz() {
   if (tour.on) endTour(); closeSheet(); quiz.on = true; quiz.score = 0; quiz.n = 0; quiz.names = S.names; S.names = false; nextQuiz();
 }
-function endQuiz() { quiz.on = false; clearTimeout(quiz.timer); S.names = quiz.names; S.sel = null; $('quizCard').hidden = true; toast('Oyun bitti: ' + quiz.score + ' / ' + quiz.n + ' doğru.'); }
+function endQuiz() { quiz.on = false; clearTimeout(quiz.timer); S.names = quiz.names; S.sel = null; $('quizCard').hidden = true; toast(T('Oyun bitti: ') + quiz.score + ' / ' + quiz.n + T(' doğru.')); }
 function nextQuiz() {
   if (!quiz.on) return;
   const upC = Object.values(CONS).filter(c => c.rank <= 2 && mul(M, c.v)[2] > 0.25);
   const upS = STARS.filter(s => s.name && s.mag < 1.8 && mul(M, s.v)[2] > 0.2);
   const useStar = upS.length >= 4 && Math.random() < 0.4;
-  const pool = useStar ? upS : upC; if (pool.length < 4) { toast('Gökte yeterince takımyıldız yok; zamanı geceye al.'); endQuiz(); return; }
+  const pool = useStar ? upS : upC; if (pool.length < 4) { toast(T('Gökte yeterince takımyıldız yok; zamanı geceye al.')); endQuiz(); return; }
   const ans = pool[Math.floor(Math.random()*pool.length)], wrong = pool.filter(x => x !== ans).sort(() => Math.random() - 0.5).slice(0, 3);
   const opts = [ans, ...wrong].sort(() => Math.random() - 0.5);
   quiz.q = { ans, star: useStar };
@@ -1980,8 +2521,8 @@ function nextQuiz() {
   S.sel = obj; flyTo(mul(M, ans.v), useStar ? 30*D2R : 62*D2R, obj); S.fly.dur = 2.2;
   const nm = x => useStar ? starTitle(x) : x.la;
   const c = $('quizCard');
-  c.innerHTML = '<div class="tk">Oyun · ' + quiz.score + ' / ' + quiz.n + '</div><div class="tt">' + (useStar ? 'Halkadaki yıldız hangisi?' : 'Altın çizgili takımyıldız hangisi?') + '</div>' +
-    '<div class="qopts">' + opts.map((o, i) => '<button class="btn" data-q="' + i + '">' + esc(nm(o)) + '</button>').join('') + '</div><div class="tb2"><button class="btn" id="qEnd">Oyunu bitir</button></div>';
+  c.innerHTML = T('<div class="tk">Oyun · ') + quiz.score + ' / ' + quiz.n + '</div><div class="tt">' + (useStar ? T('Halkadaki yıldız hangisi?') : T('Altın çizgili takımyıldız hangisi?')) + '</div>' +
+    '<div class="qopts">' + opts.map((o, i) => '<button class="btn" data-q="' + i + '">' + esc(nm(o)) + '</button>').join('') + T('</div><div class="tb2"><button class="btn" id="qEnd">Oyunu bitir</button></div>');
   c.hidden = false;
   c.querySelectorAll('[data-q]').forEach(b => b.addEventListener('click', () => {
     if (quiz.q.done) return; quiz.q.done = true; quiz.n++;
@@ -1997,11 +2538,11 @@ function nextQuiz() {
 /* ---------- discover hub ---------- */
 function openHub() {
   const card = (id, t, d, ic) => '<button class="hub" id="' + id + '"><i>' + ic + '</i><b>' + t + '</b><span>' + d + '</span></button>';
-  openSheet('<div class="shead"><div class="grow"><div class="kind">Keşfet</div><h2>Ne yapmak istersin?</h2></div>' + closeX + '</div><div class="hubs">' +
-    card('hBirth', 'Doğduğun gece', 'Doğum anının gökyüzü kartı', '✦') + card('hTour', 'Gök turu', 'Bu gecenin en güzel cisimleri', '◎') +
-    card('hTonight', 'Bu gece', 'Saatler, olaylar, gözlem skoru', '☾') + card('hIss', 'Uzay istasyonu', 'Ne zaman üstünden geçecek?', '⌁') +
-    card('hQuiz', 'Takımyıldız oyunu', 'Gökyüzünü ne kadar tanıyorsun?', '?') + card('hLog', 'Koleksiyonum', 'Gördüklerin ve rozetlerin', '★') +
-    card('hShare', 'Paylaş', 'Görüntü ya da bağlantı gönder', '↗') + card('hSet', 'Ayarlar', 'Parlaklık, zemin, ses…', '⚙') + '</div>', 'hub');
+  openSheet(T('<div class="shead"><div class="grow"><div class="kind">Keşfet</div><h2>Ne yapmak istersin?</h2></div>') + closeX + '</div><div class="hubs">' +
+    card('hBirth', T('Doğduğun gece'), T('Doğum anının gökyüzü kartı'), '✦') + card('hTour', T('Gök turu'), T('Bu gecenin en güzel cisimleri'), '◎') +
+    card('hTonight', T('Bu gece'), T('Saatler, olaylar, gözlem skoru'), '☾') + card('hIss', T('Uzay istasyonu'), T('Ne zaman üstünden geçecek?'), '⌁') +
+    card('hQuiz', T('Takımyıldız oyunu'), T('Gökyüzünü ne kadar tanıyorsun?'), '?') + card('hLog', T('Koleksiyonum'), T('Gördüklerin ve rozetlerin'), '★') +
+    card('hShare', T('Paylaş'), T('Görüntü ya da bağlantı gönder'), '↗') + card('hSet', T('Ayarlar'), T('Parlaklık, zemin, ses…'), '⚙') + '</div>', 'hub');
   $('hBirth').onclick = openBirth; $('hTour').onclick = startTour; $('hTonight').onclick = openTonight; $('hQuiz').onclick = startQuiz;
   $('hLog').onclick = openCollection; $('hShare').onclick = openShare; $('hSet').onclick = openSettings;
   $('hIss').onclick = () => { if (ISS.e) select({ kind: 'iss', ref: ISS }, true); else openSheet(issCard(), 'info'); bindPasses(); };
@@ -2023,7 +2564,7 @@ function soundOn(on) {
     const lfo = C.createOscillator(), lg = C.createGain(); lfo.frequency.value = 0.07; lg.gain.value = 0.07; lfo.connect(lg); lg.connect(wg.gain); lfo.start();
     src.connect(lp); lp.connect(wg); wg.connect(master); src.start();
     SND.noise = buf;
-  } catch (e) { toast('Bu cihazda ses başlatılamadı.'); }
+  } catch (e) { toast(T('Bu cihazda ses başlatılamadı.')); }
 }
 function soundTick() {
   if (!SND.ctx || dayReal > 0.4) return;
@@ -2049,7 +2590,7 @@ const PERF = { sum: 0, n: 0, reduced: false };
 function perfTick(dtMs) {
   if (PERF.reduced) return; PERF.sum += dtMs; PERF.n++;
   if (PERF.n >= 120) { const avg = PERF.sum/PERF.n; PERF.sum = 0; PERF.n = 0;
-    if (avg > 42 && (window.devicePixelRatio || 1) > 1) { PERF.reduced = true; DPR_CAP = 1; resize(); toast('Akıcılık için görüntü çözünürlüğü düşürüldü.'); } }
+    if (avg > 42 && (window.devicePixelRatio || 1) > 1) { PERF.reduced = true; DPR_CAP = 1; resize(); toast(T('Akıcılık için görüntü çözünürlüğü düşürüldü.')); } }
 }
 
 /* chips: what's up right now */
@@ -2057,9 +2598,9 @@ function buildChips() {
   const up = bodies.filter(b => b.e[2] > 0 && b.b !== 'Sun' && b.mag < 5);
   const box = $('chips');
   const shifted = Math.abs(S.offset) > 10*60000;
-  box.innerHTML = (shifted ? '<button class="chip" id="nowChip" style="border-color:rgba(255,139,107,.6);color:#ffb39e">⟲ Şimdiye dön</button>' : '') + '<button class="chip" id="tonightChip" style="border-color:rgba(227,194,126,.55);color:var(--gilt)">Bu gece ▸</button><button class="chip" id="tourChip" style="border-color:rgba(140,220,255,.5);color:#9fdcff">Gök turu ▸</button>' + (up.length ? '<span class="lead">Şu an gökte</span>' : '') + up.map(b => '<button class="chip" data-b="' + b.b + '"><i style="background:' + b.col + '"></i>' + b.tr + '</button>').join('');
+  box.innerHTML = (shifted ? T('<button class="chip" id="nowChip" style="border-color:rgba(255,139,107,.6);color:#ffb39e">⟲ Şimdiye dön</button>') : '') + T('<button class="chip" id="tonightChip" style="border-color:rgba(227,194,126,.55);color:var(--gilt)">Bu gece ▸</button><button class="chip" id="tourChip" style="border-color:rgba(140,220,255,.5);color:#9fdcff">Gök turu ▸</button>') + (up.length ? T('<span class="lead">Şu an gökte</span>') : '') + up.map(b => '<button class="chip" data-b="' + b.b + '"><i style="background:' + b.col + '"></i>' + b.tr + '</button>').join('');
   $('tonightChip').addEventListener('click', openTonight);
-  if (shifted) $('nowChip').addEventListener('click', () => { if (trails.on) setTrails(false); S.offset = 0; S.speed = 1; updateAstro(true); buildChips(); toast('Şu anki gökyüzüne dönüldü.'); });
+  if (shifted) $('nowChip').addEventListener('click', () => { if (trails.on) setTrails(false); S.offset = 0; S.speed = 1; updateAstro(true); buildChips(); toast(T('Şu anki gökyüzüne dönüldü.')); });
   $('tourChip').addEventListener('click', startTour);
   box.querySelectorAll('[data-b]').forEach(c => c.addEventListener('click', () => select({ kind: 'body', ref: bodies.find(b => b.b === c.dataset.b) }, true)));
 }
@@ -2091,12 +2632,12 @@ function frame(nowT) {
   updateCam();
   updateMeteors(dt);
   updateHome();
-  { const a = ((S.az*R2D) % 360 + 360) % 360, txt = COMPASS[Math.round(a/45) % 8] + ' ' + Math.round(a) + '° · yükseklik ' + Math.round(S.alt*R2D) + '° · görüş ' + (S.fov*R2D < 1 ? fmtN(S.fov*R2D, 2) : S.fov*R2D < 10 ? fmtN(S.fov*R2D, 1) : Math.round(S.fov*R2D)) + '°'; if (hudEl.textContent !== txt) hudEl.textContent = txt; }
+  { const a = ((S.az*R2D) % 360 + 360) % 360, txt = COMPASS[Math.round(a/45) % 8] + ' ' + Math.round(a) + T('° · yükseklik ') + Math.round(S.alt*R2D) + T('° · görüş ') + (S.fov*R2D < 1 ? fmtN(S.fov*R2D, 2) : S.fov*R2D < 10 ? fmtN(S.fov*R2D, 1) : Math.round(S.fov*R2D)) + '°'; if (hudEl.textContent !== txt) hudEl.textContent = txt; }
   render();
   drawTrails();
   if (shotReq) { const r = shotReq; shotReq = null; r(composeShot()); }
   updateISS(); soundTick(); perfTick(dt*1000);
-  $('timeTxt').textContent = now.toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + (S.speed > 1 ? ' ▸' + S.speed + '×' : S.offset !== 0 && Math.abs(S.offset) > 60000 ? ' •' : '');
+  $('timeTxt').textContent = now.toLocaleString(LOCALE, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + (S.speed > 1 ? ' ▸' + S.speed + '×' : S.offset !== 0 && Math.abs(S.offset) > 60000 ? ' •' : '');
   if (nowT - lastChips > 5000 || (S.speed > 1 && nowT - lastChips > 600)) { lastChips = nowT; buildChips(); }
   if (S.sel && sheetMode === 'info' && nowT - lastInfo > (S.speed > 1 ? 400 : 3000)) { lastInfo = nowT; refreshPos(); }
   requestAnimationFrame(frame);
@@ -2106,8 +2647,8 @@ function refreshPos() {
   const e = selE(S.sel); if (!e) return;
   const [altT, azT] = altAzTxt(e);
   const vs = sheet.querySelectorAll('.row'); vs.forEach(r => { const k = r.querySelector('.k'); if (!k) return;
-    if (k.textContent === 'Yükseklik') { r.querySelector('.v').textContent = altT; const n = r.querySelector('.n'); if (n) n.textContent = e[2] >= 0 ? 'ufkun üstünde' : 'ufkun altında'; }
-    if (k.textContent === 'Yön') r.querySelector('.v').textContent = azT; });
+    if (k.textContent === T('Yükseklik')) { r.querySelector('.v').textContent = altT; const n = r.querySelector('.n'); if (n) n.textContent = e[2] >= 0 ? T('ufkun üstünde') : T('ufkun altında'); }
+    if (k.textContent === T('Yön')) r.querySelector('.v').textContent = azT; });
 }
 
 $('locName').textContent = S.loc.name;
@@ -2133,8 +2674,8 @@ const HOME = { fov: 96*D2R };
 const bv = bestView();
 if (bv) { const l = lookAtE(bv.e); tAz = l.az; tAlt = Math.min(Math.max(l.alt - 6*D2R, 22*D2R), 55*D2R); }
 else if (showcase) { const l = lookAtE(showcase.e); tAz = l.az; tAlt = Math.min(l.alt + 8*D2R, 60*D2R); }
-$('introSub').textContent = S.loc.name + (autoNight ? ' · bu gece ' + hm(autoNight) : ' · şu anki gerçek gökyüzü');
-if (autoNight) setTimeout(() => toast('Şu an gökyüzü aydınlık; sana bu gecenin karanlık gökyüzünü gösteriyorum.'), 4200);
+$('introSub').textContent = S.loc.name + (autoNight ? T(' · bu gece ') + hm(autoNight) : T(' · şu anki gerçek gökyüzü'));
+if (autoNight) setTimeout(() => toast(T('Şu an gökyüzü aydınlık; sana bu gecenin karanlık gökyüzünü gösteriyorum.')), 4200);
 HOME.az = tAz; HOME.alt = tAlt;
 if (matchMedia('(prefers-reduced-motion: reduce)').matches) { S.az = tAz; S.alt = tAlt; }
 else { S.az = tAz - 0.9; S.alt = 86*D2R; S.fov = 118*D2R; S.fly = { t: 0, az0: S.az, alt0: S.alt, fov0: S.fov, daz: 0.9, alt1: tAlt, fov1: 96*D2R, dur: 4.6 }; }
@@ -2158,8 +2699,8 @@ function updateHome() {
 if (!savedLoc && !(LINK && LINK.loc) && navigator.geolocation) {
   try {
     navigator.geolocation.getCurrentPosition(p => {
-      setLoc({ name: 'Konumum', lat: +p.coords.latitude.toFixed(3), lon: +p.coords.longitude.toFixed(3) }, true);
-      toast('Konumun bulundu: gökyüzü bulunduğun yere göre hesaplanıyor.');
+      setLoc({ name: T('Konumum'), lat: +p.coords.latitude.toFixed(3), lon: +p.coords.longitude.toFixed(3) }, true);
+      toast(T('Konumun bulundu: gökyüzü bulunduğun yere göre hesaplanıyor.'));
     }, () => {}, { timeout: 8000, maximumAge: 3600000 });
   } catch (e) {}
 }
@@ -2167,17 +2708,29 @@ if (!savedLoc && !(LINK && LINK.loc) && navigator.geolocation) {
 /* offline support on the published site (the Claude preview cannot register workers) */
 if ('serviceWorker' in navigator && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register('sw.js').catch(() => {});
 
+/* static interface text in the chosen language */
+if (LANG === 'en') {
+  document.title = 'Sky Atlas';
+  const lab = { tCons: 'Lines', tNames: 'Names', tDso: 'Galaxies', tMw: 'Milky Way', tAtmo: 'Atmosphere', tRed: 'Night', tGyro: 'Point' };
+  Object.entries(lab).forEach(([id, t]) => { const el = $(id); if (el && el.lastChild) el.lastChild.textContent = t; });
+  const hb = document.querySelector('#hubBtn span'); if (hb) hb.textContent = 'Explore';
+  if (homeBtn.lastChild) homeBtn.lastChild.textContent = 'Back';
+  const it = document.querySelector('#intro .it'); if (it) it.textContent = 'Sky Atlas';
+  [['locBtn', 'Change location'], ['timeBtn', 'Change time'], ['searchBtn', 'Search'], ['setBtn', 'Settings'], ['hubBtn', 'Explore'], ['play', 'Pause']].forEach(([id, t]) => { const el = $(id); if (el) el.setAttribute('aria-label', t); });
+  ov.setAttribute('aria-label', 'Sky map. Drag to look around, pinch to zoom, tap an object for details.');
+}
+
 /* hub, ISS, first-run guide */
 $('hubBtn').addEventListener('click', openHub);
 setTimeout(loadISS, 1800);
 const ONB = [
-  ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 40V20a4 4 0 0 1 8 0v14"/><path d="M30 32v-4a4 4 0 0 1 8 0v6"/><path d="M38 33a4 4 0 0 1 8 0v8c0 9-6 15-14 15s-12-5-15-11l-4-8a4 4 0 0 1 7-4l2 4"/><path d="M8 14h10M46 14h10M13 9l-5 5 5 5M51 9l5 5-5 5"/></svg>', 'Etrafa bak', 'Ekranı parmağınla sürükle; gökyüzünün her yönüne dönebilirsin. Telefonu göğe tutmak için alttaki "Göğe tut"a bas.'],
-  ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="28" cy="28" r="14"/><path d="M38 38l14 14M22 28h12M28 22v12"/></svg>', 'Yakınlaş', 'İki parmakla aç-kapa ya da fare tekerleğini kullan. Yakınlaştıkça sönük yıldızlar, galaksiler ve Jupiter\'in uyduları ortaya çıkar.'],
-  ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 6l5 15 16 1-12 10 4 16-13-9-13 9 4-16L11 22l16-1z"/></svg>', 'Dokun ve keşfet', 'Bir yıldıza, gezegene ya da takımyıldıza dokun; hikâyesi açılır. Sağ üstteki "Keşfet"te gök turu, doğduğun gecenin gökyüzü ve oyun var.']
+  ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 40V20a4 4 0 0 1 8 0v14"/><path d="M30 32v-4a4 4 0 0 1 8 0v6"/><path d="M38 33a4 4 0 0 1 8 0v8c0 9-6 15-14 15s-12-5-15-11l-4-8a4 4 0 0 1 7-4l2 4"/><path d="M8 14h10M46 14h10M13 9l-5 5 5 5M51 9l5 5-5 5"/></svg>', T('Etrafa bak'), T('Ekranı parmağınla sürükle; gökyüzünün her yönüne dönebilirsin. Telefonu göğe tutmak için alttaki "Göğe tut"a bas.')],
+  ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="28" cy="28" r="14"/><path d="M38 38l14 14M22 28h12M28 22v12"/></svg>', T('Yakınlaş'), T('İki parmakla aç-kapa ya da fare tekerleğini kullan. Yakınlaştıkça sönük yıldızlar, galaksiler ve Jupiter\'in uyduları ortaya çıkar.')],
+  ['<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 6l5 15 16 1-12 10 4 16-13-9-13 9 4-16L11 22l16-1z"/></svg>', T('Dokun ve keşfet'), T('Bir yıldıza, gezegene ya da takımyıldıza dokun; hikâyesi açılır. Sağ üstteki "Keşfet"te gök turu, doğduğun gecenin gökyüzü ve oyun var.')]
 ];
 function showOnb(i) {
   const o = $('onb'), c = $('onbc'); if (i >= ONB.length) { o.hidden = true; store.set('onb', 1); return; }
-  c.innerHTML = ONB[i][0] + '<h3>' + ONB[i][1] + '</h3><p>' + ONB[i][2] + '</p><div class="dots">' + ONB.map((_, k) => '<i class="' + (k === i ? 'on' : '') + '"></i>').join('') + '</div><div class="btns"><button class="btn" id="onbSkip">Geç</button><button class="btn on" id="onbNext">' + (i === ONB.length - 1 ? 'Başla' : 'İleri') + '</button></div>';
+  c.innerHTML = ONB[i][0] + '<h3>' + ONB[i][1] + '</h3><p>' + ONB[i][2] + '</p><div class="dots">' + ONB.map((_, k) => '<i class="' + (k === i ? 'on' : '') + '"></i>').join('') + T('</div><div class="btns"><button class="btn" id="onbSkip">Geç</button><button class="btn on" id="onbNext">') + (i === ONB.length - 1 ? T('Başla') : T('İleri')) + '</button></div>';
   o.hidden = false; $('onbNext').onclick = () => showOnb(i + 1); $('onbSkip').onclick = () => showOnb(ONB.length);
 }
 if (!store.get('onb', 0) && !LINK) setTimeout(() => showOnb(0), 5600);
@@ -2189,10 +2742,10 @@ function addDeep(D) {
     const s = { i: base + k, v: eqv(D.ra[k], D.dec[k]), ra: D.ra[k], dec: D.dec[k], mag: D.mag[k], ci: D.ci[k], ly: D.ly[k], sp: D.sp[k], name: D.name[k], bayer: D.bayer[k], flam: D.flam[k], con: D.con[k], lum: D.lum[k], hip: D.hip[k], hd: D.hd[k], hr: D.hr[k], gl: D.gl[k], vr: D.vr[k], rgb: bvToRgb(D.ci[k]) };
     STARS.push(s);
     const t = starTitle(s);
-    INDEX.push({ t, s: 'Yıldız · ' + (CONS[s.con] ? CONS[s.con].la : ''), k: nrm(t + ' ' + (s.name || '') + ' ' + starCats(s).join(' ')), o: { kind: 'star', ref: s } });
+    INDEX.push({ t, s: T('Yıldız · ') + (CONS[s.con] ? CONS[s.con].la : ''), k: nrm(t + ' ' + (s.name || '') + ' ' + starCats(s).join(' ')), o: { kind: 'star', ref: s } });
   }
   uploadStars();
-  toast('Tüm katalog yüklendi: ' + fmtN(STARS.length) + ' yıldız. Yakınlaştırdıkça sönükler görünür.');
+  toast(T('Tüm katalog yüklendi: ') + fmtN(STARS.length) + T(' yıldız. Yakınlaştırdıkça sönükler görünür.'));
 }
 setTimeout(() => {
   const sc = document.createElement('script'); sc.src = 'gokyuzu-veri-derin.js';
