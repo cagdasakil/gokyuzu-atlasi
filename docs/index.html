@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
 <meta name="theme-color" content="#04060c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="Konuma ve saate göre gerçek gökyüzü: 119.625 yıldız, gezegenler, galaksiler, Uzay İstasyonu.">
+<meta name="description" content="The real sky for your place and time: 119,625 stars, planets, galaxies, the Space Station. Türkçe de var.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Gökyüzü Atlası · Sky Atlas">
 <meta property="og:description" content="Şu an başının üstündeki gerçek gökyüzü: 119.625 yıldız, gezegenler, galaksiler, Uzay İstasyonu, 3D yolculuk. The real sky above you, right now.">
@@ -268,7 +268,7 @@ input[type="range"] { accent-color: var(--gilt); }
 (() => {
 'use strict';
 /* ---------------- language ---------------- */
-var LANG = (() => { try { const v = localStorage.getItem('gk_lang'); if (v) return JSON.parse(v); } catch (e) {} return /^tr\b/i.test(navigator.language || '') ? 'tr' : 'en'; })();
+var LANG = (() => { try { const v = localStorage.getItem('gk_lang'); if (v) return JSON.parse(v); } catch (e) {} return 'en'; })(); // English first; Türkçe is one tap away in Settings
 var LOCALE = LANG === 'tr' ? 'tr-TR' : (navigator.language && !/^tr/i.test(navigator.language) ? navigator.language : 'en-GB');
 var EN = {
   '10.000–30.000 K': '10,000–30,000 K',
@@ -3512,7 +3512,7 @@ if ('serviceWorker' in navigator && /github\.io$/.test(location.hostname)) navig
 /* static interface text in the chosen language */
 if (LANG === 'en') {
   document.title = 'Sky Atlas'; $('camTxt').textContent = 'Camera';
-  const lab = { tTonight: 'Tonight', tExplore: 'Explore', tGyro: 'Point', tLayers: 'Layers', tSet: 'Settings' };
+  const lab = { tTonight: 'Tonight', tExplore: 'Explore', tShip: 'Shuttle', tGyro: 'Point', tLayers: 'Layers', tSet: 'Settings' };
   Object.entries(lab).forEach(([id, t]) => { const el = $(id); if (el && el.lastChild) el.lastChild.textContent = t; });
   if (homeBtn.lastChild) homeBtn.lastChild.textContent = 'Back';
   const it = document.querySelector('#intro .it'); if (it) it.textContent = 'Sky Atlas';
