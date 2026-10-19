@@ -1575,7 +1575,7 @@ function figCanvas(id, file) {
     const w2 = cv.width, h2 = cv.height, idt = g.getImageData(0, 0, w2, h2), px = idt.data;
     for (let i = 0, n = 0; i < px.length; i += 4, n++) {
       const dx = (n % w2)/w2*2 - 1, dy = ((n/w2) | 0)/h2*2 - 1, rr = Math.sqrt(dx*dx + dy*dy), m = rr < 0.7 ? 1 : Math.max(0, 1 - (rr - 0.7)/0.3);
-      const v = px[i], o = v < 40 ? 0 : Math.min(255, (v - 40)*1.5)*m*m;
+      const v = px[i], o = v < 22 ? 0 : Math.min(255, (v - 22)*3)*m*m;
       // gold line, alpha from brightness: black must be transparent, or it darkens the Milky Way below this overlay in rectangles
       px[i] = 232; px[i + 1] = 201; px[i + 2] = 138; px[i + 3] = o;
     }
@@ -1603,7 +1603,7 @@ function drawFigures(night) {
     if (!(sx > 0 && sy > 0) || Math.max(sx, sy)/Math.min(sx, sy) > 2.2 || area/(sx*sy) < 0.55) continue;
     if (Math.max(sx, sy)*img.width > 1.8*big || Math.sqrt(area)*img.width < 30) continue;
     if (sp.some(q => q[0] < -big || q[0] > W + big || q[1] < -big || q[1] > H + big)) continue;
-    ctx.globalAlpha = (hi ? 0.6 : 0.24)*night;
+    ctx.globalAlpha = (hi ? 0.95 : 0.6)*night;
     ctx.setTransform(dpr*a, dpr*b, dpr*cc, dpr*d, dpr*e, dpr*f);
     ctx.drawImage(img, 0, 0);
   }
