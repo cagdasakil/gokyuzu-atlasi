@@ -1569,9 +1569,21 @@ function drawFigures(night) {
   if (!HIPMAP || HIPMAP.n !== STARS.length) { HIPMAP = new Map(); STARS.forEach(st => { if (st.hip && !HIPMAP.has(st.hip)) HIPMAP.set(st.hip, st); }); HIPMAP.n = STARS.length; }
   const selCon = S.sel && S.sel.kind === 'con' ? S.sel.ref.id : (S.sel && S.sel.kind === 'star' ? S.sel.ref.con : null);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  // the art must not cover the ground: the view is gnomonic, so the horizon is a straight line on screen
+  // and a pixel's altitude sign is linear in x and y; clip the drawing to the sky side of that line
+  const clipGround = SET.ground !== 'off' && !AR.on && !seeThrough;
+  if (clipGround) {
+    const hz = 0.012, kA = cam.tx*cam.R[2]/(W/2), kB = -cam.ty*cam.U[2]/(H/2), kC = cam.F[2] - kA*W/2 - kB*H/2 - hz;
+    const f = q => kA*q[0] + kB*q[1] + kC, rect = [[0, 0], [W, 0], [W, H], [0, H]], poly = [];
+    for (let i = 0; i < 4; i++) { const a = rect[i], b = rect[(i + 1) % 4], fa = f(a), fb = f(b);
+      if (fa >= 0) poly.push(a);
+      if ((fa >= 0) !== (fb >= 0)) { const t = fa/(fa - fb); poly.push([a[0] + (b[0] - a[0])*t, a[1] + (b[1] - a[1])*t]); } }
+    if (poly.length < 3) { ctx.restore(); return; }
+    ctx.beginPath(); poly.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); ctx.clip();
+  }
   for (const id in FIG) {
     const hi = id === selCon; if (!SET.figures && !hi) continue;
-    const c = CONS[id]; if (c) { const ce = mul(M, c.v); if (dot(ce, cam.F) < Math.cos(Math.min(1.5, S.fov*0.9 + 0.5))) continue; if (!hi && ce[2] < 0.05) continue; }
+    const c = CONS[id]; if (c) { const ce = mul(M, c.v); if (dot(ce, cam.F) < Math.cos(Math.min(1.5, S.fov*0.9 + 0.5))) continue; if (!hi && ce[2] < (clipGround ? -0.15 : 0.05)) continue; }
     const [file, an] = FIG[id], sp = [];
     for (const a of an) { const st = HIPMAP.get(a[2]); if (!st) break; const e = mul(M, st.v); const p = proj(e); if (!p) break; sp.push(p); }
     if (sp.length < 3) continue;
@@ -1586,7 +1598,10 @@ function drawFigures(night) {
     if (!(sx > 0 && sy > 0) || Math.max(sx, sy)/Math.min(sx, sy) > 2.2 || area/(sx*sy) < 0.55) continue;
     if (Math.max(sx, sy)*img.width > 1.8*big || Math.sqrt(area)*img.width < 30) continue;
     if (sp.some(q => q[0] < -big || q[0] > W + big || q[1] < -big || q[1] > H + big)) continue;
-    ctx.globalAlpha = (hi ? 0.95 : 0.6)*night;
+    // a 512 px drawing blown up far beyond its size turns into blurry brush strokes: fade it out as it grows
+    const zoomK = Math.sqrt(area), fade = 1 - smooth(1.1, 1.9, zoomK);
+    if (fade <= 0.01) continue;
+    ctx.globalAlpha = (hi ? 0.95 : 0.6)*night*fade;
     ctx.setTransform(dpr*a, dpr*b, dpr*cc, dpr*d, dpr*e, dpr*f);
     ctx.drawImage(img, 0, 0);
   }
