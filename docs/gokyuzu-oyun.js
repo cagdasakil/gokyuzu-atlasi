@@ -1,6 +1,6 @@
 /* Gökyüzü Atlası · Uzay mekiği
-   Fly a shuttle through the Solar System and jump to nearby stars; every arrival opens a discovery card,
-   a badge and one quiz question. Needs three.js (r149, UMD) loaded before GKGame.open() is called. */
+   Fly a shuttle through the Solar System and jump to nearby stars; every arrival earns a badge and a small
+   label that opens a discovery card. Needs three.js (r149, UMD) loaded before GKGame.open() is called. */
 (() => {
 'use strict';
 let THREE = null, G = null, LANG = 'tr';
@@ -24,7 +24,7 @@ const STARSYS = {
   AlphaCen: { ra: 219.90, dec: -60.83, ly: 4.37 }, Sirius: { ra: 101.287, dec: -16.716, ly: 8.6 },
   Vega: { ra: 279.235, dec: 38.784, ly: 25 }, Betelgeuse: { ra: 88.793, dec: 7.407, ly: 550 }
 };
-// cards: name, kind, three facts, real numbers, one quiz question (first answer is the right one; shuffled on screen)
+// cards: name, kind, three facts, real numbers; q/a hold a question per stop (first answer right), not asked in flight
 const INFO = {
   Sun: { n: ['Güneş', 'Sun'], k: ['Yıldız', 'Star'],
     f: [['Güneş Sistemi\'ndeki bütün kütlenin %99,8\'i Güneş\'tedir.', 'The Sun holds 99.8% of all the mass in the Solar System.'],
@@ -245,9 +245,9 @@ const CSS = `
 #gk .gauge { min-width: 150px; padding: 8px 12px; border-radius: 12px; background: rgba(8,10,20,.6); border: 1px solid rgba(227,194,126,.22); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); pointer-events: none !important; }
 #gk .gauge .l { display: flex; justify-content: space-between; font: 600 10px var(--f-ui, Manrope); letter-spacing: .12em; text-transform: uppercase; color: #8e93a3; margin-top: 4px; }
 #gk .gauge .l:first-child { margin-top: 0; }
-#gk .bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden; margin-top: 3px; }
-#gk .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #6fb3ff, #e3c27e); border-radius: 3px; }
-#gk .bar.sh i { background: linear-gradient(90deg, #ff6b5a, #7ef0c2); }
+#gk .gkbar { height: 5px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden; margin-top: 3px; }
+#gk .gkbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #6fb3ff, #e3c27e); border-radius: 3px; }
+#gk .gkbar.sh i { background: linear-gradient(90deg, #ff6b5a, #7ef0c2); }
 #gk .thr { position: absolute; right: 14px; bottom: calc(max(12px, env(safe-area-inset-bottom)) + 70px); width: 46px; height: 190px; border-radius: 23px; background: rgba(8,10,20,.6); border: 1px solid rgba(227,194,126,.3); touch-action: none; }
 #gk .thr i { position: absolute; left: 4px; right: 4px; bottom: 4px; border-radius: 19px; background: linear-gradient(0deg, rgba(111,179,255,.5), rgba(227,194,126,.85)); }
 #gk .thr span { position: absolute; left: 0; right: 0; top: -20px; text-align: center; font: 600 10px var(--f-ui, Manrope); letter-spacing: .1em; color: #8e93a3; }
@@ -258,25 +258,30 @@ const CSS = `
 #gk .hint { position: absolute; left: 50%; bottom: calc(max(12px, env(safe-area-inset-bottom)) + 92px); transform: translateX(-50%); font: 500 12px var(--f-ui, Manrope); color: #8e93a3; text-align: center; pointer-events: none; text-shadow: 0 1px 6px #000; width: min(92vw, 520px); transition: opacity .6s; }
 #gk .msg { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; font: italic 600 46px var(--f-name, Georgia, serif); color: #e3c27e; text-shadow: 0 2px 20px #000; opacity: 0; transition: opacity .4s; width: 92vw; }
 #gk .msg small { display: block; font: 500 14px var(--f-ui, Manrope); font-style: normal; color: #c9c4b6; margin-top: 8px; }
-#gk .card { position: absolute; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translate(-50%, 30px); width: min(520px, calc(100vw - 24px)); max-height: calc(100vh - 110px); overflow: auto; padding: 18px 18px 16px; border-radius: 18px; background: rgba(9,11,22,.9); border: 1px solid rgba(227,194,126,.35); box-shadow: 0 20px 60px rgba(0,0,0,.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); opacity: 0; pointer-events: none; transition: opacity .35s, transform .35s; z-index: 3; }
+#gk .card { position: absolute; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translate(-50%, 30px); width: min(520px, calc(100vw - 24px)); max-height: min(62vh, calc(100vh - 110px)); overflow: auto; padding: 18px 18px 16px; border-radius: 18px; background: rgba(9,11,22,.9); border: 1px solid rgba(227,194,126,.35); box-shadow: 0 20px 60px rgba(0,0,0,.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); opacity: 0; pointer-events: none; transition: opacity .35s, transform .35s; z-index: 3; }
 #gk .card.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 #gk .card .kk { font: 600 10.5px var(--f-ui, Manrope); letter-spacing: .16em; text-transform: uppercase; color: #8e93a3; }
-#gk .card h3 { margin: 2px 0 6px; font: 600 34px var(--f-name, Georgia, serif); line-height: 1.05; }
+#gk .card h3 { margin: 2px 0 6px; font: 600 28px var(--f-name, Georgia, serif); line-height: 1.05; }
 #gk .card ul { margin: 8px 0; padding-left: 18px; }
-#gk .card li { margin: 6px 0; font: italic 500 17.5px var(--f-name, Georgia, serif); line-height: 1.32; color: #ddd6c6; }
+#gk .card li { margin: 5px 0; font: italic 500 16px var(--f-name, Georgia, serif); line-height: 1.32; color: #ddd6c6; }
 #gk .card .st { font: 500 12px var(--f-num, Menlo, monospace); color: #a9a597; margin: 8px 0 12px; line-height: 1.5; }
-#gk .card .row { display: flex; gap: 8px; flex-wrap: wrap; }
+#gk .card .gkrow { display: flex; gap: 8px; flex-wrap: wrap; }
 #gk .card .ans { display: grid; gap: 8px; margin: 10px 0; }
 #gk .card .ans .b { border-radius: 12px; text-align: left; padding: 11px 13px; font-size: 14px; white-space: normal; }
 #gk .card .ans .b.ok { background: rgba(126,240,194,.2); border-color: #7ef0c2; }
 #gk .card .ans .b.no { background: rgba(255,107,90,.18); border-color: #ff6b5a; }
-#gk .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(227,194,126,.16); color: #e3c27e; font: 700 11px var(--f-ui, Manrope); letter-spacing: .08em; text-transform: uppercase; animation: gkpop .6s cubic-bezier(.2,1.6,.4,1); }
+#gk .gkbadge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(227,194,126,.16); color: #e3c27e; font: 700 11px var(--f-ui, Manrope); letter-spacing: .08em; text-transform: uppercase; animation: gkpop .6s cubic-bezier(.2,1.6,.4,1); }
 @keyframes gkpop { 0% { transform: scale(.3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-#gk .list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
-#gk .list .b { border-radius: 12px; text-align: left; padding: 10px 12px; white-space: normal; display: grid; gap: 2px; }
-#gk .list .b small { font: 500 11px var(--f-ui, Manrope); color: #8e93a3; }
-#gk .list .b.got { border-color: rgba(126,240,194,.55); }
-#gk .list .b.cur { background: rgba(227,194,126,.18); }
+#gk .gklist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+#gk .gklist .b { border-radius: 12px; text-align: left; padding: 10px 12px; white-space: normal; display: grid; gap: 2px; }
+#gk .gklist .b small { font: 500 11px var(--f-ui, Manrope); color: #8e93a3; }
+#gk .gklist .b.got { border-color: rgba(126,240,194,.55); }
+#gk .gklist .b.cur { background: rgba(227,194,126,.18); }
+#gk .gkchip { position: absolute; left: 50%; top: calc(max(10px, env(safe-area-inset-top)) + 78px); transform: translate(-50%, -12px); width: min(440px, calc(100vw - 32px)); box-sizing: border-box; display: grid; grid-template-columns: 1fr auto; column-gap: 10px; align-items: center; text-align: left; padding: 9px 14px; border-radius: 14px; border: 1px solid rgba(227,194,126,.45); background: rgba(9,11,22,.78); color: #e9e4d8; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity .35s, transform .35s; cursor: pointer; z-index: 2; }
+#gk .gkchip.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+#gk .gkchip b { font: italic 600 19px var(--f-name, Georgia, serif); color: #e3c27e; }
+#gk .gkchip span { grid-column: 1; font: 500 12.5px var(--f-ui, Manrope); color: #c9c4b6; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#gk .gkchip i { grid-column: 2; grid-row: 1 / span 2; font: 600 12px var(--f-ui, Manrope); font-style: normal; color: #e3c27e; white-space: nowrap; }
 #gk .warp { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, rgba(120,170,255,0) 30%, rgba(80,130,255,.28) 100%); transition: opacity .5s; }
 `;
 
@@ -293,14 +298,14 @@ function buildDom() {
     <path d="M0,0 L100,0 L100,3 Q50,7 0,3 Z" fill="url(#gkm)" opacity=".9"/><path d="M0,3 Q50,7 100,3" stroke="#e3c27e" stroke-opacity=".3" stroke-width=".2" fill="none"/>
   </svg>
   <div class="flash" id="gkFlash"></div>
-  <div class="top"><button class="b" id="gkX">✕ ${L('Çık', 'Exit')}</button><div class="tgt"><div class="k" id="gkTk"></div><div class="n" id="gkTn"></div><div class="d" id="gkTd"></div></div><button class="b" id="gkList">★ <span id="gkCnt"></span></button></div>
+  <div class="top"><button class="b" id="gkX">✕ ${L('Çık', 'Exit')}</button><div class="tgt"><div class="k" id="gkTk"></div><div class="n" id="gkTn"></div><div class="d" id="gkTd"></div></div><button class="b" id="gkView"></button><button class="b" id="gkList">★ <span id="gkCnt"></span></button></div>
   <div class="msg" id="gkMsg"></div>
   <div class="hint" id="gkHint"></div>
   <div class="joy" id="gkJoy"><i></i></div>
   <div class="thr" id="gkThr"><span>${L('GAZ', 'THRUST')}</span><i></i></div>
   <button class="turbo" id="gkTurbo">TURBO</button>
-  <div class="dash"><button class="b" id="gkAuto">${L('Otopilot', 'Autopilot')}</button><div class="gauge"><div class="l"><span>${L('Hız', 'Speed')}</span><span id="gkSp"></span></div><div class="bar"><i id="gkSpB"></i></div><div class="l"><span>${L('Kalkan', 'Shield')}</span><span id="gkShT"></span></div><div class="bar sh"><i id="gkSh"></i></div></div><button class="b" id="gkStop">${L('Dur', 'Stop')}</button></div>
-  <div class="card" id="gkCard"></div>`;
+  <div class="dash"><button class="b" id="gkAuto">${L('Otopilot', 'Autopilot')}</button><div class="gauge"><div class="l"><span>${L('Hız', 'Speed')}</span><span id="gkSp"></span></div><div class="gkbar"><i id="gkSpB"></i></div><div class="l"><span>${L('Kalkan', 'Shield')}</span><span id="gkShT"></span></div><div class="gkbar sh"><i id="gkSh"></i></div></div><button class="b" id="gkStop">${L('Dur', 'Stop')}</button></div>
+  <button class="gkchip" id="gkChip"></button><div class="card" id="gkCard"></div>`;
   document.body.appendChild(el); return el;
 }
 
@@ -501,6 +506,44 @@ function updateMeteors(M, dt) {
   });
 }
 
+/* ---------------- the shuttle ---------------- */
+// built at 10x and scaled down: nose toward -Z, about 6.4 units long before scaling
+function makeShuttle() {
+  const g = new THREE.Group(), V2 = (x, y) => new THREE.Vector2(x, y);
+  const white = new THREE.MeshStandardMaterial({ color: 0xf1ede4, roughness: 0.5, metalness: 0.08 });
+  const tile = new THREE.MeshStandardMaterial({ color: 0x1d1e23, roughness: 0.75 });
+  const grey = new THREE.MeshStandardMaterial({ color: 0x9a9ca3, roughness: 0.45, metalness: 0.5, side: THREE.DoubleSide });
+  const fus = new THREE.Mesh(new THREE.LatheGeometry([V2(0, 3.25), V2(0.2, 3.12), V2(0.4, 2.85), V2(0.54, 2.45), V2(0.62, 1.9), V2(0.64, 0.8), V2(0.64, -2.45), V2(0.6, -2.7)], 36), white);
+  fus.rotation.x = -Math.PI/2; fus.scale.set(1, 1, 0.82); g.add(fus);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.24, 20, 12), tile); nose.position.set(0, -0.02, -3.06); nose.scale.set(1, 0.8, 0.9); g.add(nose);
+  const win = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.16, 0.42), tile); win.position.set(0, 0.47, -2.3); win.rotation.x = -0.45; g.add(win);
+  const bay = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 3.6), tile); bay.position.set(0, 0.55, 0.1); g.add(bay);
+  // delta wings with black heat-tile undersides
+  const ws = new THREE.Shape([V2(0.45, -1.4), V2(0.75, -0.4), V2(2.35, 1.75), V2(2.35, 2.3), V2(0.45, 2.45)]);
+  [1, -1].forEach(side => {
+    const wg = new THREE.ExtrudeGeometry(ws, { depth: 0.09, bevelEnabled: false });
+    const w = new THREE.Mesh(wg, white); w.rotation.x = Math.PI/2; w.scale.x = side; w.position.y = -0.18; g.add(w);
+    const u = new THREE.Mesh(wg, tile); u.rotation.x = Math.PI/2; u.scale.set(side, 1, 0.3); u.position.y = -0.27; g.add(u);
+    const oms = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 1.4, 16), white); oms.rotation.x = Math.PI/2; oms.position.set(side*0.42, 0.42, 1.95); g.add(oms);
+  });
+  const fin = new THREE.Mesh(new THREE.ExtrudeGeometry(new THREE.Shape([V2(0.9, 0.5), V2(2.55, 0.5), V2(2.7, 2.15), V2(2.2, 2.15)]), { depth: 0.08, bevelEnabled: false }), white);
+  fin.rotation.y = -Math.PI/2; fin.position.x = 0.04; g.add(fin);
+  // three main engines with flames whose length follows the thrust
+  const flames = [], fGlow = glowTex([[0, 'rgba(255,255,255,1)'], [0.25, 'rgba(160,200,255,.7)'], [1, 'rgba(90,140,255,0)']]);
+  [[0, 0.22], [-0.3, -0.14], [0.3, -0.14]].forEach(([x, y]) => {
+    const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.25, 0.42, 18, 1, true), grey); bell.rotation.x = Math.PI/2; bell.position.set(x, y, 2.86); g.add(bell);
+    const fl = new THREE.Group(); fl.position.set(x, y, 3.05); g.add(fl);
+    const outer = new THREE.Mesh(new THREE.ConeGeometry(0.24, 1, 18, 1, true), new THREE.MeshBasicMaterial({ color: 0x6f9dff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    outer.rotation.x = Math.PI/2; outer.position.z = 0.5; fl.add(outer);
+    const inner = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.6, 14, 1, true), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    inner.rotation.x = Math.PI/2; inner.position.z = 0.3; fl.add(inner);
+    const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: fGlow, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); gl.scale.setScalar(0.9); gl.position.z = 0.05; fl.add(gl);
+    flames.push({ fl, gl });
+  });
+  const model = new THREE.Group(); model.add(g); model.scale.setScalar(0.1);
+  return { model, flames };
+}
+
 /* ---------------- game ---------------- */
 function init(opts) {
   const el = buildDom(), $ = id => el.querySelector('#' + id);
@@ -508,8 +551,12 @@ function init(opts) {
   const pr = Math.min(window.devicePixelRatio || 1, 2); renderer.setPixelRatio(pr);
   renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(70, 1, 0.3, 120000);
-  const ship = new THREE.Object3D(); ship.add(camera); scene.add(ship);
-  G = Object.assign(G || {}, { el, $, renderer, scene, camera, ship, pr, helio: opts.helio, tex: {} });
+  const ship = new THREE.Object3D(); scene.add(ship);
+  renderer.autoClear = false;
+  // the shuttle lives in its own little scene, drawn after the world with a near camera so it never clips
+  const shipScene = new THREE.Scene(), shipCam = new THREE.PerspectiveCamera(70, 1, 0.01, 50), shut = makeShuttle(); shipScene.add(shut.model);
+  const shipSun = new THREE.DirectionalLight(0xfff4e6, 2.4); shipScene.add(shipSun); shipScene.add(new THREE.AmbientLight(0x56607a, 0.55));
+  G = Object.assign(G || {}, { el, $, renderer, scene, camera, ship, pr, helio: opts.helio, tex: {}, shipScene, shipCam, shut, shipSun, view: 'chase', camQ: new THREE.Quaternion(), bank: 0, pitchV: 0 });
   // textures (procedural, painted once)
   Object.keys(TEX).forEach(k => { G.tex[k] = TEX[k](); });
   const sky = makeStarSphere(opts.stars); scene.add(sky); G.sky = sky;
@@ -525,6 +572,7 @@ function init(opts) {
     steer: { x: 0, y: 0, roll: 0 }, keys: {}, warp: null, card: null, last: performance.now(), running: false, meteorT: 3, hitCD: 0, near: null, flashT: 0 });
   bindInput(); resize(); window.addEventListener('resize', resize);
   placeAtEarth();
+  $('gkView').onclick = () => setView(G.view === 'chase' ? 'cockpit' : 'chase'); setView('chase');
   $('gkX').onclick = close; $('gkList').onclick = openList; $('gkAuto').onclick = () => setAuto(!G.auto);
   $('gkStop').onclick = () => { setAuto(false); setThr(0); };
   updateCount();
@@ -533,12 +581,12 @@ function placeAtEarth() {
   const e = G.sol.bodies.find(b => b.id === 'Earth').obj.position, out = e.clone().normalize();
   const side = new THREE.Vector3().crossVectors(out, new THREE.Vector3(0, 1, 0)).normalize();
   G.ship.position.copy(e).add(out.clone().multiplyScalar(-14*3.2)).add(side.multiplyScalar(14*2.2)).add(new THREE.Vector3(0, 9, 0));
-  const m = new THREE.Matrix4().lookAt(G.ship.position, e.clone().add(new THREE.Vector3(30, 0, 0)), new THREE.Vector3(0, 1, 0)); G.ship.quaternion.setFromRotationMatrix(m);
+  const m = new THREE.Matrix4().lookAt(G.ship.position, e.clone().add(new THREE.Vector3(30, 0, 0)), new THREE.Vector3(0, 1, 0)); G.ship.quaternion.setFromRotationMatrix(m); G.camQ.copy(G.ship.quaternion);
   G.speed = 0; G.thr = 0; G.near = new Set(['Earth']);
 }
 
 function resize() {
-  const w = innerWidth, h = innerHeight; G.renderer.setSize(w, h, false); G.camera.aspect = w/h; G.camera.updateProjectionMatrix();
+  const w = innerWidth, h = innerHeight; G.renderer.setSize(w, h, false); G.camera.aspect = w/h; G.camera.updateProjectionMatrix(); G.shipCam.aspect = w/h;
   const hc = G.$('gkh'); hc.width = Math.round(w*G.pr); hc.height = Math.round(h*G.pr);
   G.mobile = matchMedia('(pointer: coarse)').matches || w < 700;
   G.$('gkHint').textContent = G.mobile ? L('Sol tarafı sürükleyerek yön ver · sağdaki çubuk gaz · hedef seçip Otopilot\'a da basabilirsin', 'Drag on the left to steer · the bar on the right is thrust · or pick a target and tap Autopilot')
@@ -570,6 +618,10 @@ function bindInput() {
   };
   window.addEventListener('keydown', G.onKey); window.addEventListener('keyup', G.onKey);
 }
+function setView(v) {
+  G.view = v; G.$('gkView').textContent = v === 'chase' ? L('Kokpit', 'Cockpit') : L('Dış görünüm', 'Outside');
+  G.el.querySelector('.cock').style.display = v === 'chase' ? 'none' : '';
+}
 function setThr(v) { G.thr = Math.max(0, Math.min(1, v)); G.$('gkThr').lastChild.style.height = 'calc(' + (G.thr*100).toFixed(1) + '% - 8px)'; if (G.thr < 0.01) G.$('gkThr').lastChild.style.height = '0'; }
 function setAuto(v) { if (v && !G.target) { openList(); return; } G.auto = v; G.$('gkAuto').classList.toggle('on', v); if (v) { hideCard(); hint(''); } }
 function hint(t) { const h = G.$('gkHint'); if (t) h.textContent = t; h.style.opacity = t === '' ? 0 : 1; clearTimeout(G.hintT); if (t !== '') G.hintT = setTimeout(() => h.style.opacity = 0, 9000); }
@@ -592,43 +644,38 @@ function updateTargetHud() {
 }
 
 function openList() {
-  const items = ORDER.map(id => '<button class="b' + (PROG.found[id] ? ' got' : '') + (G.target === id ? ' cur' : '') + '" data-id="' + id + '"><b>' + (PROG.found[id] ? '★ ' : '') + nm(id) + '</b><small>' + tx2(INFO[id].k) + (PROG.quiz[id] ? ' · ✓' : '') + '</small></button>').join('');
-  showCard('<div class="kk">' + L('Görev listesi', 'Mission list') + ' · ' + Object.keys(PROG.found).length + '/' + ORDER.length + ' ' + L('keşif', 'discovered') + ' · ' + Object.keys(PROG.quiz).length + ' ' + L('doğru cevap', 'correct answers') + '</div><h3>' + L('Nereye gidelim?', 'Where to?') + '</h3>' +
-    '<div class="st">' + L('Gezegenler bu anki gerçek konumlarında. Yıldızlara hiper sürüşle gidilir.', 'Planets are in their real positions right now. Stars are reached by hyperdrive.') + '</div><div class="list">' + items + '</div><div class="row" style="margin-top:12px"><button class="b" data-close>' + L('Kapat', 'Close') + '</button></div>', true);
+  const items = ORDER.map(id => '<button class="b' + (PROG.found[id] ? ' got' : '') + (G.target === id ? ' cur' : '') + '" data-id="' + id + '"><b>' + (PROG.found[id] ? '★ ' : '') + nm(id) + '</b><small>' + tx2(INFO[id].k) + '</small></button>').join('');
+  showCard('<div class="kk">' + L('Görev listesi', 'Mission list') + ' · ' + Object.keys(PROG.found).length + '/' + ORDER.length + ' ' + L('keşif', 'discovered') + '</div><h3>' + L('Nereye gidelim?', 'Where to?') + '</h3>' +
+    '<div class="st">' + L('Gezegenler bu anki gerçek konumlarında. Yıldızlara hiper sürüşle gidilir.', 'Planets are in their real positions right now. Stars are reached by hyperdrive.') + '</div><div class="gklist">' + items + '</div><div class="gkrow" style="margin-top:12px"><button class="b" data-close>' + L('Kapat', 'Close') + '</button></div>', true);
   G.$('gkCard').querySelectorAll('[data-id]').forEach(b => b.onclick = () => { setTarget(b.dataset.id); setAuto(true); });
 }
 function showCard(html, modal) { const c = G.$('gkCard'); c.innerHTML = html; c.classList.add('show'); G.card = { modal }; const x = c.querySelector('[data-close]'); if (x) x.onclick = hideCard; }
 function hideCard() { G.$('gkCard').classList.remove('show'); G.card = null; }
 
-function discover(id, viaTarget) {
-  const first = !PROG.found[id]; if (first) { PROG.found[id] = Date.now(); save(); updateCount(); }
-  const I = INFO[id];
-  let real = '';
-  if (!isStarDest(id) && id !== 'Earth') {
-    try { const n = id === 'Moon' ? null : id === 'Sun' ? null : id; const now = new Date();
-      if (id === 'Moon') real = L('Işığın Ay\'dan Dünya\'ya gelmesi 1,3 saniye sürer.', 'Light takes 1.3 seconds to travel from the Moon to Earth.');
-      else { const e = G.helio('Earth', now), p = n ? G.helio(n, now) : [0, 0, 0], d = Math.hypot(p[0] - e[0], p[1] - e[1], p[2] - e[2]), km = d*149.6, lm = d*8.317;
-        real = L('Bugün Dünya\'dan uzaklığı: ', 'Distance from Earth today: ') + (km >= 1000 ? (km/1000).toLocaleString(LANG === 'en' ? 'en' : 'tr', { maximumFractionDigits: 2 }) + L(' milyar km', ' billion km') : Math.round(km).toLocaleString(LANG === 'en' ? 'en' : 'tr') + L(' milyon km', ' million km')) +
-          ' · ' + L('ışık bu yolu ', 'light covers it in ') + (lm >= 60 ? (lm/60).toLocaleString(LANG === 'en' ? 'en' : 'tr', { maximumFractionDigits: 1 }) + L(' saatte alır', ' hours') : Math.round(lm) + L(' dakikada alır', ' minutes')); } } catch (e) {}
-  } else if (isStarDest(id)) { const ly = STARSYS[id].ly; real = L('Işık bile buraya ', 'Even light needs ') + ly.toLocaleString(LANG === 'en' ? 'en' : 'tr') + L(' yılda ulaşır. Gökyüzündeki parlak nokta: Güneş.', ' years to get here. The bright dot in the sky behind you: the Sun.'); }
-  const html = '<div class="kk">' + tx2(I.k) + '</div><h3>' + nm(id) + '</h3>' + (first ? '<span class="badge">★ ' + L('Yeni keşif', 'New discovery') + '</span>' : '<span class="badge" style="animation:none;opacity:.7">' + L('Daha önce keşfedildi', 'Discovered before') + '</span>') +
-    '<ul>' + I.f.map(f => '<li>' + tx2(f) + '</li>').join('') + '</ul><div class="st">' + tx2(I.s) + (real ? '<br>' + real : '') + '</div>' +
-    '<div class="row">' + (PROG.quiz[id] ? '' : '<button class="b on" id="gkQ">' + L('Soruyu cevapla', 'Answer the question') + '</button>') + '<button class="b" id="gkNext">' + L('Sonraki hedef', 'Next target') + '</button><button class="b" data-close>' + L('Etrafa bak', 'Look around') + '</button></div>';
-  showCard(html, false);
-  if (first) { bigMsg(L('Keşfedildi!', 'Discovered!'), nm(id), 1700); flash('radial-gradient(circle, rgba(227,194,126,.35), rgba(227,194,126,0) 70%)', 1); }
-  const q = G.$('gkQ'); if (q) q.onclick = () => quiz(id);
-  G.$('gkNext').onclick = () => { const nx = ORDER.find(x => !PROG.found[x]) || ORDER[(ORDER.indexOf(id) + 1) % ORDER.length]; setTarget(nx); setAuto(true); };
+function realLine(id) {
+  const loc = LANG === 'en' ? 'en' : 'tr';
+  if (isStarDest(id)) return L('Işık bile buraya ', 'Even light needs ') + STARSYS[id].ly.toLocaleString(loc) + L(' yılda ulaşır. Arkandaki parlak nokta: Güneş.', ' years to get here. The bright dot behind you: the Sun.');
+  if (id === 'Earth') return '';
+  if (id === 'Moon') return L('Işığın Ay\'dan Dünya\'ya gelmesi 1,3 saniye sürer.', 'Light takes 1.3 seconds to travel from the Moon to Earth.');
+  try { const now = new Date(), e = G.helio('Earth', now), p = id === 'Sun' ? [0, 0, 0] : G.helio(id, now), d = Math.hypot(p[0] - e[0], p[1] - e[1], p[2] - e[2]), km = d*149.6, lm = d*8.317;
+    return L('Bugün Dünya\'dan uzaklığı: ', 'Distance from Earth today: ') + (km >= 1000 ? (km/1000).toLocaleString(loc, { maximumFractionDigits: 2 }) + L(' milyar km', ' billion km') : Math.round(km).toLocaleString(loc) + L(' milyon km', ' million km')) +
+      ' · ' + L('ışık bu yolu ', 'light covers it in ') + (lm >= 60 ? (lm/60).toLocaleString(loc, { maximumFractionDigits: 1 }) + L(' saatte alır', ' hours') : Math.round(lm) + L(' dakikada alır', ' minutes'));
+  } catch (e) { return ''; }
 }
-function quiz(id) {
-  const I = INFO[id], ans = I.a.map((a, i) => ({ a, ok: i === 0 })).sort(() => Math.random() - 0.5);
-  showCard('<div class="kk">' + L('Soru', 'Question') + ' · ' + nm(id) + '</div><h3 style="font-size:26px">' + tx2(I.q) + '</h3><div class="ans">' + ans.map((x, i) => '<button class="b" data-i="' + i + '">' + tx2(x.a) + '</button>').join('') + '</div><div class="row"><button class="b" data-close>' + L('Kapat', 'Close') + '</button></div>', true);
-  G.$('gkCard').querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
-    const x = ans[+b.dataset.i]; G.$('gkCard').querySelectorAll('[data-i]').forEach((bb, i) => { bb.disabled = true; if (ans[i].ok) bb.classList.add('ok'); });
-    if (x.ok) { b.classList.add('ok'); PROG.quiz[id] = 1; save(); bigMsg(L('Doğru!', 'Correct!'), '+1 ★', 1400); }
-    else { b.classList.add('no'); bigMsg(L('Olmadı', 'Not quite'), L('Doğrusu yeşil olan', 'The right one is in green'), 1600); }
-    const row = G.$('gkCard').querySelector('.row'); row.insertAdjacentHTML('afterbegin', '<button class="b on" id="gkNext2">' + L('Sonraki hedef', 'Next target') + '</button>');
-    G.$('gkNext2').onclick = () => { const nx = ORDER.find(y => !PROG.found[y]) || ORDER[(ORDER.indexOf(id) + 1) % ORDER.length]; setTarget(nx); setAuto(true); };
-  });
+// arrival: a small chip that leaves the view free; tapping it opens the full card
+function discover(id) {
+  const first = !PROG.found[id]; if (first) { PROG.found[id] = Date.now(); save(); updateCount(); }
+  const I = INFO[id], chip = G.$('gkChip');
+  chip.innerHTML = '<b>' + (first ? '★ ' : '') + nm(id) + '</b><span>' + tx2(I.f[0]) + '</span><i>' + L('Detay', 'More') + ' ›</i>';
+  chip.classList.remove('show'); void chip.offsetWidth; chip.classList.add('show'); chip.onclick = () => details(id);
+  clearTimeout(G.chipT); G.chipT = setTimeout(() => chip.classList.remove('show'), 9000);
+  if (first) { bigMsg(L('Keşfedildi!', 'Discovered!'), nm(id), 1400); flash('radial-gradient(circle, rgba(227,194,126,.3), rgba(227,194,126,0) 70%)', 1); }
+}
+function details(id) {
+  const I = INFO[id], real = realLine(id); G.$('gkChip').classList.remove('show');
+  showCard('<div class="kk">' + tx2(I.k) + '</div><h3>' + nm(id) + '</h3><ul>' + I.f.map(f => '<li>' + tx2(f) + '</li>').join('') + '</ul><div class="st">' + tx2(I.s) + (real ? '<br>' + real : '') + '</div>' +
+    '<div class="gkrow"><button class="b on" id="gkNext">' + L('Sonraki hedef', 'Next target') + '</button><button class="b" data-close>' + L('Kapat', 'Close') + '</button></div>', false);
+  G.$('gkNext').onclick = () => { const nx = ORDER.find(x => !PROG.found[x]) || ORDER[(ORDER.indexOf(id) + 1) % ORDER.length]; setTarget(nx); setAuto(true); };
 }
 
 /* hyperdrive: turn to the star, stretch the stars into streaks, flash, arrive */
@@ -644,12 +691,12 @@ function swapScene(to) {
   if (to === 'sol') {
     G.sol.grp.visible = true; G.sunLight.position.set(0, 0, 0); G.sunMark.visible = false; G.mode = 'sol';
     const e = G.sol.bodies.find(b => b.id === 'Sun'); G.ship.position.set(0, 200, 0).add(eq2game(eqv(STARSYS[G.warp.fromSys].ra, STARSYS[G.warp.fromSys].dec)).multiplyScalar(600));
-    const m = new THREE.Matrix4().lookAt(G.ship.position, e.obj.position, new THREE.Vector3(0, 1, 0)); G.ship.quaternion.setFromRotationMatrix(m);
+    const m = new THREE.Matrix4().lookAt(G.ship.position, e.obj.position, new THREE.Vector3(0, 1, 0)); G.ship.quaternion.setFromRotationMatrix(m); G.camQ.copy(G.ship.quaternion);
   } else {
     G.sol.grp.visible = false; G.sys = buildSystem(to); G.scene.add(G.sys.grp); G.mode = to; G.sunLight.position.set(0, 0, 0);
     const dir = eq2game(eqv(STARSYS[to].ra, STARSYS[to].dec)), main = G.sys.bodies[0];
     G.ship.position.copy(dir.clone().multiplyScalar(-main.r*9)).add(new THREE.Vector3(0, main.r*1.5, 0));
-    const m = new THREE.Matrix4().lookAt(G.ship.position, new THREE.Vector3(), new THREE.Vector3(0, 1, 0)); G.ship.quaternion.setFromRotationMatrix(m);
+    const m = new THREE.Matrix4().lookAt(G.ship.position, new THREE.Vector3(), new THREE.Vector3(0, 1, 0)); G.ship.quaternion.setFromRotationMatrix(m); G.camQ.copy(G.ship.quaternion);
     G.sunDir = dir.clone().negate(); G.sunMark.visible = true;
   }
 }
@@ -728,7 +775,7 @@ function frame(t) {
   // shield regen, shake
   G.shield = Math.min(100, G.shield + dt*4);
   G.shake = Math.max(0, G.shake - dt*1.4) ; const sk = G.shake*G.shake;
-  G.camera.position.set((Math.random() - 0.5)*sk*1.2, (Math.random() - 0.5)*sk*1.2, 0); G.camera.rotation.z = (Math.random() - 0.5)*sk*0.02;
+  placeCamera(dt, sk);
   if (G.speed > 300 && !G.warp) G.shake = Math.max(G.shake, 0.22);
   // discoveries by proximity
   // each body triggers once per visit; a body passed while another card is open is logged quietly
@@ -737,8 +784,32 @@ function frame(t) {
       if (G.card && !isT) { G.near.add(b.id); if (!PROG.found[b.id]) { PROG.found[b.id] = Date.now(); save(); updateCount(); hint('★ ' + nm(b.id) + L(' keşfedildi', ' discovered')); } }
       else if (!G.card || !G.card.modal || isT) { G.near.add(b.id); discover(b.id); if (isT) setThr(0); } }
     else if (G.near.has(b.id) && d > lim*2.5) G.near.delete(b.id); });
-  G.renderer.render(G.scene, G.camera);
+  G.renderer.clear(); G.renderer.render(G.scene, G.camera);
+  if (G.view === 'chase') { G.renderer.clearDepth(); G.renderer.render(G.shipScene, G.shipCam); }
   drawHud(bodies, tb);
+}
+function placeCamera(dt, sk) {
+  const ship = G.ship, cam = G.camera, S = G.shut;
+  if (!G.warp) cam.fov += ((70 + Math.min(14, G.speed/35)) - cam.fov)*Math.min(1, dt*2);
+  cam.updateProjectionMatrix();
+  if (G.view === 'chase') {
+    // the camera swings after the shuttle: rotation lags, position stays locked behind it
+    G.camQ.slerp(ship.quaternion, 1 - Math.exp(-dt*5));
+    const tilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -0.1);
+    cam.quaternion.copy(G.camQ).multiply(tilt);
+    cam.position.copy(ship.position).add(new THREE.Vector3(0, 0.36, 1.75).applyQuaternion(G.camQ));
+    S.model.position.copy(ship.position); S.model.quaternion.copy(ship.quaternion);
+    // bank into turns, nose follows pitch a little
+    const yawIn = -G.steer.x + ((G.keys.arrowleft || G.keys.a) ? 1 : 0) - ((G.keys.arrowright || G.keys.d) ? 1 : 0);
+    G.bank += (yawIn*0.55 - G.bank)*Math.min(1, dt*3); S.model.rotateZ(G.bank);
+    const thrust = G.warp ? 5 : Math.min(3.2, 0.25 + G.thr*1.3 + (G.turbo ? 1.8 : 0) + G.speed/400);
+    S.flames.forEach(f => { const fl = 0.85 + Math.random()*0.3; f.fl.scale.set(1, 1, Math.max(0.05, thrust*fl)); f.gl.scale.setScalar(0.5 + thrust*0.3*fl); f.fl.visible = G.speed > 0.5 || G.thr > 0; });
+    G.shipSun.position.copy(ship.position).negate().normalize(); G.shipSun.target.position.set(0, 0, 0);
+    G.shipSun.position.add(S.model.position); G.shipSun.target.position.copy(S.model.position); G.shipSun.target.updateMatrixWorld();
+  } else { cam.position.copy(ship.position); cam.quaternion.copy(ship.quaternion); G.camQ.copy(ship.quaternion); }
+  cam.position.add(new THREE.Vector3((Math.random() - 0.5)*sk*0.25, (Math.random() - 0.5)*sk*0.25, 0).applyQuaternion(cam.quaternion));
+  cam.updateMatrixWorld();
+  G.shipCam.position.copy(cam.position); G.shipCam.quaternion.copy(cam.quaternion); G.shipCam.fov = cam.fov; G.shipCam.updateProjectionMatrix();
 }
 function hit(dmg) {
   G.hitCD = 0.8; G.shield = Math.max(0, G.shield - dmg); G.shake = 1.2; G.speed *= 0.35; flash('radial-gradient(circle, rgba(255,80,60,0) 40%, rgba(255,60,40,.55))', 1);
@@ -752,7 +823,7 @@ function drawHud(bodies, tb) {
   const cam = G.camera, v = new THREE.Vector3();
   const proj = p => { v.copy(p).project(cam); const behind = v.z > 1; return { x: (v.x*0.5 + 0.5)*W, y: (-v.y*0.5 + 0.5)*H, behind, on: !behind && Math.abs(v.x) < 1 && Math.abs(v.y) < 1 }; };
   // reticle
-  g.strokeStyle = 'rgba(227,194,126,.55)'; g.lineWidth = 1.2; g.beginPath(); g.arc(W/2, H/2, 14, 0, Math.PI*2); g.moveTo(W/2 - 26, H/2); g.lineTo(W/2 - 18, H/2); g.moveTo(W/2 + 18, H/2); g.lineTo(W/2 + 26, H/2); g.moveTo(W/2, H/2 + 18); g.lineTo(W/2, H/2 + 24); g.stroke();
+  if (G.view !== 'chase') { g.strokeStyle = 'rgba(227,194,126,.55)'; g.lineWidth = 1.2; g.beginPath(); g.arc(W/2, H/2, 14, 0, Math.PI*2); g.moveTo(W/2 - 26, H/2); g.lineTo(W/2 - 18, H/2); g.moveTo(W/2 + 18, H/2); g.lineTo(W/2 + 26, H/2); g.moveTo(W/2, H/2 + 18); g.lineTo(W/2, H/2 + 24); g.stroke(); }
   g.font = '600 12px Manrope, sans-serif'; g.textAlign = 'left';
   const labels = bodies.map(b => ({ id: b.id, p: worldPos(b), r: b.r }));
   if (G.sys && G.sys.grp.userData.extra) G.sys.grp.userData.extra.forEach(([o, n]) => labels.push({ name: n, p: o.getWorldPosition(new THREE.Vector3()), r: 10 }));
@@ -799,8 +870,8 @@ function intro() {
   showCard('<div class="kk">' + L('Uzay mekiği', 'Space shuttle') + '</div><h3>' + L('Kalkışa hazır mısın?', 'Ready for launch?') + '</h3>' +
     '<ul><li>' + L('Dünya yörüngesindesin. Gezegenler şu anki gerçek konumlarında.', 'You are in Earth orbit. The planets are where they really are right now.') + '</li>' +
     '<li>' + L('Bir hedef seç, Otopilot seni götürsün; ya da direksiyona kendin geç.', 'Pick a target and let the autopilot fly, or take the controls yourself.') + '</li>' +
-    '<li>' + L('Her varışta bir keşif kartı, bir rozet ve bir soru seni bekliyor. Asteroit ve meteorlara dikkat!', 'Every arrival brings a discovery card, a badge and a question. Watch out for asteroids and meteors!') + '</li></ul>' +
-    '<div class="row"><button class="b on" id="gkGo">' + L('Kalkış!', 'Launch!') + '</button></div>', true);
+    '<li>' + L('Her varışta bir rozet kazanırsın; ayrıntı için çıkan etikete dokun. Asteroit ve meteorlara dikkat!', 'Every arrival earns a badge; tap the label that pops up for details. Watch out for asteroids and meteors!') + '</li></ul>' +
+    '<div class="gkrow"><button class="b on" id="gkGo">' + L('Kalkış!', 'Launch!') + '</button></div>', true);
   G.$('gkGo').onclick = () => { PROG.seen = true; save(); hideCard(); let n = 3; const tick = () => { if (n > 0) { bigMsg(String(n), '', 800); n--; setTimeout(tick, 850); } else { bigMsg(L('Kalkış!', 'Liftoff!'), '', 1200); setThr(0.45); G.shake = 1; setTarget('Moon'); } }; tick(); };
 }
 function close() {
