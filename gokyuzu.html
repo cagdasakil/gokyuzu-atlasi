@@ -184,7 +184,7 @@ input[type="range"] { accent-color: var(--gilt); }
 .lay .sw { flex: none; width: 38px; height: 22px; border-radius: 11px; background: rgba(255,255,255,.1); position: relative; transition: background .2s; }
 .lay .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--dim); transition: transform .2s, background .2s; }
 .lay[aria-pressed="true"] .sw { background: rgba(227,194,126,.35); } .lay[aria-pressed="true"] .sw::after { transform: translateX(16px); background: var(--gilt); }
-.rail .tool { width: 66px; } .rail .tool span { display: block; }
+.rail .tool { width: min(66px, 16vw); } .rail .tool span { display: block; }
 .err { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; color: var(--dim); text-align: center; }
 
 @media (min-width: 760px) {
@@ -229,6 +229,7 @@ input[type="range"] { accent-color: var(--gilt); }
   <nav class="rail" aria-label="Menü">
     <button class="tool" id="tTonight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 14.5A6.5 6.5 0 1 1 9.5 4a5 5 0 0 0 6 10.5z"/><path d="M18 3l.6 1.6L20 5l-1.4.6L18 7l-.6-1.4L16 5l1.4-.4z" fill="currentColor"/></svg><span>Bu gece</span></button>
     <button class="tool" id="tExplore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l2.2 6.3L20.5 12l-6.3 2.2L12 21l-2.2-6.8L3.5 12l6.3-2.7z"/></svg><span>Keşfet</span></button>
+    <button class="tool" id="tShip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2.5c2.6 2 4 5 4 8.5v5.5H8V11c0-3.5 1.4-6.5 4-8.5z"/><path d="M8 13l-3 3.5V19l3-1.2M16 13l3 3.5V19l-3-1.2"/><circle cx="12" cy="9.5" r="1.6"/><path d="M10.5 19.5l1.5 2.5 1.5-2.5"/></svg><span>Mekik</span></button>
     <button class="tool" id="tGyro" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M12 7l2 4h-4z" fill="currentColor"/></svg><span>Göğe tut</span></button>
     <button class="tool" id="tLayers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4l9 4.5-9 4.5-9-4.5z"/><path d="M3 12.5l9 4.5 9-4.5M3 16.5l9 4.5 9-4.5"/></svg><span>Katmanlar</span></button>
     <button class="tool" id="tSet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg><span>Ayarlar</span></button>
@@ -426,6 +427,7 @@ var EN = {
   'Bu cihaz ya da sayfa hareket sensörüne erişemiyor. Sürükleyerek bakabilirsin.': 'This device or page cannot read the motion sensor. Drag to look around instead.',
   'Bu cihazda ses başlatılamadı.': 'Sound could not start on this device.',
   'Bu gece': 'Tonight',
+  'Mekik': 'Shuttle',
   'Bu gece için tahmin yok.': 'No forecast for tonight.',
   'Bu gece yok': 'Not tonight',
   'Bu gece zirvede': 'Peaks tonight',
@@ -3492,6 +3494,7 @@ if (LANG === 'en') {
 
 /* hub, ISS, first-run guide */
 $('tExplore').addEventListener('click', openHub);
+$('tShip').addEventListener('click', openShip);
 setTimeout(loadISS, 1800);
 setTimeout(loadComets, 2200);
 const ONB = [
