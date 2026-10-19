@@ -1970,10 +1970,12 @@ function renderInfo() {
   if (o.kind === 'iss') h = issCard(o.ref);
   if (o.kind === 'comet') h = cometCard(o.ref) + pos + '</div>';
   const canFly = (o.kind === 'star' && o.ref.ly > 0 && o.ref.ly < 30000) || (o.kind === 'dso' && o.ref.ly > 0 && o.ref.ly < 30000 && !'sei'.includes(o.ref.type));
-  if (canFly) h += '<div class="btns"><button class="btn on" id="goBtn">✦ ' + (LANG === 'en' ? 'Fly there in 3D' : '3D olarak oraya git') + '</button></div>';
+  const shipId = shipTarget(o);
+  if (canFly || shipId) h += '<div class="btns">' + (shipId ? '<button class="btn on" id="shipBtn">🚀 ' + (LANG === 'en' ? 'Go by shuttle' : 'Mekikle git') + '</button>' : '') + (canFly ? '<button class="btn' + (shipId ? '' : ' on') + '" id="goBtn">✦ ' + (LANG === 'en' ? 'Fly there in 3D' : '3D olarak oraya git') + '</button>' : '') + '</div>';
   h += logButton(o);
   openSheet(h, 'info');
   const gb = $('goBtn'); if (gb) gb.addEventListener('click', () => startJourney(o));
+  const sbtn = $('shipBtn'); if (sbtn) sbtn.addEventListener('click', () => openShip(shipId));
   if (o.kind !== 'iss') drawPortrait(o); else bindPasses();
   const lb = $('logBtn'); if (lb) lb.addEventListener('click', () => { logToggle(o); renderInfo(); });
   sheet.querySelectorAll('[data-star]').forEach(b => b.addEventListener('click', () => select({ kind: 'star', ref: STARS[+b.dataset.star] }, true)));
@@ -2934,11 +2936,20 @@ function openHub() {
 /* ---------- space shuttle game (gokyuzu-oyun.js + three.js, loaded on first use) ---------- */
 let GAME_ON = false;
 function loadScript(src) { return new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); }); }
-function openShip() {
+// which shuttle-game destination a sky object maps to, if any
+const SHIP_HIP = { 71683: 'AlphaCen', 71681: 'AlphaCen', 70890: 'AlphaCen', 32349: 'Sirius', 91262: 'Vega', 27989: 'Betelgeuse' };
+function shipTarget(o) {
+  if (o.kind === 'body' && ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune'].includes(o.ref.b)) return o.ref.b;
+  if (o.kind === 'iss') return 'ISS';
+  if (o.kind === 'star' && SHIP_HIP[o.ref.hip]) return SHIP_HIP[o.ref.hip];
+  return null;
+}
+function openShip(target) {
+  if (typeof target !== 'string') target = null;
   closeSheet(); if (tour.on) endTour(); if (JR.on) endJourney();
   const go = () => {
     GAME_ON = true;
-    window.GKGame.open({ lang: LANG, stars: STARS.filter(s => s.mag < 6.5).map(s => [s.ra, s.dec, s.mag, s.rgb]), helio: (n, d) => helio(n, d || now), onClose: () => { GAME_ON = false; last = performance.now(); } });
+    window.GKGame.open({ target, lang: LANG, stars: STARS.filter(s => s.mag < 6.5).map(s => [s.ra, s.dec, s.mag, s.rgb]), helio: (n, d) => helio(n, d || now), onClose: () => { GAME_ON = false; last = performance.now(); } });
   };
   if (window.GKGame && window.THREE) { go(); return; }
   toast(LANG === 'en' ? 'Fuelling the shuttle…' : 'Mekiğe yakıt dolduruluyor…');

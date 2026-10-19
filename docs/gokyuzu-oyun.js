@@ -66,6 +66,71 @@ const INFO = {
         ['T biçiminde üç modülden oluşur: Tianhe, Wentian ve Mengtian.', 'It is a T made of three modules: Tianhe, Wentian and Mengtian.'],
         ['Genellikle üç astronot altı aylık görevlerle yaşar.', 'Usually three astronauts live aboard on six-month missions.']],
     s: ['Yükseklik: ~390 km · Kütle: ~100 ton', 'Altitude: ~390 km · Mass: ~100 tonnes'] },
+  Hubble: { n: ['Hubble', 'Hubble'], k: ['Uzay teleskobu', 'Space telescope'],
+    f: [['1990\'dan beri yaklaşık 540 km yükseklikte Dünya\'nın etrafında dönüyor.', 'Circling Earth about 540 km up since 1990.'],
+        ['Uzay mekikleri ona beş kez gidip astronotlar uzay yürüyüşleriyle onardı.', 'Space shuttles visited it five times; astronauts repaired it on spacewalks.'],
+        ['Evrenin genişleme hızını ölçmeye ve yaşını (~13,8 milyar yıl) belirlemeye yardım etti.', 'It helped measure how fast the universe expands and pin down its age (~13.8 billion years).']],
+    s: ['Ayna: 2,4 m · Boy: 13,2 m · Kütle: ~11 ton', 'Mirror: 2.4 m · Length: 13.2 m · Mass: ~11 tonnes'] },
+  JWST: { n: ['James Webb', 'James Webb'], k: ['Uzay teleskobu', 'Space telescope'],
+    f: [['Dünya\'dan 1,5 milyon km ötede, Güneş\'in tam tersi yönündeki L2 noktasında durur.', 'It sits 1.5 million km from Earth at the L2 point, directly away from the Sun.'],
+        ['Altın kaplı 18 altıgen parçadan oluşan aynası 6,5 m genişliğindedir.', 'Its gold-coated mirror of 18 hexagonal segments is 6.5 m across.'],
+        ['Tenis kortu büyüklüğündeki beş katlı güneşliği teleskobu −230 °C\'de tutar; kızılötesinde ilk galaksileri görür.', 'A tennis-court-sized, five-layer sunshield keeps it at −230 °C so it can see the first galaxies in infrared.']],
+    s: ['Fırlatma: 25 Aralık 2021 · Ayna: 6,5 m', 'Launched: 25 December 2021 · Mirror: 6.5 m'] },
+  Parker: { n: ['Parker Solar Probe', 'Parker Solar Probe'], k: ['Güneş sondası', 'Solar probe'],
+    f: [['Güneş\'e en çok yaklaşan araç: yüzeyden yaklaşık 6,1 milyon km\'ye kadar iner.', 'The closest any craft has come to the Sun: about 6.1 million km from its surface.'],
+        ['Saatte yaklaşık 690.000 km ile insan yapımı en hızlı nesne.', 'At about 690,000 km/h it is the fastest object humans have built.'],
+        ['Önündeki 11 cm kalınlığındaki ısı kalkanı 1.400 °C\'ye dayanır; arkasındaki cihazlar oda sıcaklığında kalır.', 'Its 11 cm heat shield takes 1,400 °C while the instruments behind it stay near room temperature.']],
+    s: ['Fırlatma: 2018 · Güneş\'in koronasından geçen ilk araç (2021)', 'Launched: 2018 · First craft to fly through the Sun\'s corona (2021)'] },
+  Voyager1: { n: ['Voyager 1', 'Voyager 1'], k: ['Uzay sondası', 'Space probe'],
+    f: [['İnsan yapımı en uzak nesne: Güneş\'ten 165 AU\'dan fazla, yani 25 milyar km\'den uzakta.', 'The most distant human-made object: more than 165 AU, over 25 billion km, from the Sun.'],
+        ['2012\'de yıldızlararası uzaya geçen ilk araç oldu.', 'In 2012 it became the first craft to reach interstellar space.'],
+        ['Üzerinde Dünya\'nın seslerini ve müziklerini taşıyan altın bir plak var.', 'It carries a golden record with the sounds and music of Earth.']],
+    s: ['Fırlatma: 1977 · Sinyali Dünya\'ya ~23 saatte ulaşır', 'Launched: 1977 · Its signal takes ~23 hours to reach Earth'] },
+  Voyager2: { n: ['Voyager 2', 'Voyager 2'], k: ['Uzay sondası', 'Space probe'],
+    f: [['Uranus ve Neptune\'e giden tek araç.', 'The only spacecraft to visit Uranus and Neptune.'],
+        ['Dört dev gezegenin hepsinin yanından geçti: Jupiter, Saturn, Uranus, Neptune.', 'It flew past all four giant planets: Jupiter, Saturn, Uranus and Neptune.'],
+        ['2018\'de yıldızlararası uzaya geçti; hâlâ veri gönderiyor.', 'It reached interstellar space in 2018 and still sends data.']],
+    s: ['Fırlatma: 1977 · Güneş\'ten ~140 AU', 'Launched: 1977 · ~140 AU from the Sun'] },
+  Phobos: { n: ['Phobos', 'Phobos'], k: ['Uydu · Mars', 'Moon · Mars'],
+    f: [['Mars\'ın iki küçük uydusundan büyüğü; patates biçiminde, yaklaşık 22 km.', 'The larger of Mars\'s two small moons: potato-shaped, about 22 km across.'],
+        ['Mars\'a o kadar yakın ki günde üç kez doğup batar.', 'It orbits so close that it rises and sets three times a day.'],
+        ['Yavaş yavaş Mars\'a yaklaşıyor; on milyonlarca yıl içinde parçalanacak.', 'It is slowly spiralling in and will break apart within tens of millions of years.']],
+    s: ['Çap: ~22 km · Mars\'a uzaklık: 6.000 km', 'Size: ~22 km · Distance from Mars: 6,000 km'] },
+  Io: { n: ['Io', 'Io'], k: ['Uydu · Jupiter', 'Moon · Jupiter'],
+    f: [['Güneş Sistemi\'nin en yanardağlı yeri: 400\'den fazla aktif yanardağ.', 'The most volcanic place in the Solar System: more than 400 active volcanoes.'],
+        ['Rengini yüzeyini kaplayan kükürtten alır.', 'Its colours come from sulfur covering the surface.'],
+        ['Jupiter\'in çekimi onu sıkıp gevşeterek içini ısıtır.', 'Jupiter\'s gravity squeezes and flexes it, heating its interior.']],
+    s: ['Çap: 3.643 km · Jupiter etrafında 1,8 günde döner', 'Diameter: 3,643 km · Orbits Jupiter in 1.8 days'] },
+  Europa: { n: ['Europa', 'Europa'], k: ['Uydu · Jupiter', 'Moon · Jupiter'],
+    f: [['Buz kabuğunun altında Dünya\'daki bütün okyanuslardan fazla su olduğu düşünülüyor.', 'Its ice shell is thought to hide more water than all of Earth\'s oceans.'],
+        ['Yaşam aramak için en umut verici yerlerden biri.', 'One of the most promising places to look for life.'],
+        ['Europa Clipper aracı 2030\'da oraya varacak.', 'The Europa Clipper spacecraft arrives there in 2030.']],
+    s: ['Çap: 3.122 km · Yüzey: −160 °C buz', 'Diameter: 3,122 km · Surface: −160 °C ice'] },
+  Ganymede: { n: ['Ganymede', 'Ganymede'], k: ['Uydu · Jupiter', 'Moon · Jupiter'],
+    f: [['Güneş Sistemi\'nin en büyük uydusu; Mercury gezegeninden bile büyük.', 'The largest moon in the Solar System, bigger even than the planet Mercury.'],
+        ['Kendi manyetik alanı olan tek uydu.', 'The only moon with its own magnetic field.'],
+        ['1610\'da Galileo keşfetti.', 'Galileo discovered it in 1610.']],
+    s: ['Çap: 5.268 km', 'Diameter: 5,268 km'] },
+  Callisto: { n: ['Callisto', 'Callisto'], k: ['Uydu · Jupiter', 'Moon · Jupiter'],
+    f: [['Güneş Sistemi\'nin en çok kraterli yüzeylerinden biri.', 'One of the most heavily cratered surfaces in the Solar System.'],
+        ['Yüzeyi 4 milyar yıldır neredeyse hiç değişmedi.', 'Its surface has barely changed in 4 billion years.'],
+        ['Jupiter\'in radyasyonundan uzak olduğu için gelecekteki bir üs için aday gösterilir.', 'Being far from Jupiter\'s radiation, it is suggested as a site for a future base.']],
+    s: ['Çap: 4.821 km', 'Diameter: 4,821 km'] },
+  Titan: { n: ['Titan', 'Titan'], k: ['Uydu · Saturn', 'Moon · Saturn'],
+    f: [['Kalın havası olan tek uydu; turuncu bir sis onu sarar.', 'The only moon with a thick atmosphere, wrapped in orange haze.'],
+        ['Yüzeyinde metan ve etandan oluşan göller ve nehirler var.', 'It has lakes and rivers of liquid methane and ethane.'],
+        ['Huygens sondası 2005\'te yüzeyine indi; Dragonfly helikopteri 2034\'te varacak.', 'The Huygens probe landed there in 2005; the Dragonfly rotorcraft arrives in 2034.']],
+    s: ['Çap: 5.150 km · Yüzey: −179 °C', 'Diameter: 5,150 km · Surface: −179 °C'] },
+  Enceladus: { n: ['Enceladus', 'Enceladus'], k: ['Uydu · Saturn', 'Moon · Saturn'],
+    f: [['Güney kutbundan uzaya su buharı ve buz fışkırtır.', 'It sprays water vapour and ice into space from its south pole.'],
+        ['Buzunun altında tuzlu bir okyanus var.', 'A salty ocean lies beneath its ice.'],
+        ['Güneş Sistemi\'nin en parlak, en beyaz cisimlerinden biri.', 'One of the brightest, whitest objects in the Solar System.']],
+    s: ['Çap: 504 km', 'Diameter: 504 km'] },
+  Triton: { n: ['Triton', 'Triton'], k: ['Uydu · Neptune', 'Moon · Neptune'],
+    f: [['Gezegeninin dönüşünün tersine dolanan tek büyük uydu.', 'The only large moon that orbits backwards against its planet\'s spin.'],
+        ['Büyük olasılıkla Kuiper kuşağından yakalanmış bir cüce gezegen.', 'Probably a dwarf planet captured from the Kuiper belt.'],
+        ['Yüzeyinden azot gayzerleri fışkırır; −235 °C ile çok soğuktur.', 'Nitrogen geysers erupt from its −235 °C surface.']],
+    s: ['Çap: 2.707 km', 'Diameter: 2,707 km'] },
   Mars: { n: ['Mars', 'Mars'], k: ['Gezegen', 'Planet'],
     f: [['Rengini toprağındaki pastan (demir oksit) alır.', 'Its colour comes from rust (iron oxide) in its soil.'],
         ['Olympus Mons, yaklaşık 22 km yüksekliğiyle Güneş Sistemi\'nin en büyük yanardağıdır.', 'Olympus Mons, about 22 km high, is the largest volcano in the Solar System.'],
@@ -127,7 +192,12 @@ const INFO = {
     s: ['Uzaklık: ~550 ışık yılı · Çap: Güneş\'in ~750 katı', 'Distance: ~550 light-years · Diameter: ~750 times the Sun'],
     q: ['Betelgeuse ne tür bir yıldız?', 'What kind of star is Betelgeuse?'], a: [['Kırmızı süperdev', 'A red supergiant'], ['Beyaz cüce', 'A white dwarf'], ['Nötron yıldızı', 'A neutron star']] }
 };
-const ORDER = ['Earth', 'ISS', 'Tiangong', 'Moon', 'Mars', 'Venus', 'Mercury', 'Sun', 'Ceres', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'AlphaCen', 'Sirius', 'Vega', 'Betelgeuse'];
+// mission list, by kind; ORDER is the same list flattened (the "next target" order and the badge count)
+const CATS = [[['Güneş ve gezegenler', 'Sun and planets'], ['Earth', 'Mars', 'Venus', 'Mercury', 'Sun', 'Ceres', 'Jupiter', 'Saturn', 'Uranus', 'Neptune']],
+  [['Uydular', 'Moons'], ['Moon', 'Phobos', 'Io', 'Europa', 'Ganymede', 'Callisto', 'Titan', 'Enceladus', 'Triton']],
+  [['İstasyonlar ve uzay araçları', 'Stations and spacecraft'], ['ISS', 'Tiangong', 'Hubble', 'JWST', 'Parker', 'Voyager1', 'Voyager2']],
+  [['Yıldızlar', 'Stars'], ['AlphaCen', 'Sirius', 'Vega', 'Betelgeuse']]];
+const ORDER = ['Earth', 'ISS', 'Moon', 'Hubble', 'Tiangong', 'JWST', 'Mars', 'Phobos', 'Venus', 'Mercury', 'Sun', 'Parker', 'Ceres', 'Jupiter', 'Io', 'Europa', 'Ganymede', 'Callisto', 'Saturn', 'Titan', 'Enceladus', 'Uranus', 'Neptune', 'Triton', 'Voyager2', 'Voyager1', 'AlphaCen', 'Sirius', 'Vega', 'Betelgeuse'];
 const nm = id => INFO[id].n[LANG === 'en' ? 1 : 0], tx2 = p => p[LANG === 'en' ? 1 : 0];
 
 /* ---------------- progress ---------------- */
@@ -197,6 +267,13 @@ const TEX = {
   neptune: [256, 128, (x, y, z, lat, lon) => { const n = fbm(x*3, y*10, z*3); let c = mix3(hex('#2c4fc2'), hex('#5b84ea'), sm(0.3, 0.75, n));
     const dl = (lat + 20*D2R)/0.09, dn = Math.atan2(Math.sin(lon - 1.2), Math.cos(lon - 1.2))/0.2; if (dl*dl + dn*dn < 1) c = mix3(c, hex('#1a2a72'), 0.7); return c; }],
   moon: [256, 128, (x, y, z) => { const n = fbm(x*3, y*3, z*3), m = sm(0.55, 0.62, fbm(x*1.5 + 4, y*1.5, z*1.5)), c = Math.abs(noise3(x*18, y*18, z*18) - 0.5); const v = 150 + n*60 - m*60 - (c < 0.05 ? 25 : 0); return [v, v, v*0.98]; }],
+  io: [256, 128, (x, y, z) => { const n = fbm(x*4, y*4, z*4), sp = sm(0.62, 0.7, noise3(x*9 + 3, y*9, z*9)); let c = mix3(hex('#e8d26a'), hex('#d49a3c'), n); c = mix3(c, hex('#3a2a1a'), sp*0.8); return mix3(c, hex('#f4f0d8'), sm(0.7, 0.85, fbm(x*6 + 5, y*6, z*6))*0.6); }],
+  europa: [256, 128, (x, y, z) => { const n = fbm(x*3, y*3, z*3), ln = Math.abs(noise3(x*7, y*7, z*7) - 0.5) < 0.025 || Math.abs(noise3(x*13 + 4, y*13, z*13) - 0.5) < 0.015; return ln ? hex('#a0603a') : mix3(hex('#e9e2d6'), hex('#c9b8a0'), n*0.8); }],
+  ganymede: [256, 128, (x, y, z) => { const n = fbm(x*3, y*3, z*3, 6), d = sm(0.5, 0.6, fbm(x*2 + 9, y*2, z*2)); return mix3(mix3(hex('#a9a092'), hex('#d8d0c2'), n), hex('#5f574c'), d*0.8); }],
+  callisto: [256, 128, (x, y, z) => { const n = fbm(x*5, y*5, z*5), c = Math.abs(noise3(x*20, y*20, z*20) - 0.5) < 0.05 ? 50 : 0; const v = 62 + n*55 + c*0.7; return [v, v*0.95, v*0.9]; }],
+  titan: [256, 128, (x, y, z) => { const n = fbm(x*2, y*5, z*2); return mix3(hex('#c98a3a'), hex('#e8b060'), n); }],
+  enceladus: [256, 128, (x, y, z) => { const n = fbm(x*5, y*5, z*5), t = y < -0.8 && Math.abs(noise3(x*12, y*12, z*12) - 0.5) < 0.04; return t ? hex('#7fa8c8') : mix3(hex('#f6f8fb'), hex('#d6dde6'), n); }],
+  triton: [256, 128, (x, y, z) => { const n = fbm(x*4, y*4, z*4), cap = sm(-0.1, 0.3, -y); return mix3(mix3(hex('#b9a8a0'), hex('#e8d8d0'), n), hex('#f3e6ea'), cap*0.7); }],
   rock: [256, 128, (x, y, z) => { const n = fbm(x*4, y*4, z*4), v = 60 + n*80; return [v*1.05, v, v*0.92]; }]
 };
 function glowTex(stops) {
@@ -299,6 +376,7 @@ const CSS = `
 #gk .gkbadge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(227,194,126,.16); color: #e3c27e; font: 700 11px var(--f-ui, Manrope); letter-spacing: .08em; text-transform: uppercase; animation: gkpop .6s cubic-bezier(.2,1.6,.4,1); }
 @keyframes gkpop { 0% { transform: scale(.3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 #gk .gklist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+#gk .gklist .gkcat { grid-column: 1 / -1; margin: 8px 0 0; font: 600 10.5px var(--f-ui, Manrope); letter-spacing: .14em; text-transform: uppercase; color: #8e93a3; }
 #gk .gklist .b { border-radius: 12px; text-align: left; padding: 10px 12px; white-space: normal; display: grid; gap: 2px; }
 #gk .gklist .b small { font: 500 11px var(--f-ui, Manrope); color: #8e93a3; }
 #gk .gklist .b.got { border-color: rgba(126,240,194,.55); }
@@ -408,7 +486,7 @@ function starBody(r, c1, c2, scale) {
 
 function planetMesh(p, tex) {
   const grp = new THREE.Group();
-  const rocky = ['Mercury', 'Moon', 'Mars', 'Ceres', 'Proxima b'].includes(p.id);
+  const rocky = ['Mercury', 'Moon', 'Mars', 'Ceres', 'Proxima b', 'Phobos', 'Io', 'Ganymede', 'Callisto', 'Triton'].includes(p.id);
   const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0 });
   if (rocky) { mat.bumpMap = tex; mat.bumpScale = 0.12; }
   if (p.id === 'Earth') {
@@ -520,6 +598,54 @@ function makeStation(kind) {
   return g;
 }
 
+// spacecraft, at the same small scale as the stations
+function makeCraft(kind) {
+  const g = new THREE.Group(), V2 = (x, y) => new THREE.Vector2(x, y);
+  const white = new THREE.MeshStandardMaterial({ color: 0xe9e7e1, roughness: 0.5, metalness: 0.2 }), metal = new THREE.MeshStandardMaterial({ color: 0xa4a7ae, roughness: 0.3, metalness: 0.85 });
+  const foil = new THREE.MeshStandardMaterial({ color: 0xc8a050, roughness: 0.3, metalness: 0.8 }), dark = new THREE.MeshStandardMaterial({ color: 0x26282e, roughness: 0.6, metalness: 0.3 });
+  const blu = panelTex('#1d2f5e', 'rgba(150,180,255,.5)'), bluM = new THREE.MeshStandardMaterial({ map: blu, roughness: 0.3, metalness: 0.5, side: THREE.DoubleSide });
+  const add = (geo, m, x, y, z, rx, ry, rz) => { const o = new THREE.Mesh(geo, m); o.position.set(x || 0, y || 0, z || 0); o.rotation.set(rx || 0, ry || 0, rz || 0); g.add(o); return o; };
+  if (kind === 'Hubble') {
+    add(new THREE.CylinderGeometry(0.075, 0.075, 0.42, 24), new THREE.MeshStandardMaterial({ color: 0xd8dade, roughness: 0.25, metalness: 0.9 }), 0, 0, 0, Math.PI/2);
+    add(new THREE.CylinderGeometry(0.08, 0.08, 0.14, 24), foil, 0, 0, 0.27, Math.PI/2);
+    const door = add(new THREE.CircleGeometry(0.075, 20), white, 0, 0.07, -0.25, -0.9); door.material = new THREE.MeshStandardMaterial({ color: 0xd8dade, metalness: 0.8, roughness: 0.3, side: THREE.DoubleSide });
+    [1, -1].forEach(sd => { add(new THREE.PlaneGeometry(0.11, 0.36), bluM, sd*0.17, 0, 0.12, 0, 0, 0); add(new THREE.CylinderGeometry(0.004, 0.004, 0.13, 6), metal, sd*0.1, 0, 0.12, 0, 0, Math.PI/2); });
+    add(new THREE.CylinderGeometry(0.01, 0.01, 0.1, 8), white, 0, 0.1, 0.1);
+  } else if (kind === 'JWST') {
+    // five-layer diamond sunshield, the gold honeycomb mirror on a tower, secondary mirror on a tripod
+    const sh = new THREE.Shape([V2(-0.55, 0), V2(0, -0.3), V2(0.55, 0), V2(0, 0.3)]);
+    for (let k = 0; k < 5; k++) { const m = new THREE.MeshStandardMaterial({ color: k ? 0xb9a7c8 : 0xd8c7e8, roughness: 0.25, metalness: 0.85, side: THREE.DoubleSide }); const l = add(new THREE.ShapeGeometry(sh), m, 0, -0.03 + k*0.018, 0, -Math.PI/2); l.scale.setScalar(1 - k*0.06); }
+    const gold = new THREE.MeshStandardMaterial({ color: 0xffc04a, roughness: 0.18, metalness: 1, emissive: 0x2a1600 });
+    const hex6 = new THREE.CylinderGeometry(0.043, 0.043, 0.01, 6); const mir = new THREE.Group(); mir.position.set(0, 0.2, -0.06); mir.rotation.x = -0.25; g.add(mir);
+    [[0, 0], [1, 0], [-1, 0], [0.5, 0.866], [-0.5, 0.866], [0.5, -0.866], [-0.5, -0.866], [2, 0], [-2, 0], [1.5, 0.866], [-1.5, 0.866], [1.5, -0.866], [-1.5, -0.866], [1, 1.732], [-1, 1.732], [0, 1.732], [1, -1.732], [-1, -1.732], [0, -1.732]].slice(1).forEach(([a, b]) => {
+      const s = new THREE.Mesh(hex6, gold); s.position.set(a*0.075, b*0.075, 0); s.rotation.x = Math.PI/2; s.rotation.y = Math.PI/6; mir.add(s); });
+    add(new THREE.CylinderGeometry(0.03, 0.04, 0.12, 8), dark, 0, 0.1, -0.02);
+    [[0, 0.11], [-0.1, -0.07], [0.1, -0.07]].forEach(([x, y]) => { const a = new THREE.Vector3(x, 0.2 + y, -0.06), b = new THREE.Vector3(0, 0.22, 0.2), d = b.clone().sub(a);
+      const t = add(new THREE.CylinderGeometry(0.003, 0.003, d.length(), 5), metal); t.position.copy(a).add(b).multiplyScalar(0.5); t.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); });
+    add(new THREE.SphereGeometry(0.015, 10, 8), gold, 0, 0.22, 0.2);
+    add(new THREE.BoxGeometry(0.12, 0.05, 0.12), dark, 0, -0.07, 0); add(new THREE.PlaneGeometry(0.25, 0.08), bluM, 0, -0.1, 0.12, 0.5);
+  } else if (kind === 'Parker') {
+    // the white-faced heat shield points at the Sun (+z), instruments in its shadow
+    add(new THREE.CylinderGeometry(0.16, 0.16, 0.025, 6), new THREE.MeshStandardMaterial({ color: 0xf4f2ee, roughness: 0.7 }), 0, 0, 0.12, Math.PI/2);
+    add(new THREE.CylinderGeometry(0.155, 0.155, 0.012, 6), dark, 0, 0, 0.1, Math.PI/2);
+    add(new THREE.CylinderGeometry(0.07, 0.09, 0.16, 6), foil, 0, 0, 0.0, Math.PI/2);
+    [1, -1].forEach(sd => add(new THREE.PlaneGeometry(0.05, 0.1), bluM, sd*0.12, 0, -0.02, 0, 0, 0));
+    add(new THREE.CylinderGeometry(0.004, 0.004, 0.3, 6), metal, 0, 0, -0.2, Math.PI/2);
+  } else {
+    // Voyager: big white dish toward Earth (+z), decagon bus, RTG boom, magnetometer boom
+    const dish = []; for (let k = 0; k <= 14; k++) { const r = k/14*0.19; dish.push(V2(r, -r*r*1.6)); }
+    const d = add(new THREE.LatheGeometry(dish, 32), new THREE.MeshStandardMaterial({ color: 0xf2f0ea, roughness: 0.5, metalness: 0.1, side: THREE.DoubleSide }), 0, 0, 0.07, -Math.PI/2);
+    add(new THREE.CylinderGeometry(0.008, 0.008, 0.08, 6), metal, 0, 0, 0.1, Math.PI/2);
+    add(new THREE.CylinderGeometry(0.075, 0.075, 0.05, 10), foil, 0, 0, -0.02, Math.PI/2);
+    const boom = (x, y, z, len) => { const v = new THREE.Vector3(x, y, z).normalize(), t = add(new THREE.CylinderGeometry(0.003, 0.003, len, 5), metal); t.position.copy(v.clone().multiplyScalar(len/2)).add(new THREE.Vector3(0, 0, -0.03)); t.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v); return v; };
+    const rv = boom(-1, -0.2, -0.3, 0.3); [0.12, 0.18, 0.24].forEach(k => { const c = add(new THREE.CylinderGeometry(0.018, 0.018, 0.05, 8), dark); c.position.copy(rv.clone().multiplyScalar(k)).add(new THREE.Vector3(0, 0, -0.03)); c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), rv); });
+    boom(1, 0.1, -0.4, 0.55); const sc = boom(0.6, -0.5, -0.4, 0.2); const pl = add(new THREE.BoxGeometry(0.04, 0.04, 0.03), dark); pl.position.copy(sc.multiplyScalar(0.2)).add(new THREE.Vector3(0, 0, -0.03));
+    const rec = add(new THREE.CircleGeometry(0.02, 16), new THREE.MeshStandardMaterial({ color: 0xd4a840, metalness: 1, roughness: 0.25 }), 0.077, 0, -0.02, 0, Math.PI/2);
+  }
+  // drawn a little larger than true scale next to the shuttle, so they read on screen
+  g.scale.setScalar(kind === 'JWST' ? 1.6 : 2); return g;
+}
+
 function rockGeo(seed) {
   const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position;
   for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), k = 0.72 + 0.5*noise3(x*1.7 + seed, y*1.7, z*1.7); p.setXYZ(i, x*k, y*k*0.85, z*k); }
@@ -548,6 +674,20 @@ function buildSolar() {
     }
     if (p.id === 'Earth') { const moon = planetMesh({ id: 'Moon', r: 3.8, tilt: 0 }, G.tex.moon); moon.position.copy(m.position).add(new THREE.Vector3(46, 4, 0)); grp.add(moon); bodies.push({ id: 'Moon', obj: moon, r: 3.8, moonOf: m }); }
   });
+  // big moons on their own orbits (game distances), and Phobos as a small rock
+  const MOONS = [['Phobos', 'Mars', 15, 0.9, 0.5, 0.02, 'rock'], ['Io', 'Jupiter', 72, 4, 0.12, 0.02, 'io'], ['Europa', 'Jupiter', 92, 3.6, 0.09, 0.03, 'europa'], ['Ganymede', 'Jupiter', 118, 5.5, 0.06, 0.02, 'ganymede'],
+    ['Callisto', 'Jupiter', 152, 5, 0.04, 0.03, 'callisto'], ['Enceladus', 'Saturn', 98, 1.6, 0.1, 0.0, 'enceladus'], ['Titan', 'Saturn', 160, 5.5, 0.04, 0.02, 'titan'], ['Triton', 'Neptune', 46, 2.8, -0.06, 0.4, 'triton']];
+  MOONS.forEach(([id, par, rad, r, w, inc, tex]) => { const pb = bodies.find(b => b.id === par); if (!pb) return;
+    const mp = { id, r, tilt: 0, tex, day: 2, atm: id === 'Titan' ? [1.0, 0.65, 0.3] : null }, m = planetMesh(mp, G.tex[tex]); grp.add(m);
+    if (id === 'Phobos') m.userData.body.scale.set(1.25, 0.8, 0.95);
+    bodies.push({ id, obj: m, r, p: mp, parent: par, orbit: { c: pb.obj, rad, w, inc: inc + (pb.p.tilt || 0)*D2R*0.3, a: Math.random()*6.28 } }); });
+  // spacecraft: Hubble in low orbit, Webb at L2 beyond the Moon, Parker on a tight loop round the Sun, the Voyagers far out in their real directions
+  const earthB = bodies.find(b => b.id === 'Earth'), earthP = earthB.obj.position;
+  const hub = makeCraft('Hubble'); grp.add(hub); bodies.push({ id: 'Hubble', obj: hub, r: 0.6, small: true, orbit: { c: earthB.obj, rad: 17.6, w: 0.11, inc: 0.5, a: 2 } });
+  const l2 = new THREE.Object3D(); l2.position.copy(earthP).add(earthP.clone().normalize().multiplyScalar(150)); grp.add(l2);
+  const jw = makeCraft('JWST'); grp.add(jw); bodies.push({ id: 'JWST', obj: jw, r: 0.7, small: true, orbit: { c: l2, rad: 9, w: 0.03, inc: 1.2, a: 0, face: 'sun' } });
+  const pk = makeCraft('Parker'); grp.add(pk); bodies.push({ id: 'Parker', obj: pk, r: 0.5, small: true, kepler: { q: 135, Q: 610, th: 2.5, tilt: 0.06 } });
+  [['Voyager1', 258.6, 12.1, 9400], ['Voyager2', 301, -60, 8700]].forEach(([id, ra, dec, R]) => { const v = makeCraft('Voyager'); v.position.copy(eq2game(eqv(ra, dec)).multiplyScalar(R)); v.lookAt(earthP); grp.add(v); bodies.push({ id, obj: v, r: 0.6, small: true }); });
   // asteroid belt between Mars and Jupiter
   const N = 2600, rocks = [], geo = rockGeo(3), mat = new THREE.MeshStandardMaterial({ color: 0x5e584f, roughness: 1, flatShading: true });
   const belt = new THREE.InstancedMesh(geo, mat, N), M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler();
@@ -839,7 +979,8 @@ function updateTargetHud() {
 }
 
 function openList() {
-  const items = ORDER.map(id => '<button class="b' + (PROG.found[id] ? ' got' : '') + (G.target === id ? ' cur' : '') + '" data-id="' + id + '"><b>' + (PROG.found[id] ? '★ ' : '') + nm(id) + '</b><small>' + tx2(INFO[id].k) + '</small></button>').join('');
+  const item = id => '<button class="b' + (PROG.found[id] ? ' got' : '') + (G.target === id ? ' cur' : '') + '" data-id="' + id + '"><b>' + (PROG.found[id] ? '★ ' : '') + nm(id) + '</b><small>' + tx2(INFO[id].k) + '</small></button>';
+  const items = CATS.map(([t, ids]) => '<div class="gkcat">' + tx2(t) + '</div>' + ids.map(item).join('')).join('');
   showCard('<div class="kk">' + L('Görev listesi', 'Mission list') + ' · ' + Object.keys(PROG.found).length + '/' + ORDER.length + ' ' + L('keşif', 'discovered') + '</div><h3>' + L('Nereye gidelim?', 'Where to?') + '</h3>' +
     '<div class="st">' + L('Gezegenler bu anki gerçek konumlarında. Yıldızlara hiper sürüşle gidilir.', 'Planets are in their real positions right now. Stars are reached by hyperdrive.') + '</div><div class="gklist">' + items + '</div><div class="gkrow" style="margin-top:12px"><button class="b" data-close>' + L('Kapat', 'Close') + '</button></div>', true);
   G.$('gkCard').querySelectorAll('[data-id]').forEach(b => b.onclick = () => { setTarget(b.dataset.id); setAuto(true); });
@@ -933,9 +1074,10 @@ function frame(t) {
     const m = new THREE.Matrix4().lookAt(ship.position, aimPos, up), qt = new THREE.Quaternion().setFromRotationMatrix(m), ang = q.angleTo(qt);
     q.rotateTowards(qt, dt*(0.9 + ang*0.6));
     if (needWarp) { want = ang < 0.12 ? 60 : 0; if (ang < 0.05) startWarp(G.mode === 'sol' ? G.target : 'sol'); }
-    else { const d = ship.position.distanceTo(worldPos(tb)) - (tb.small ? 3.2 : tb.r*(tb.star ? 4 : tb.p && tb.p.ring ? 4.6 : 3.4) + 8); want = ang > 0.6 ? 15 : Math.max(0, Math.min(520, Math.sqrt(Math.max(0, d)*2*260)));
+    else { const d = ship.position.distanceTo(worldPos(tb)) - (tb.small ? 2.4 : tb.r*(tb.star ? 4 : tb.p && tb.p.ring ? 4.6 : 3.4) + 8); want = ang > 0.6 ? 15 : Math.max(0, Math.min(520, Math.sqrt(Math.max(0, d)*2*260)));
       if (d < (tb.small ? 0.4 : 6)) { setAuto(false); setThr(0); want = 0; G.speed *= 0.3;
-        if (tb.small) { G.hold = tb; hint(L(nm(tb.id) + ' ile birlikte yörüngedesin. Kenetlen\'e basarak bağlanabilirsin.', 'You are flying alongside ' + nm(tb.id) + '. Tap Dock to connect.')); } } }
+        if (tb.small) { G.hold = tb; hint(DOCK[tb.id] ? L(nm(tb.id) + ' ile birlikte yörüngedesin. Kenetlen\'e basarak bağlanabilirsin.', 'You are flying alongside ' + nm(tb.id) + '. Tap Dock to connect.')
+          : L(nm(tb.id) + ' yanındasın. Mekik dururken sürükleyerek etrafından bak.', 'You are next to ' + nm(tb.id) + '. While parked, drag to look around it.')); } } }
   }
   if (G.warp) {
     G.warp.t += dt; const w = G.warp, T = w.t;
@@ -965,9 +1107,14 @@ function frame(t) {
   if (G.mode === 'sol') {
     G.sol.bodies.forEach(b => { if (b.p) { b.obj.userData.body.rotation.y += dt*0.25/(b.p.day || 1)*0.4; if (b.obj.userData.clouds) b.obj.userData.clouds.rotation.y += dt*0.012;
       if (b.obj.userData.atm) b.obj.userData.atm.material.uniforms.uSun.value.copy(b.obj.position).negate().normalize(); } });
-    G.sol.bodies.forEach(b => { if (!b.orbit) return; const o = b.orbit; o.a += o.w*dt;
-      const v = new THREE.Vector3(Math.cos(o.a)*o.rad, 0, Math.sin(o.a)*o.rad).applyAxisAngle(new THREE.Vector3(1, 0, 0), o.inc);
-      const old = b.obj.position.clone(); b.obj.position.copy(o.c.position).add(v); b.obj.lookAt(o.c.position); b.obj.rotateY(Math.PI/2);
+    G.sol.bodies.forEach(b => { if (!b.orbit && !b.kepler) return; const old = b.obj.position.clone();
+      if (b.kepler) { // Parker: an ellipse with the Sun at one focus, fast at perihelion
+        const k = b.kepler, a = (k.q + k.Q)/2, e = (k.Q - k.q)/(k.Q + k.q), rr = a*(1 - e*e)/(1 + e*Math.cos(k.th)); k.th += dt*26000/(rr*rr);
+        b.obj.position.set(Math.cos(k.th)*rr, Math.sin(k.th)*rr*k.tilt, Math.sin(k.th)*rr); b.obj.lookAt(0, 0, 0); }
+      else { const o = b.orbit; o.a += o.w*dt;
+        const v = new THREE.Vector3(Math.cos(o.a)*o.rad, 0, Math.sin(o.a)*o.rad).applyAxisAngle(new THREE.Vector3(1, 0, 0), o.inc);
+        b.obj.position.copy(o.c.position).add(v);
+        if (o.face === 'sun') { b.obj.lookAt(0, 0, 0); } else if (b.small) { b.obj.lookAt(o.c.position); b.obj.rotateY(Math.PI/2); } }
       const delta = b.obj.position.clone().sub(old); if (G.hold === b && !G.dock) ship.position.add(delta); if (G.dock && G.dock.b === b) G.dock.p0.add(delta); });
     updateDock(dt);
     G.sol.belt.rotation.y += dt*0.004;
@@ -1019,7 +1166,7 @@ function frame(t) {
   // dock button: near a station, or while docked; parking next to one keeps you alongside it
   const ns = nearStation(), db = G.$('gkDock'), showDock = !!(G.dock || ns);
   if (db.hidden === showDock) db.hidden = !showDock; const dl = G.dock ? L('Ayrıl', 'Undock') : L('Kenetlen', 'Dock'); if (db.textContent !== dl) db.textContent = dl;
-  if (ns && !G.dock && !G.hold && G.speed < 3 && G.thr < 0.01 && !G.auto) G.hold = ns;
+  const nsm = nearSmall(); if (nsm && !G.dock && !G.hold && G.speed < 3 && G.thr < 0.01 && !G.auto) G.hold = nsm;
 }
 function placeCamera(dt, sk) {
   const ship = G.ship, cam = G.camera, S = G.shut;
@@ -1046,8 +1193,9 @@ function placeCamera(dt, sk) {
   G.shipCam.position.copy(cam.position); G.shipCam.quaternion.copy(cam.quaternion); G.shipCam.fov = cam.fov; G.shipCam.updateProjectionMatrix();
 }
 /* docking: glide to the station's port, then ride along its orbit until undocked */
-const DOCK = { ISS: [[0, -0.085, -0.57], Math.PI], Tiangong: [[0, 0, 0.77], 0] };
-function nearStation() { if (G.mode !== 'sol' || G.warp) return null; let best = null, bd = 9; G.sol.bodies.forEach(b => { if (!b.small) return; const d = worldPos(b).distanceTo(G.ship.position); if (d < bd) { bd = d; best = b; } }); return best; }
+const DOCK = { ISS: [[0, -0.085, -0.57], Math.PI], Tiangong: [[0, 0, 0.77], 0], Hubble: [[0, 0, 0.67], 0] };
+function nearSmall() { if (G.mode !== 'sol' || G.warp) return null; let best = null, bd = 9; G.sol.bodies.forEach(b => { if (!b.small) return; const d = worldPos(b).distanceTo(G.ship.position); if (d < bd) { bd = d; best = b; } }); return best; }
+function nearStation() { if (G.mode !== 'sol' || G.warp) return null; let best = null, bd = 9; G.sol.bodies.forEach(b => { if (!b.small || !DOCK[b.id]) return; const d = worldPos(b).distanceTo(G.ship.position); if (d < bd) { bd = d; best = b; } }); return best; }
 function dock() {
   if (G.dock) { undock(); return; } const b = nearStation(); if (!b) return;
   G.auto = false; G.$('gkAuto').classList.remove('on'); G.thr = 0; setThr(0); G.turbo = false; G.speed = 0; G.hold = null;
@@ -1077,7 +1225,7 @@ function hit(dmg) {
    'sys'   the system from above, square-root distances so Neptune and Mercury both fit
    'near'  the neighbourhood, linear, the shuttle's heading up
    'stars' the Sun and the star systems you can jump to, log distances in light-years */
-const MAPCOL = { Sun: '#ffd27a', Mercury: '#b8aa98', Venus: '#f0d9a0', Earth: '#6fb3ff', Moon: '#cfcfcf', Mars: '#e07a4a', Ceres: '#9a948a', Jupiter: '#e6c89e', Saturn: '#efdca6', Uranus: '#9fe3ea', Neptune: '#5b84ea', ISS: '#ffffff', Tiangong: '#ffffff',
+const MAPCOL = { Sun: '#ffd27a', Mercury: '#b8aa98', Venus: '#f0d9a0', Earth: '#6fb3ff', Moon: '#cfcfcf', Mars: '#e07a4a', Ceres: '#9a948a', Jupiter: '#e6c89e', Saturn: '#efdca6', Uranus: '#9fe3ea', Neptune: '#5b84ea', ISS: '#ffffff', Tiangong: '#ffffff', Hubble: '#e8ecf2', JWST: '#ffc04a', Parker: '#f4f2ee', Voyager1: '#f2f0ea', Voyager2: '#f2f0ea', Phobos: '#8a7f74', Io: '#e8d26a', Europa: '#e9e2d6', Ganymede: '#b8ae9e', Callisto: '#8e8474', Titan: '#e0a050', Enceladus: '#f6f8fb', Triton: '#e3d2cc',
   AlphaCen: '#ffe7a8', Sirius: '#dfe9ff', Vega: '#cfe0ff', Betelgeuse: '#ff9a6a' };
 function cometPos(t) { const a = 1500, e = 0.82, E = t*6.283; return new THREE.Vector3(a*(Math.cos(E) - e), Math.sin(E)*120, a*Math.sqrt(1 - e*e)*Math.sin(E)).applyAxisAngle(new THREE.Vector3(0, 1, 0), 2.1); }
 function drawMapCore(g, W, H, V, bodies) {
@@ -1135,9 +1283,10 @@ function drawMapCore(g, W, H, V, bodies) {
   const sysExtra = G.mode !== 'sol' && G.sys && G.sys.grp.userData.extra ? G.sys.grp.userData.extra.map(([o, n]) => ({ name: n, obj: o, r: 10 })) : [];
   const placedL = [];
   bodies.concat(sysExtra).forEach(b => {
-    const isMinor = b.small || b.id === 'Moon';
+    const isMinor = b.small || b.id === 'Moon' || b.parent;
     const v = b.obj.getWorldPosition(new THREE.Vector3()), [x, y] = P(v);
-    if (V.mode === 'sys' && isMinor) { const ep = P(worldPos(G.sol.bodies.find(q => q.id === 'Earth'))); if (Math.hypot(x - ep[0], y - ep[1]) < (big ? 14 : 99)) return; }
+    // moons and craft hide while they would sit on top of their planet; zoom in to see them
+    if (V.mode === 'sys' && isMinor) { const home = G.sol.bodies.find(q => q.id === (b.parent || 'Earth')), ep = P(worldPos(home)); if (Math.hypot(x - ep[0], y - ep[1]) < (big ? 14 : 99)) return; }
     const rr = V.mode === 'near' ? Math.max(b.small ? 2 : 3, b.r*scale) : b.star ? (big ? 7 : 4.5) : Math.max(big ? 2.6 : 2, Math.min(big ? 7 : 4, b.r/9 + 1.6))*(big ? Math.min(2, Math.sqrt(zoom)) : 1);
     if (x < -rr - 40 || x > W + rr + 40 || y < -rr - 40 || y > H + rr + 40) return;
     const col = MAPCOL[b.id] || (b.star ? '#fff1c2' : '#cfcfcf');
@@ -1273,7 +1422,9 @@ function open(opts) {
   LANG = opts.lang === 'en' ? 'en' : 'tr'; THREE = window.THREE;
   if (!G || !G.el) init(opts); else G.el.hidden = false;
   G.onClose = opts.onClose; G.running = true; G.last = performance.now(); requestAnimationFrame(frame);
-  if (!PROG.seen) intro(); else { setTarget(G.target || 'Mars'); }
+  // opened from the sky with a destination: go straight there (after the launch intro the first time)
+  const want = opts.target && INFO[opts.target] ? opts.target : null; G.pendingTarget = want;
+  if (!PROG.seen) intro(); else if (want) { if (G.dock) undock(); setTarget(want); setAuto(true); bigMsg(L('Rota: ', 'Course: ') + nm(want), '', 1600); } else { setTarget(G.target || 'Mars'); }
 }
 function intro() {
   showCard('<div class="kk">' + L('Uzay mekiği', 'Space shuttle') + '</div><h3>' + L('Kalkışa hazır mısın?', 'Ready for launch?') + '</h3>' +
@@ -1281,7 +1432,7 @@ function intro() {
     '<li>' + L('Bir hedef seç, Otopilot seni götürsün; ya da direksiyona kendin geç.', 'Pick a target and let the autopilot fly, or take the controls yourself.') + '</li>' +
     '<li>' + L('Her varışta bir rozet kazanırsın; ayrıntı için çıkan etikete dokun. Asteroit ve meteorlara dikkat!', 'Every arrival earns a badge; tap the label that pops up for details. Watch out for asteroids and meteors!') + '</li></ul>' +
     '<div class="gkrow"><button class="b on" id="gkGo">' + L('Kalkış!', 'Launch!') + '</button></div>', true);
-  G.$('gkGo').onclick = () => { PROG.seen = true; save(); hideCard(); let n = 3; const tick = () => { if (n > 0) { bigMsg(String(n), '', 800); n--; setTimeout(tick, 850); } else { bigMsg(L('Kalkış!', 'Liftoff!'), '', 1200); setThr(0.45); G.shake = 1; setTarget('Moon'); } }; tick(); };
+  G.$('gkGo').onclick = () => { PROG.seen = true; save(); hideCard(); let n = 3; const tick = () => { if (n > 0) { bigMsg(String(n), '', 800); n--; setTimeout(tick, 850); } else { bigMsg(L('Kalkış!', 'Liftoff!'), '', 1200); setThr(0.45); G.shake = 1; if (G.pendingTarget) { setTarget(G.pendingTarget); setAuto(true); } else setTarget('Moon'); } }; tick(); };
 }
 function close() {
   G.running = false; G.el.hidden = true; hideCard(); setAuto(false); G.turbo = false; G.keys = {};
