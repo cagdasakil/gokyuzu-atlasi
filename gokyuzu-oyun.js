@@ -134,7 +134,8 @@ function noise3(x, y, z) {
   return l(l(l(hash3(xi, yi, zi), hash3(xi + 1, yi, zi), u), l(hash3(xi, yi + 1, zi), hash3(xi + 1, yi + 1, zi), u), v),
            l(l(hash3(xi, yi, zi + 1), hash3(xi + 1, yi, zi + 1), u), l(hash3(xi, yi + 1, zi + 1), hash3(xi + 1, yi + 1, zi + 1), u), v), w);
 }
-function fbm(x, y, z, o = 5) { let a = 0.5, s = 0, f = 1; for (let i = 0; i < o; i++) { s += a*noise3(x*f, y*f, z*f); f *= 2.03; a *= 0.5; } return s/(1 - Math.pow(0.5, o)); }
+let OCT = 0; // extra octaves while painting the close-up maps
+function fbm(x, y, z, o = 5) { o += OCT; let a = 0.5, s = 0, f = 1; for (let i = 0; i < o; i++) { s += a*noise3(x*f, y*f, z*f); f *= 2.03; a *= 0.5; } return s/(1 - Math.pow(0.5, o)); }
 const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a)/(b - a))); return t*t*(3 - 2*t); };
 const mix3 = (a, b, t) => [a[0] + (b[0] - a[0])*t, a[1] + (b[1] - a[1])*t, a[2] + (b[2] - a[2])*t];
 const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -147,31 +148,46 @@ function paint(w, h, fn) {
   g.putImageData(im, 0, 0);
   const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t;
 }
+// the same painter as a generator, a few rows per call, so a close-up map can be painted between frames
+function* paintGen(w, h, fn, done) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'), im = g.createImageData(w, h), d = im.data;
+  for (let j = 0; j < h; j++) { const lat = (0.5 - (j + 0.5)/h)*Math.PI, cl = Math.cos(lat), y = Math.sin(lat);
+    for (let i = 0; i < w; i++) { const lon = (i + 0.5)/w*Math.PI*2, x = cl*Math.cos(lon), z = cl*Math.sin(lon), p = fn(x, y, z, lat, lon), k = (j*w + i)*4;
+      d[k] = p[0]; d[k + 1] = p[1]; d[k + 2] = p[2]; d[k + 3] = p.length > 3 ? p[3] : 255; }
+    if ((j & 3) === 3) yield; }
+  g.putImageData(im, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; done(t);
+}
 function bands(cols, y, n, warp, k) { const t = (y*k + n*warp + 8)*cols.length; const i = Math.floor(t), f = t - i; return mix3(cols[((i % cols.length) + cols.length) % cols.length], cols[(((i + 1) % cols.length) + cols.length) % cols.length], sm(0, 1, f)); }
 const TEX = {
-  mercury: () => paint(256, 128, (x, y, z) => { const n = fbm(x*4, y*4, z*4), c = Math.abs(noise3(x*14, y*14, z*14) - 0.5); const v = 95 + n*90 - (c < 0.06 ? 30 : 0); return [v*1.02, v*0.97, v*0.92]; }),
-  ceres: () => paint(256, 128, (x, y, z) => { const n = fbm(x*5, y*5, z*5), c = Math.abs(noise3(x*16, y*16, z*16) - 0.5), b = noise3(x*30 + 9, y*30, z*30) > 0.93 ? 120 : 0; const v = 70 + n*60 - (c < 0.05 ? 20 : 0) + b; return [v, v*0.98, v*0.95]; }),
-  venus: () => paint(256, 128, (x, y, z) => { const w = fbm(x*2 + 3, y*2, z*2), n = fbm(x*3 + w*2, y*6 + w, z*3); return mix3(hex('#b98d4f'), hex('#f2deae'), sm(0.3, 0.75, n)); }),
-  earth: () => paint(512, 256, (x, y, z, lat) => {
+  earthNight: [512, 256, (x, y, z, lat) => {
+    const h = fbm(x*2.1 + 11, y*2.1, z*2.1, 6), al = Math.abs(lat)/(Math.PI/2);
+    if (h < 0.535 || al > 0.8) return [0, 0, 0];
+    const k = sm(0.62, 0.9, noise3(x*70, y*70, z*70))*sm(0.4, 0.75, fbm(x*9 + 2, y*9, z*9, 3))*(1 - al*0.6);
+    return [255*k, 185*k, 105*k]; }],
+  mercury: [256, 128, (x, y, z) => { const n = fbm(x*4, y*4, z*4), c = Math.abs(noise3(x*14, y*14, z*14) - 0.5); const v = 95 + n*90 - (c < 0.06 ? 30 : 0); return [v*1.02, v*0.97, v*0.92]; }],
+  ceres: [256, 128, (x, y, z) => { const n = fbm(x*5, y*5, z*5), c = Math.abs(noise3(x*16, y*16, z*16) - 0.5), b = noise3(x*30 + 9, y*30, z*30) > 0.93 ? 120 : 0; const v = 70 + n*60 - (c < 0.05 ? 20 : 0) + b; return [v, v*0.98, v*0.95]; }],
+  venus: [256, 128, (x, y, z) => { const w = fbm(x*2 + 3, y*2, z*2), n = fbm(x*3 + w*2, y*6 + w, z*3); return mix3(hex('#b98d4f'), hex('#f2deae'), sm(0.3, 0.75, n)); }],
+  earth: [512, 256, (x, y, z, lat) => {
     const h = fbm(x*2.1 + 11, y*2.1, z*2.1, 6), al = Math.abs(lat)/(Math.PI/2);
     if (al > 0.86 + (h - 0.5)*0.15) return [235, 242, 250];
     if (h < 0.53) { const d = sm(0.3, 0.53, h); return mix3(hex('#08214f'), hex('#1d5fa3'), d); }
     const dry = sm(0.15, 0.45, 1 - Math.abs(al - 0.28)*3) * sm(0.5, 0.8, fbm(x*5, y*5, z*5 + 4));
-    return mix3(mix3(hex('#2f6b2a'), hex('#5c7d34'), sm(0.53, 0.68, h)), hex('#b89a63'), dry*0.85); }),
-  clouds: () => paint(512, 256, (x, y, z) => { const n = fbm(x*3 + 5, y*5, z*3, 6); const a = sm(0.5, 0.78, n)*255; return [255, 255, 255, a]; }),
-  mars: () => paint(512, 256, (x, y, z, lat) => { const n = fbm(x*3, y*3, z*3, 6), d = fbm(x*2 + 7, y*2, z*2), al = Math.abs(lat)/(Math.PI/2);
+    return mix3(mix3(hex('#2f6b2a'), hex('#5c7d34'), sm(0.53, 0.68, h)), hex('#b89a63'), dry*0.85); }],
+  clouds: [512, 256, (x, y, z) => { const n = fbm(x*3 + 5, y*5, z*3, 6); const a = sm(0.5, 0.78, n)*255; return [255, 255, 255, a]; }],
+  mars: [512, 256, (x, y, z, lat) => { const n = fbm(x*3, y*3, z*3, 6), d = fbm(x*2 + 7, y*2, z*2), al = Math.abs(lat)/(Math.PI/2);
     if (al > 0.9 + (n - 0.5)*0.1) return [238, 232, 228];
-    return mix3(mix3(hex('#9c3c17'), hex('#d9784a'), n), hex('#4f2414'), sm(0.55, 0.75, d)*0.75); }),
-  jupiter: () => paint(512, 256, (x, y, z, lat, lon) => {
+    return mix3(mix3(hex('#9c3c17'), hex('#d9784a'), n), hex('#4f2414'), sm(0.55, 0.75, d)*0.75); }],
+  jupiter: [512, 256, (x, y, z, lat, lon) => {
     const n = fbm(x*4, y*9, z*4); let c = bands([hex('#e9dcc4'), hex('#c49a6c'), hex('#f3ead8'), hex('#a8714a'), hex('#e2c9a3'), hex('#8c5a3c')], y, n, 0.06, 1.15);
     const dl = (lat + 22*D2R)/0.07, dn = Math.atan2(Math.sin(lon - 3.6), Math.cos(lon - 3.6))/0.16, e = dl*dl + dn*dn;
-    if (e < 1) c = mix3(c, hex('#b4482c'), sm(1, 0.3, e)); return c; }),
-  saturn: () => paint(512, 256, (x, y, z) => { const n = fbm(x*4, y*10, z*4); return bands([hex('#f1e2b8'), hex('#d8bd84'), hex('#efe0bd'), hex('#c7a66a'), hex('#e6d2a2')], y, n, 0.04, 0.9); }),
-  uranus: () => paint(256, 128, (x, y, z) => { const n = fbm(x*3, y*12, z*3); return mix3(hex('#8fd6de'), hex('#b8eef0'), sm(0.35, 0.7, n)*0.6 + y*0.15); }),
-  neptune: () => paint(256, 128, (x, y, z, lat, lon) => { const n = fbm(x*3, y*10, z*3); let c = mix3(hex('#2c4fc2'), hex('#5b84ea'), sm(0.3, 0.75, n));
-    const dl = (lat + 20*D2R)/0.09, dn = Math.atan2(Math.sin(lon - 1.2), Math.cos(lon - 1.2))/0.2; if (dl*dl + dn*dn < 1) c = mix3(c, hex('#1a2a72'), 0.7); return c; }),
-  moon: () => paint(256, 128, (x, y, z) => { const n = fbm(x*3, y*3, z*3), m = sm(0.55, 0.62, fbm(x*1.5 + 4, y*1.5, z*1.5)), c = Math.abs(noise3(x*18, y*18, z*18) - 0.5); const v = 150 + n*60 - m*60 - (c < 0.05 ? 25 : 0); return [v, v, v*0.98]; }),
-  rock: () => paint(256, 128, (x, y, z) => { const n = fbm(x*4, y*4, z*4), v = 60 + n*80; return [v*1.05, v, v*0.92]; })
+    if (e < 1) c = mix3(c, hex('#b4482c'), sm(1, 0.3, e)); return c; }],
+  saturn: [512, 256, (x, y, z) => { const n = fbm(x*4, y*10, z*4); return bands([hex('#f1e2b8'), hex('#d8bd84'), hex('#efe0bd'), hex('#c7a66a'), hex('#e6d2a2')], y, n, 0.04, 0.9); }],
+  uranus: [256, 128, (x, y, z) => { const n = fbm(x*3, y*12, z*3); return mix3(hex('#8fd6de'), hex('#b8eef0'), sm(0.35, 0.7, n)*0.6 + y*0.15); }],
+  neptune: [256, 128, (x, y, z, lat, lon) => { const n = fbm(x*3, y*10, z*3); let c = mix3(hex('#2c4fc2'), hex('#5b84ea'), sm(0.3, 0.75, n));
+    const dl = (lat + 20*D2R)/0.09, dn = Math.atan2(Math.sin(lon - 1.2), Math.cos(lon - 1.2))/0.2; if (dl*dl + dn*dn < 1) c = mix3(c, hex('#1a2a72'), 0.7); return c; }],
+  moon: [256, 128, (x, y, z) => { const n = fbm(x*3, y*3, z*3), m = sm(0.55, 0.62, fbm(x*1.5 + 4, y*1.5, z*1.5)), c = Math.abs(noise3(x*18, y*18, z*18) - 0.5); const v = 150 + n*60 - m*60 - (c < 0.05 ? 25 : 0); return [v, v, v*0.98]; }],
+  rock: [256, 128, (x, y, z) => { const n = fbm(x*4, y*4, z*4), v = 60 + n*80; return [v*1.05, v, v*0.92]; }]
 };
 function glowTex(stops) {
   const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
@@ -199,7 +215,7 @@ const ATM = {
   vertexShader: `varying vec3 vN; varying vec3 vV; varying vec3 vW;
     void main(){ vN = normalize(normalMatrix*normal); vec4 mv = modelViewMatrix*vec4(position, 1.0); vV = normalize(-mv.xyz); vW = normalize(mat3(modelMatrix)*normal); gl_Position = projectionMatrix*mv; }`,
   fragmentShader: `uniform vec3 uC; uniform vec3 uSun; varying vec3 vN; varying vec3 vV; varying vec3 vW;
-    void main(){ float r = 1.0 - abs(dot(vN, vV)); float i = pow(r, 2.6); float lit = 0.25 + 0.75*smoothstep(-0.4, 0.5, dot(vW, uSun));
+    void main(){ float r = 1.0 - abs(dot(vN, vV)); float i = pow(r, 2.6); float lit = 0.06 + 0.94*smoothstep(-0.3, 0.5, dot(vW, uSun));
       gl_FragColor = vec4(uC, i*lit*0.7); }`
 };
 const PTS = {
@@ -328,7 +344,7 @@ function makeStarSphere(stars) {
     const v = gx.clone().multiplyScalar(cb*Math.cos(l)).add(gy.clone().multiplyScalar(cb*Math.sin(l))).add(ngp.clone().multiplyScalar(Math.sin(b))).multiplyScalar(R*0.98);
     MP[i*3] = v.x; MP[i*3 + 1] = v.y; MP[i*3 + 2] = v.z;
     const w = Math.random(), col = w < 0.5 ? [0.75, 0.8, 1] : w < 0.85 ? [1, 0.9, 0.75] : [1, 0.6, 0.65];
-    MC[i*3] = col[0]; MC[i*3 + 1] = col[1]; MC[i*3 + 2] = col[2]; MS[i] = 2 + Math.random()*5; MA[i] = 0.05 + 0.12*Math.random()*(0.5 + toC);
+    MC[i*3] = col[0]; MC[i*3 + 1] = col[1]; MC[i*3 + 2] = col[2]; MS[i] = 2 + Math.random()*5; MA[i] = 0.03 + 0.08*Math.random()*(0.5 + toC);
   }
   const mw = new THREE.Points(mg, ptsMat(false)); mw.frustumCulled = false; grp.add(mw);
   // a few soft nebula glows along the plane
@@ -338,6 +354,18 @@ function makeStarSphere(stars) {
     const v = gx.clone().multiplyScalar(Math.cos(b)*Math.cos(l)).add(gy.clone().multiplyScalar(Math.cos(b)*Math.sin(l))).add(ngp.clone().multiplyScalar(Math.sin(b))).multiplyScalar(R*0.97);
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: neb, color: ncol[i % 5], transparent: true, opacity: 0.05 + Math.random()*0.06*(0.5 + (Math.cos(l)*0.5 + 0.5)), blending: THREE.AdditiveBlending, depthWrite: false }));
     s.position.copy(v); s.scale.setScalar(R*(0.18 + Math.random()*0.25)); grp.add(s); }
+  // the glow itself: a map painted in galactic longitude/latitude, with dark dust lanes and a bright bulge toward Sagittarius
+  const mwc = document.createElement('canvas'); mwc.width = 1024; mwc.height = 512; const mg2 = mwc.getContext('2d'), mim = mg2.createImageData(1024, 512), md = mim.data;
+  for (let j = 0; j < 512; j++) { const b = (0.5 - (j + 0.5)/512)*Math.PI;
+    for (let i = 0; i < 1024; i++) { const l = (i + 0.5)/1024*Math.PI*2, cb = Math.cos(b), x = cb*Math.cos(l), y = cb*Math.sin(l), z = Math.sin(b);
+      const toC = Math.pow(Math.cos(l)*0.5 + 0.5, 3), wid = 0.09 + 0.16*toC, band = Math.exp(-Math.pow(b/wid, 2));
+      const cl = fbm(x*5 + 1, y*5, z*5, 5), fine = fbm(x*16, y*16, z*16, 3), lane = sm(0.5, 0.68, fbm(x*7 + 4, y*7, z*7, 4))*Math.exp(-Math.pow(b/0.045, 2));
+      let I = band*(0.35 + 0.9*cl*(0.7 + 0.5*fine))*(0.45 + 0.9*toC) + Math.exp(-Math.pow(b/0.5, 2))*0.05; I *= 1 - lane*0.75;
+      const warm = Math.min(1, toC*1.4), k = (j*1024 + i)*4, pink = sm(0.72, 0.85, fine)*band*0.5;
+      md[k] = Math.min(255, I*(150 + 90*warm) + pink*120); md[k + 1] = Math.min(255, I*(160 + 40*warm)); md[k + 2] = Math.min(255, I*(205 - 60*warm) + pink*70); md[k + 3] = 255; } }
+  mg2.putImageData(mim, 0, 0); const mwt = new THREE.CanvasTexture(mwc); mwt.encoding = THREE.sRGBEncoding;
+  const mws = new THREE.Mesh(new THREE.SphereGeometry(R*0.99, 96, 48), new THREE.MeshBasicMaterial({ map: mwt, side: THREE.BackSide, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
+  mws.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(gx.clone().negate(), ngp, gy)); mws.renderOrder = -2; grp.add(mws);
   grp.userData.mats = [pts.material, mw.material];
   return grp;
 }
@@ -357,7 +385,14 @@ function starBody(r, c1, c2, scale) {
 
 function planetMesh(p, tex) {
   const grp = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.SphereGeometry(p.r, 64, 48), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0 }));
+  const rocky = ['Mercury', 'Moon', 'Mars', 'Ceres', 'Proxima b'].includes(p.id);
+  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0 });
+  if (rocky) { mat.bumpMap = tex; mat.bumpScale = 0.12; }
+  if (p.id === 'Earth') {
+    mat.emissiveMap = G.tex.earthNight; mat.emissive = new THREE.Color(0xffffff); mat.emissiveIntensity = 1.4; mat.roughness = 0.75;
+    mat.onBeforeCompile = sh => { sh.uniforms.uSunV = G.sunV; sh.fragmentShader = 'uniform vec3 uSunV;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance *= smoothstep(0.12, -0.22, dot(normal, uSunV));'); };
+  }
+  const body = new THREE.Mesh(new THREE.SphereGeometry(p.r, 96, 64), mat);
   grp.add(body); body.rotation.z = (p.tilt || 0)*D2R;
   if (p.id === 'Earth') { const cl = new THREE.Mesh(new THREE.SphereGeometry(p.r*1.015, 64, 48), new THREE.MeshStandardMaterial({ map: G.tex.clouds, transparent: true, depthWrite: false, roughness: 1 })); cl.rotation.z = body.rotation.z; grp.add(cl); grp.userData.clouds = cl; }
   if (p.atm) { const a = new THREE.Mesh(new THREE.SphereGeometry(p.r*1.09, 48, 32), new THREE.ShaderMaterial({ uniforms: { uC: { value: new THREE.Color().setRGB(...p.atm) }, uSun: { value: new THREE.Vector3() } }, vertexShader: ATM.vertexShader, fragmentShader: ATM.fragmentShader, side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
@@ -375,6 +410,21 @@ function planetMesh(p, tex) {
   grp.userData.body = body; return grp;
 }
 
+// close-up maps: painted at 3-4x once the shuttle comes near, the Moon gets the real LRO map
+function requestHi(b) {
+  if (b.hi || !b.obj.userData.body) return; b.hi = true;
+  const m = b.obj.userData.body.material;
+  if (b.id === 'Moon') { new THREE.TextureLoader().load('foto/moon.jpg', t => { t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; m.map = t; m.bumpMap = t; m.bumpScale = 0.05; m.needsUpdate = true; }); return; }
+  if (!b.p || !TEX[b.p.tex]) return;
+  const job = (key, k, set) => { const [w, h, fn] = TEX[key]; G.hiQ.push(paintGen(w*k, h*k, fn, set)); };
+  job(b.p.tex, TEX[b.p.tex][0] >= 512 ? 3 : 4, t => { m.map = t; if (m.bumpMap) m.bumpMap = t; m.needsUpdate = true; });
+  if (b.id === 'Earth') { job('earthNight', 3, t => { m.emissiveMap = t; m.needsUpdate = true; }); const cm = b.obj.userData.clouds.material; job('clouds', 3, t => { cm.map = t; cm.needsUpdate = true; }); }
+}
+function runPaintJobs(ms) {
+  const t0 = performance.now(); OCT = 2;
+  try { while (performance.now() - t0 < ms) { if (!G.task) { G.task = G.hiQ.shift() || null; if (!G.task) break; } if (G.task.next().done) G.task = null; } } finally { OCT = 0; }
+}
+
 function rockGeo(seed) {
   const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position;
   for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), k = 0.72 + 0.5*noise3(x*1.7 + seed, y*1.7, z*1.7); p.setXYZ(i, x*k, y*k*0.85, z*k); }
@@ -382,6 +432,7 @@ function rockGeo(seed) {
 }
 
 function buildSolar() {
+  G.glintTex = glowTex([[0, 'rgba(255,255,255,1)'], [0.12, 'rgba(255,255,255,.75)'], [0.35, 'rgba(255,255,255,.12)'], [1, 'rgba(255,255,255,0)']]);
   const grp = new THREE.Group(), bodies = [];
   const sun = starBody(70, '#fff1c2', '#ff9a2e', 4.5); grp.add(sun); bodies.push({ id: 'Sun', obj: sun, r: 70, star: true });
   const date = new Date();
@@ -389,7 +440,9 @@ function buildSolar() {
     let v = null; try { v = G.helio(p.id, date); } catch (e) {}
     const dir = v ? ecl2game(v).normalize() : new THREE.Vector3(Math.cos(p.orbit), 0, Math.sin(p.orbit));
     const m = planetMesh(p, G.tex[p.tex]); m.position.copy(dir.multiplyScalar(p.orbit)); grp.add(m);
-    bodies.push({ id: p.id, obj: m, r: p.r, p });
+    const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: G.glintTex, color: new THREE.Color().setRGB(...(p.atm || [0.85, 0.85, 0.85])).lerp(new THREE.Color(1, 1, 1), 0.5), sizeAttenuation: false, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    gl.scale.setScalar(p.r > 30 ? 0.03 : p.r > 12 ? 0.024 : 0.017); m.add(gl);
+    bodies.push({ id: p.id, obj: m, r: p.r, p, glint: gl });
     // faint orbit ring
     const pts = []; for (let k = 0; k <= 256; k++) { const a = k/256*Math.PI*2; pts.push(new THREE.Vector3(Math.cos(a)*p.orbit, 0, Math.sin(a)*p.orbit)); }
     const ol = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: p.id === 'Earth' ? 0x6fb3ff : 0xe3c27e, transparent: true, opacity: p.id === 'Earth' ? 0.22 : 0.1, depthWrite: false }));
@@ -508,26 +561,59 @@ function updateMeteors(M, dt) {
 
 /* ---------------- the shuttle ---------------- */
 // built at 10x and scaled down: nose toward -Z, about 6.4 units long before scaling
+// the orbiter's paint: white tiles on top, black heat tiles on the belly and nose, cockpit windows, payload bay seams
+function shuttlePaint() {
+  const W = 1024, H = 512, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  g.fillStyle = '#efece5'; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 2600; i++) { const x = Math.random()*W, y = Math.random()*H, v = 222 + Math.random()*22; g.fillStyle = 'rgb(' + v + ',' + (v - 2) + ',' + (v - 7) + ')'; g.fillRect(Math.floor(x/12)*12, Math.floor(y/12)*12, 12, 12); }
+  g.strokeStyle = 'rgba(120,118,112,.35)'; g.lineWidth = 1; for (let x = 0; x <= W; x += 12) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); } for (let y = 0; y <= H; y += 12) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+  // belly: black tiles over the lower ~40%, curving up toward the nose (the "chine")
+  g.fillStyle = '#17181c'; g.beginPath();
+  for (let y = 0; y <= H; y += 4) { const v = y/H, up = v < 0.22 ? (0.22 - v)*0.55 : 0; g.lineTo(W*(0.31 - up), y); }
+  for (let y = H; y >= 0; y -= 4) { const v = y/H, up = v < 0.22 ? (0.22 - v)*0.55 : 0; g.lineTo(W*(0.69 + up), y); }
+  g.closePath(); g.fill();
+  g.fillRect(0, 0, W, H*0.035);
+  g.strokeStyle = 'rgba(60,62,70,.6)'; for (let x = W*0.2; x <= W*0.8; x += 10) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); } for (let y = 0; y <= H; y += 10) { g.beginPath(); g.moveTo(W*0.25, y); g.lineTo(W*0.75, y); g.stroke(); }
+  // cockpit: dark frame with six window panes on top, near the nose
+  const wy = H*0.115, wh = H*0.05; g.fillStyle = '#1b1c21'; g.fillRect(0, wy - 6, W*0.1, wh + 12); g.fillRect(W*0.9, wy - 6, W*0.1, wh + 12);
+  g.fillStyle = '#3a4a5c'; [[0.005, 0.03], [0.035, 0.03], [0.065, 0.028], [0.905, 0.028], [0.935, 0.03], [0.965, 0.03]].forEach(([u, w]) => g.fillRect(W*u, wy, W*w, wh));
+  // payload bay doors: centre seam, hinge lines and frame joints
+  g.strokeStyle = 'rgba(80,80,78,.8)'; g.lineWidth = 2; [0, W - 1, W*0.075, W*0.925].forEach(x => { g.beginPath(); g.moveTo(x, H*0.27); g.lineTo(x, H*0.87); g.stroke(); });
+  g.lineWidth = 1; for (let y = H*0.27; y <= H*0.87; y += H*0.06) { g.beginPath(); g.moveTo(0, y); g.lineTo(W*0.075, y); g.moveTo(W*0.925, y); g.lineTo(W, y); g.stroke(); }
+  // thin dark stripe along the sides and a few red/blue marking dots like the real paint scheme
+  g.fillStyle = '#26272c'; g.fillRect(W*0.24, H*0.3, W*0.012, H*0.55); g.fillRect(W*0.748, H*0.3, W*0.012, H*0.55);
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; t.flipY = false; return t;
+}
 function makeShuttle() {
   const g = new THREE.Group(), V2 = (x, y) => new THREE.Vector2(x, y);
   const white = new THREE.MeshStandardMaterial({ color: 0xf1ede4, roughness: 0.5, metalness: 0.08 });
   const tile = new THREE.MeshStandardMaterial({ color: 0x1d1e23, roughness: 0.75 });
   const grey = new THREE.MeshStandardMaterial({ color: 0x9a9ca3, roughness: 0.45, metalness: 0.5, side: THREE.DoubleSide });
-  const fus = new THREE.Mesh(new THREE.LatheGeometry([V2(0, 3.25), V2(0.2, 3.12), V2(0.4, 2.85), V2(0.54, 2.45), V2(0.62, 1.9), V2(0.64, 0.8), V2(0.64, -2.45), V2(0.6, -2.7)], 36), white);
+  // fuselage: evenly spaced profile so the paint map runs nose (v=0) to tail (v=1); u=0 is the top, u=0.5 the belly
+  const prof = []; for (let k = 0; k <= 48; k++) { const y = 3.25 - k/48*5.95; let r = y > 0.9 ? 0.64*Math.sqrt(Math.max(0, 1 - Math.pow((y - 0.9)/2.35, 2))) : y < -2.45 ? 0.64 - (-2.45 - y)*0.16 : 0.64; prof.push(V2(Math.max(r, k ? 0.001 : 0), y)); }
+  const fus = new THREE.Mesh(new THREE.LatheGeometry(prof, 48), new THREE.MeshStandardMaterial({ map: shuttlePaint(), roughness: 0.6, metalness: 0.05 }));
   fus.rotation.x = -Math.PI/2; fus.scale.set(1, 1, 0.82); g.add(fus);
-  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.24, 20, 12), tile); nose.position.set(0, -0.02, -3.06); nose.scale.set(1, 0.8, 0.9); g.add(nose);
-  const win = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.16, 0.42), tile); win.position.set(0, 0.47, -2.3); win.rotation.x = -0.45; g.add(win);
-  const bay = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 3.6), tile); bay.position.set(0, 0.55, 0.1); g.add(bay);
   // delta wings with black heat-tile undersides
   const ws = new THREE.Shape([V2(0.45, -1.4), V2(0.75, -0.4), V2(2.35, 1.75), V2(2.35, 2.3), V2(0.45, 2.45)]);
+  const rcc = new THREE.MeshStandardMaterial({ color: 0x2b2d33, roughness: 0.55, metalness: 0.15 }), elev = new THREE.MeshStandardMaterial({ color: 0xc9c6bf, roughness: 0.6 });
+  // a dark strip from a to b (x, y, z), like the carbon leading edges
+  const strip = (a, b, r, m) => { const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), d = B.clone().sub(A), c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 10), m);
+    c.position.copy(A).add(B).multiplyScalar(0.5); c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); g.add(c); };
   [1, -1].forEach(side => {
     const wg = new THREE.ExtrudeGeometry(ws, { depth: 0.09, bevelEnabled: false });
     const w = new THREE.Mesh(wg, white); w.rotation.x = Math.PI/2; w.scale.x = side; w.position.y = -0.18; g.add(w);
     const u = new THREE.Mesh(wg, tile); u.rotation.x = Math.PI/2; u.scale.set(side, 1, 0.3); u.position.y = -0.27; g.add(u);
+    strip([side*0.45, -0.225, -1.4], [side*0.75, -0.225, -0.4], 0.06, rcc); strip([side*0.75, -0.225, -0.4], [side*2.35, -0.225, 1.75], 0.055, rcc);
+    const ev = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.1, 0.22), elev); ev.position.set(side*1.4, -0.22, 2.3); g.add(ev);
     const oms = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 1.4, 16), white); oms.rotation.x = Math.PI/2; oms.position.set(side*0.42, 0.42, 1.95); g.add(oms);
+    const omsCap = new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 10, 0, Math.PI*2, 0, Math.PI/2), tile); omsCap.rotation.x = -Math.PI/2; omsCap.position.set(side*0.42, 0.42, 1.25); omsCap.scale.set(1, 1.6, 1); g.add(omsCap);
+    const omsN = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, 0.18, 12, 1, true), grey); omsN.rotation.x = Math.PI/2; omsN.position.set(side*0.42, 0.44, 2.72); g.add(omsN);
   });
   const fin = new THREE.Mesh(new THREE.ExtrudeGeometry(new THREE.Shape([V2(0.9, 0.5), V2(2.55, 0.5), V2(2.7, 2.15), V2(2.2, 2.15)]), { depth: 0.08, bevelEnabled: false }), white);
   fin.rotation.y = -Math.PI/2; fin.position.x = 0.04; g.add(fin);
+  strip([0, 0.5, 0.9], [0, 2.15, 2.2], 0.05, rcc);
+  const rud = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.45, 0.05), elev); rud.position.set(0, 1.35, 2.5); rud.rotation.x = 0.09; g.add(rud);
+  const bf = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, 0.4), tile); bf.position.set(0, -0.32, 2.85); g.add(bf);
   // three main engines with flames whose length follows the thrust
   const flames = [], fGlow = glowTex([[0, 'rgba(255,255,255,1)'], [0.25, 'rgba(160,200,255,.7)'], [1, 'rgba(90,140,255,0)']]);
   [[0, 0.22], [-0.3, -0.14], [0.3, -0.14]].forEach(([x, y]) => {
@@ -556,11 +642,11 @@ function init(opts) {
   // the shuttle lives in its own little scene, drawn after the world with a near camera so it never clips
   const shipScene = new THREE.Scene(), shipCam = new THREE.PerspectiveCamera(70, 1, 0.01, 50), shut = makeShuttle(); shipScene.add(shut.model);
   const shipSun = new THREE.DirectionalLight(0xfff4e6, 2.4); shipScene.add(shipSun); shipScene.add(new THREE.AmbientLight(0x56607a, 0.55));
-  G = Object.assign(G || {}, { el, $, renderer, scene, camera, ship, pr, helio: opts.helio, tex: {}, shipScene, shipCam, shut, shipSun, view: 'chase', camQ: new THREE.Quaternion(), bank: 0, pitchV: 0 });
+  G = Object.assign(G || {}, { sunV: { value: new THREE.Vector3(1, 0, 0) }, hiQ: [], task: null, el, $, renderer, scene, camera, ship, pr, helio: opts.helio, tex: {}, shipScene, shipCam, shut, shipSun, view: 'chase', camQ: new THREE.Quaternion(), orb: { y: 0, p: 0 }, bank: 0, pitchV: 0 });
   // textures (procedural, painted once)
-  Object.keys(TEX).forEach(k => { G.tex[k] = TEX[k](); });
+  Object.keys(TEX).forEach(k => { const [w, h, fn] = TEX[k]; G.tex[k] = paint(w, h, fn); });
   const sky = makeStarSphere(opts.stars); scene.add(sky); G.sky = sky;
-  scene.add(new THREE.AmbientLight(0x404a66, 0.32));
+  scene.add(new THREE.AmbientLight(0x404a66, 0.13));
   const sunLight = new THREE.PointLight(0xfff2dd, 1.7, 0, 0); scene.add(sunLight); G.sunLight = sunLight;
   G.sol = buildSolar(); scene.add(G.sol.grp);
   G.dust = makeDust(); scene.add(G.dust.line);
@@ -712,7 +798,12 @@ function frame(t) {
     let yaw = -G.steer.x, pitch = -G.steer.y, roll = 0;
     if (K.arrowleft || K.a) yaw += 1; if (K.arrowright || K.d) yaw -= 1; if (K.arrowup) pitch += 1; if (K.arrowdown) pitch -= 1; if (K.q) roll += 1; if (K.e) roll -= 1;
     if (K.w) setThr(G.thr + dt*0.8); if (K.s) setThr(G.thr - dt*0.8);
-    const rate = 1.1; ship.rotateY(yaw*rate*dt); ship.rotateX(pitch*rate*dt); ship.rotateZ(roll*1.6*dt);
+    // parked (no thrust, no autopilot): steering swings the camera around the shuttle instead, to look at the view
+    const parked = G.thr < 0.01 && !G.auto && !G.turbo && G.speed < 3 && G.view === 'chase';
+    if (parked) { G.orb.y += yaw*1.5*dt; G.orb.p = Math.max(-1.3, Math.min(1.3, G.orb.p + pitch*1.2*dt));
+      if ((yaw || pitch) && !G.orbHint) { G.orbHint = true; hint(L('Mekik dururken sürükle: etrafında dön ve manzaraya bak. Gaz verince yeniden sürersin.', 'While parked, drag to swing around the shuttle and enjoy the view. Add thrust to fly again.')); } }
+    else { const k = Math.min(1, dt*1.8); G.orb.y -= G.orb.y*k; G.orb.p -= G.orb.p*k;
+      const rate = 1.1; ship.rotateY(yaw*rate*dt); ship.rotateX(pitch*rate*dt); ship.rotateZ(roll*1.6*dt); }
   }
   // autopilot / speed
   const bodies = G.mode === 'sol' ? G.sol.bodies : G.sys.bodies;
@@ -738,16 +829,31 @@ function frame(t) {
     if (T > 3.2) { G.warp = null; G.$('gkWarp').style.opacity = 0; G.camera.fov = 70; G.camera.updateProjectionMatrix(); G.speed = 120; G.auto = true; G.$('gkAuto').classList.add('on');
       if (G.mode !== 'sol' && G.target === G.mode) {} }
   } else G.speed += (want - G.speed)*Math.min(1, dt*(want < G.speed ? 2.2 : 1.1));
+  // every body has a hard shell just above its surface; flying at it slows the shuttle so you can hover close and look
+  const shell = b => b.r*(b.star ? 1.45 : 1.04) + (b.star ? 0 : Math.max(0.6, b.r*0.03));
+  if (!G.warp) bodies.forEach(b => { const c = worldPos(b), oc = c.clone().sub(ship.position), along = oc.dot(fwd); if (along <= 0) return;
+    const R = shell(b), perp2 = oc.lengthSq() - along*along; if (perp2 > R*R*1.3) return;
+    const gap = along - Math.sqrt(Math.max(0, R*R - perp2)); G.speed = Math.min(G.speed, Math.max(1.5, gap*2.2)); });
   const vel = fwd.clone().multiplyScalar(G.speed); G.vel.copy(vel);
+  const prev = ship.position.clone();
   ship.position.addScaledVector(vel, dt);
-  // keep out of solid bodies
-  bodies.forEach(b => { const p = worldPos(b), d = ship.position.distanceTo(p), lim = b.r*(b.star ? 1.6 : 1.12); if (d < lim) { ship.position.copy(p.clone().add(ship.position.clone().sub(p).normalize().multiplyScalar(lim))); G.speed *= 0.5; } });
+  bodies.forEach(b => { const c = worldPos(b), R = shell(b), seg = ship.position.clone().sub(prev), segLen = seg.length();
+    if (prev.distanceTo(c) < R) { ship.position.copy(c).add(prev.clone().sub(c).normalize().multiplyScalar(R)); return; }
+    if (segLen < 1e-6) return; const dir = seg.divideScalar(segLen), oc = prev.clone().sub(c), bb = oc.dot(dir), cc = oc.lengthSq() - R*R, disc = bb*bb - cc;
+    if (disc < 0) return; const t = -bb - Math.sqrt(disc); if (t < 0 || t > segLen) return;
+    ship.position.copy(prev).addScaledVector(dir, Math.max(0, t - 0.05)); G.speed = Math.min(G.speed, 1.5);
+    if (!G.edgeT || G.time - G.edgeT > 6) { G.edgeT = G.time; hint(L('Yüzeye en yakın noktadasın; dönüp çevresinde gezebilirsin.', 'This is as close as you can get; turn and fly around it.')); } });
   // animate
   const sunMat = G.mode === 'sol' ? G.sol.sun.userData.mat : (G.sys.bodies[0].obj.userData.mat); sunMat.uniforms.uT.value = G.time;
   if (G.mode === 'sol') {
     G.sol.bodies.forEach(b => { if (b.p) { b.obj.userData.body.rotation.y += dt*0.25/(b.p.day || 1)*0.4; if (b.obj.userData.clouds) b.obj.userData.clouds.rotation.y += dt*0.012;
       if (b.obj.userData.atm) b.obj.userData.atm.material.uniforms.uSun.value.copy(b.obj.position).negate().normalize(); } });
     G.sol.belt.rotation.y += dt*0.004;
+    const hpx = innerHeight/(2*Math.tan(G.camera.fov*D2R/2));
+    G.sol.bodies.forEach(b => { if (b.star) return; const d = worldPos(b).distanceTo(ship.position); if (d < b.r*16) requestHi(b);
+      if (b.glint) { const pxr = b.r/Math.max(1, d)*hpx; b.glint.material.opacity = Math.max(0, Math.min(1, (3.5 - pxr)/2.5)); } });
+    const earth = G.sol.bodies.find(b => b.id === 'Earth').obj; G.sunV.value.copy(earth.position).negate().normalize().transformDirection(G.camera.matrixWorldInverse);
+    runPaintJobs(G.mobile ? 5 : 7);
     updateComet(G.sol.comet, dt, new THREE.Vector3());
     // belt collisions
     if (G.hitCD > 0) G.hitCD -= dt;
@@ -795,9 +901,10 @@ function placeCamera(dt, sk) {
   if (G.view === 'chase') {
     // the camera swings after the shuttle: rotation lags, position stays locked behind it
     G.camQ.slerp(ship.quaternion, 1 - Math.exp(-dt*5));
-    const tilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -0.1);
-    cam.quaternion.copy(G.camQ).multiply(tilt);
-    cam.position.copy(ship.position).add(new THREE.Vector3(0, 0.36, 1.75).applyQuaternion(G.camQ));
+    const tilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -0.16);
+    const oq = G.camQ.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(G.orb.p, G.orb.y, 0, 'YXZ')));
+    cam.quaternion.copy(oq).multiply(tilt);
+    cam.position.copy(ship.position).add(new THREE.Vector3(0, 0.52, 1.85).applyQuaternion(oq));
     S.model.position.copy(ship.position); S.model.quaternion.copy(ship.quaternion);
     // bank into turns, nose follows pitch a little
     const yawIn = -G.steer.x + ((G.keys.arrowleft || G.keys.a) ? 1 : 0) - ((G.keys.arrowright || G.keys.d) ? 1 : 0);
@@ -836,6 +943,18 @@ function drawHud(bodies, tb) {
     g.fillStyle = isT ? '#e3c27e' : 'rgba(225,228,240,.75)'; g.font = isT ? 'italic 600 17px "Cormorant Garamond", Georgia, serif' : '600 11.5px Manrope, sans-serif';
     g.fillText((o.id ? nm(o.id) : o.name) + (PROG.found[o.id] ? ' ★' : ''), s.x + r*0.75 + 6, s.y - r*0.75 - 2);
   });
+  // lens flare
+  const sunW = G.mode === 'sol' ? new THREE.Vector3() : G.sys.bodies[0].obj.position, fp = proj(sunW);
+  if (fp.on) { const camP = cam.position, toS = sunW.clone().sub(camP), dS = toS.length(); toS.divideScalar(dS);
+    const blocked = bodies.some(b => { if (b.star) return false; const c = worldPos(b).sub(camP), t = c.dot(toS); return t > 0 && t < dS && c.lengthSq() - t*t < b.r*b.r; });
+    if (!blocked) { const cx = W/2, cy = H/2, dx = cx - fp.x, dy = cy - fp.y, k = Math.max(0, 1 - Math.hypot(dx, dy)/Math.hypot(W, H)*1.6);
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const halo = g.createRadialGradient(fp.x, fp.y, 0, fp.x, fp.y, 160); halo.addColorStop(0, 'rgba(255,240,210,' + (0.35*k) + ')'); halo.addColorStop(1, 'rgba(255,220,170,0)'); g.fillStyle = halo; g.beginPath(); g.arc(fp.x, fp.y, 160, 0, Math.PI*2); g.fill();
+      g.strokeStyle = 'rgba(255,235,200,' + (0.18*k) + ')'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(fp.x - 220*k, fp.y); g.lineTo(fp.x + 220*k, fp.y); g.stroke();
+      [[0.35, 26, '150,190,255', 0.10], [0.6, 12, '255,200,140', 0.16], [0.9, 40, '170,255,210', 0.06], [1.25, 18, '255,160,200', 0.10], [1.6, 60, '140,170,255', 0.05]].forEach(([t, r, c, a]) => {
+        const fx = fp.x + dx*t*2, fy = fp.y + dy*t*2, gr = g.createRadialGradient(fx, fy, 0, fx, fy, r); gr.addColorStop(0, 'rgba(' + c + ',' + (a*k) + ')'); gr.addColorStop(0.7, 'rgba(' + c + ',' + (a*k*0.6) + ')'); gr.addColorStop(1, 'rgba(' + c + ',0)');
+        g.fillStyle = gr; g.beginPath(); g.arc(fx, fy, r, 0, Math.PI*2); g.fill(); });
+      g.restore(); } }
   // Sun marker label from other systems
   if (G.mode !== 'sol' && G.sunMark.visible) { const s = proj(G.sunMark.position); if (s.on) { g.fillStyle = '#ffe9b0'; g.font = '600 12px Manrope, sans-serif'; g.fillText(L('Güneş · ', 'Sun · ') + STARSYS[G.mode].ly.toLocaleString(LANG === 'en' ? 'en' : 'tr') + L(' ışık yılı', ' ly'), s.x + 10, s.y - 8); } }
   // target: distance + edge arrow
