@@ -671,7 +671,7 @@ function shuttlePaint() {
   g.lineWidth = 1; for (let y = H*0.27; y <= H*0.87; y += H*0.06) { g.beginPath(); g.moveTo(0, y); g.lineTo(W*0.075, y); g.moveTo(W*0.925, y); g.lineTo(W, y); g.stroke(); }
   // thin dark stripe along the sides and a few red/blue marking dots like the real paint scheme
   g.fillStyle = '#26272c'; g.fillRect(W*0.24, H*0.3, W*0.012, H*0.55); g.fillRect(W*0.748, H*0.3, W*0.012, H*0.55);
-  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; t.flipY = false; return t;
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; return t;
 }
 function makeShuttle() {
   const g = new THREE.Group(), V2 = (x, y) => new THREE.Vector2(x, y);
@@ -682,10 +682,11 @@ function makeShuttle() {
   const white = new THREE.MeshStandardMaterial({ color: 0xffffff, map: tileT, roughness: 0.55, metalness: 0.06 });
   const tile = new THREE.MeshStandardMaterial({ color: 0x1d1e23, roughness: 0.75 });
   const grey = new THREE.MeshStandardMaterial({ color: 0x9a9ca3, roughness: 0.45, metalness: 0.5, side: THREE.DoubleSide });
-  // fuselage: evenly spaced profile so the paint map runs nose (v=0) to tail (v=1); u=0 is the top, u=0.5 the belly
-  const prof = []; for (let k = 0; k <= 48; k++) { const y = 3.25 - k/48*5.95; let r = y > 0.9 ? 0.64*Math.sqrt(Math.max(0, 1 - Math.pow((y - 0.9)/2.35, 2))) : y < -2.45 ? 0.64 - (-2.45 - y)*0.16 : 0.64; prof.push(V2(Math.max(r, k ? 0.001 : 0), y)); }
+  // fuselage: evenly spaced profile (tail first, so the faces point outward); the paint map's top row is the nose, u=0 the top, u=0.5 the belly
+  const prof = []; for (let k = 0; k <= 48; k++) { const y = 3.25 - k/48*5.95; let r = y > 0.9 ? 0.64*Math.sqrt(Math.max(0, 1 - Math.pow((y - 0.9)/2.35, 2))) : y < -2.45 ? 0.64 - (-2.45 - y)*0.16 : 0.64; prof.push(V2(Math.max(r, k ? 0.001 : 0), y)); } prof.reverse();
   const fus = new THREE.Mesh(new THREE.LatheGeometry(prof, 48), new THREE.MeshStandardMaterial({ map: shuttlePaint(), roughness: 0.6, metalness: 0.05 }));
   fus.rotation.x = -Math.PI/2; fus.scale.set(1, 1, 0.82); g.add(fus);
+  const aft = new THREE.Mesh(new THREE.CircleGeometry(0.6, 36), tile); aft.position.z = 2.69; aft.scale.set(1, 0.82, 1); g.add(aft);
   // delta wings with black heat-tile undersides
   const ws = new THREE.Shape([V2(0.45, -1.4), V2(0.75, -0.4), V2(2.35, 1.75), V2(2.35, 2.3), V2(0.45, 2.45)]);
   const rcc = new THREE.MeshStandardMaterial({ color: 0x2b2d33, roughness: 0.55, metalness: 0.15 }), elev = new THREE.MeshStandardMaterial({ color: 0xc9c6bf, roughness: 0.6 });
