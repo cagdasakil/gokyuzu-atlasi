@@ -311,6 +311,16 @@ const CSS = `
 #gk .gkmap { position: absolute; left: 12px; top: calc(max(10px, env(safe-area-inset-top)) + 50px); width: 160px; height: 160px; border-radius: 14px; background: rgba(10,13,24,.82); border: 1px solid rgba(233,228,216,.14); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); cursor: pointer; }
 @media (max-width: 520px) { #gk .dash { gap: 6px; padding: 0 8px; } #gk .dash .b { padding: 8px 10px; font-size: 12px; } #gk .gauge { min-width: 0; width: 30vw; padding: 6px 9px; } #gk .gauge .l { letter-spacing: .04em; } #gk .hint { bottom: auto; top: calc(max(10px, env(safe-area-inset-top)) + 150px); } }
 @media (max-width: 700px) { #gk .gkmap { width: 116px; height: 116px; top: auto; bottom: calc(max(12px, env(safe-area-inset-bottom)) + 70px); } }
+#gk .gkbig { position: absolute; left: 10px; right: 10px; top: max(10px, env(safe-area-inset-top)); bottom: max(10px, env(safe-area-inset-bottom)); z-index: 5; display: flex; flex-direction: column; border-radius: 18px; background: rgba(7,9,18,.985); border: 1px solid rgba(233,228,216,.14); box-shadow: 0 20px 60px rgba(0,0,0,.6); overflow: hidden; }
+#gk .gkbig .hd { display: flex; align-items: center; gap: 10px; padding: 12px 12px 8px 16px; }
+#gk .gkbig .hd > b { font: italic 600 24px var(--f-name, Georgia, serif); color: #e3c27e; }
+#gk .gkbig .tabs { flex: 1; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+#gk .gkbig .tabs .b { padding: 6px 11px; font-size: 12px; }
+#gk .gkbig canvas { position: relative; flex: 1; width: 100%; min-height: 0; touch-action: none; cursor: grab; background: radial-gradient(ellipse at center, rgba(20,26,48,.5), rgba(0,0,0,0) 70%); }
+#gk .gkbig .ft { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px 14px; border-top: 1px solid rgba(233,228,216,.08); min-height: 44px; font: 500 12px var(--f-ui, Manrope); color: #a9a597; }
+#gk .gkbig .ft .lg { display: inline-flex; align-items: center; gap: 6px; } #gk .gkbig .ft .lg i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+#gk .gkbig .ft .tip { margin-left: auto; color: #8e93a3; }
+#gk .gkbig .ft .sel { flex: 1; display: grid; gap: 2px; min-width: 0; } #gk .gkbig .ft .sel b { font: italic 600 20px var(--f-name, Georgia, serif); color: #e9e4d8; } #gk .gkbig .ft .sel small { color: #8e93a3; }
 #gk .warp { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, rgba(120,170,255,0) 30%, rgba(80,130,255,.28) 100%); transition: opacity .5s; }
 `;
 
@@ -334,7 +344,7 @@ function buildDom() {
   <div class="thr" id="gkThr"><span>${L('GAZ', 'THRUST')}</span><i></i></div>
   <button class="turbo" id="gkTurbo">TURBO</button>
   <div class="dash"><button class="b" id="gkAuto">${L('Otopilot', 'Autopilot')}</button><div class="gauge"><div class="l"><span>${L('Hız', 'Speed')}</span><span id="gkSp"></span></div><div class="gkbar"><i id="gkSpB"></i></div><div class="l"><span>${L('Kalkan', 'Shield')}</span><span id="gkShT"></span></div><div class="gkbar sh"><i id="gkSh"></i></div></div><button class="b on" id="gkDock" hidden></button><button class="b" id="gkStop">${L('Dur', 'Stop')}</button></div>
-  <canvas class="gkmap" id="gkMap"></canvas><button class="gkchip" id="gkChip"></button><div class="card" id="gkCard"></div>`;
+  <canvas class="gkmap" id="gkMap"></canvas><div class="gkbig" id="gkBig" hidden><div class="hd"><b>${L('Harita', 'Map')}</b><div class="tabs"><button class="b" data-m="sys">${L('Sistem', 'System')}</button><button class="b" data-m="near">${L('Yakın', 'Nearby')}</button><button class="b" data-m="stars">${L('Yıldızlar', 'Stars')}</button></div><button class="b" id="gkBigX">✕</button></div><canvas id="gkBigC"></canvas><div class="ft" id="gkBigFt"></div></div><button class="gkchip" id="gkChip"></button><div class="card" id="gkCard"></div>`;
   document.body.appendChild(el); return el;
 }
 
@@ -757,7 +767,7 @@ function init(opts) {
   placeAtEarth();
   $('gkView').onclick = () => setView(G.view === 'chase' ? 'cockpit' : 'chase'); setView('chase');
   $('gkDock').onclick = dock;
-  G.mapMode = 'sys'; $('gkMap').onclick = () => { G.mapMode = G.mapMode === 'sys' ? 'near' : 'sys'; };
+  G.mapMode = 'sys'; G.trail = []; bindBig();
   $('gkX').onclick = close; $('gkList').onclick = openList; $('gkAuto').onclick = () => setAuto(!G.auto);
   $('gkStop').onclick = () => { setAuto(false); setThr(0); };
   updateCount();
@@ -797,7 +807,7 @@ function bindInput() {
   G.onKey = e => {
     if (!G.running) return; const k = e.key.toLowerCase(), down = e.type === 'keydown'; G.keys[k] = down;
     if (down && k === ' ') { e.preventDefault(); setAuto(!G.auto); }
-    if (down && k === 'escape') { if (G.card) hideCard(); else close(); }
+    if (down && k === 'escape') { if (G.big) closeBig(); else if (G.card) hideCard(); else close(); }
     if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'a', 'd', 'q', 'e'].includes(k) && down) setAuto(false);
     if (k === 'shift') { G.turbo = down; turbo.classList.toggle('on', down); if (down) setAuto(false); }
   };
@@ -872,6 +882,7 @@ function startWarp(to) {
   bigMsg(L('Hiper sürüş', 'Hyperdrive'), ly.toLocaleString(LANG === 'en' ? 'en' : 'tr') + L(' ışık yılı · ışık hızıyla ', ' light-years · at light speed ') + ly.toLocaleString(LANG === 'en' ? 'en' : 'tr') + L(' yıl sürerdi', ' years'), 2600);
 }
 function swapScene(to) {
+  G.trail = [];
   if (G.sys) { G.scene.remove(G.sys.grp); G.sys = null; }
   if (to === 'sol') {
     G.sol.grp.visible = true; G.sunLight.position.set(0, 0, 0); G.sunMark.visible = false; G.mode = 'sol';
@@ -983,6 +994,7 @@ function frame(t) {
   updateMeteors(G.met, dt);
   G.met.list.forEach(o => { if (o.life > 0 && o.m.position.distanceTo(ship.position) < o.r + 3 && G.hitCD <= 0) { hit(12); o.life = 0.01; }
     else if (o.life > 0 && o.m.position.distanceTo(ship.position) < o.r + 30) G.shake = Math.max(G.shake, 0.35); });
+  G.trailT = (G.trailT || 0) + dt; if (G.trailT > 0.25 && !G.warp) { G.trailT = 0; const lt = G.trail[G.trail.length - 1]; if (!lt || lt.distanceTo(ship.position) > 0.5) { G.trail.push(ship.position.clone()); if (G.trail.length > 700) G.trail.shift(); } }
   updateDust(G.dust, ship.position, G.warp ? vel.clone().multiplyScalar(0.5) : vel, !!G.warp);
   G.sky.position.copy(ship.position);
   G.sky.userData.mats.forEach(m => { m.uniforms.uPx.value = G.pr; });
@@ -1061,43 +1073,146 @@ function hit(dmg) {
   else hint(L('Çarpışma! Kalkan %', 'Impact! Shield ') + Math.round(G.shield) + (LANG === 'en' ? '%' : ''));
 }
 
-/* mini map: the whole system top-down (square-root distances so Neptune and Mercury both fit), or the neighbourhood, heading up; tap to switch */
-const MAPCOL = { Sun: '#ffd27a', Mercury: '#b8aa98', Venus: '#f0d9a0', Earth: '#6fb3ff', Moon: '#cfcfcf', Mars: '#e07a4a', Ceres: '#9a948a', Jupiter: '#e6c89e', Saturn: '#efdca6', Uranus: '#9fe3ea', Neptune: '#5b84ea', ISS: '#ffffff', Tiangong: '#ffffff' };
+/* maps. One drawer serves the corner map and the full map:
+   'sys'   the system from above, square-root distances so Neptune and Mercury both fit
+   'near'  the neighbourhood, linear, the shuttle's heading up
+   'stars' the Sun and the star systems you can jump to, log distances in light-years */
+const MAPCOL = { Sun: '#ffd27a', Mercury: '#b8aa98', Venus: '#f0d9a0', Earth: '#6fb3ff', Moon: '#cfcfcf', Mars: '#e07a4a', Ceres: '#9a948a', Jupiter: '#e6c89e', Saturn: '#efdca6', Uranus: '#9fe3ea', Neptune: '#5b84ea', ISS: '#ffffff', Tiangong: '#ffffff',
+  AlphaCen: '#ffe7a8', Sirius: '#dfe9ff', Vega: '#cfe0ff', Betelgeuse: '#ff9a6a' };
+function cometPos(t) { const a = 1500, e = 0.82, E = t*6.283; return new THREE.Vector3(a*(Math.cos(E) - e), Math.sin(E)*120, a*Math.sqrt(1 - e*e)*Math.sin(E)).applyAxisAngle(new THREE.Vector3(0, 1, 0), 2.1); }
+function drawMapCore(g, W, H, V, bodies) {
+  const big = V.big, pad = big ? 22 : 9, R = Math.min(W, H)/2 - pad, cx = W/2 + (V.panX || 0), cy = H/2 + (V.panY || 0), zoom = V.zoom || 1;
+  const ship = G.ship.position, fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(G.ship.quaternion), picks = V.picks = [];
+  const label = (t, x, y, col, size, align) => { g.fillStyle = col; g.font = '600 ' + size + 'px Manrope, sans-serif'; g.textAlign = align || 'left'; g.fillText(t, x, y); };
+  const dot = (x, y, r, col, glow) => { if (glow) { const gr = g.createRadialGradient(x, y, 0, x, y, r*3); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r*3, 0, Math.PI*2); g.fill(); }
+    g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, Math.PI*2); g.fill(); };
+  const lsz = big ? 11.5 : 8;
+  let P = null, scale = 1;
+  if (V.mode === 'stars') {
+    const lmax = Math.log10(1 + 700), f = ly => Math.log10(1 + ly)/lmax*R*zoom;
+    [1, 5, 10, 25, 100, 500].forEach(ly => { g.strokeStyle = 'rgba(227,194,126,.13)'; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, f(ly), 0, Math.PI*2); g.stroke();
+      if (big || ly >= 25) label(ly.toLocaleString(LANG === 'en' ? 'en' : 'tr') + L(' ı.y.', ' ly'), cx + 3, cy - f(ly) - 2, 'rgba(142,147,163,.8)', big ? 10 : 7); });
+    dot(cx, cy, big ? 5 : 3, MAPCOL.Sun, true); label(L('Güneş', 'Sun'), cx + 7, cy + 4, '#ffe9b0', lsz); picks.push({ x: cx, y: cy, r: 16, id: 'Sun' });
+    Object.keys(STARSYS).forEach(id => { const S = STARSYS[id], d = eq2game(eqv(S.ra, S.dec)), h = Math.hypot(d.x, d.z) || 1, x = cx + d.x/h*f(S.ly), y = cy + d.z/h*f(S.ly);
+      g.strokeStyle = 'rgba(227,194,126,.18)'; g.setLineDash([3, 4]); g.beginPath(); g.moveTo(cx, cy); g.lineTo(x, y); g.stroke(); g.setLineDash([]);
+      dot(x, y, big ? (id === 'Betelgeuse' ? 7 : 4.5) : (id === 'Betelgeuse' ? 4 : 2.6), MAPCOL[id], true);
+      if (id === G.target) { g.strokeStyle = '#e3c27e'; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, big ? 12 : 7, 0, Math.PI*2); g.stroke(); g.lineWidth = 1; }
+      label(nm(id) + (big ? ' · ' + S.ly.toLocaleString(LANG === 'en' ? 'en' : 'tr') + L(' ı.y.', ' ly') : ''), x + 8, y + 4, PROG.found[id] ? '#e3c27e' : 'rgba(233,228,216,.85)', lsz);
+      picks.push({ x, y, r: 18, id }); });
+    // where you are
+    let hx = cx, hy = cy; if (G.mode !== 'sol') { const S = STARSYS[G.mode], d = eq2game(eqv(S.ra, S.dec)), h = Math.hypot(d.x, d.z) || 1; hx = cx + d.x/h*f(S.ly); hy = cy + d.z/h*f(S.ly); }
+    g.strokeStyle = '#7ef0c2'; g.lineWidth = 1.5; g.beginPath(); g.arc(hx, hy, big ? 16 : 9, 0, Math.PI*2); g.stroke(); g.lineWidth = 1;
+    if (big) label(L('Buradasın', 'You are here'), hx, hy + 30, '#7ef0c2', 10.5, 'center');
+    return;
+  }
+  if (V.mode === 'near') {
+    let near = null, nd = 1e9; bodies.forEach(b => { if (b.small) return; const d = worldPos(b).distanceTo(ship) - b.r; if (d < nd) { nd = d; near = b; } });
+    const span = Math.max(12, Math.min(1400, near ? (nd + near.r)*1.6 : 300))/zoom; scale = R/span;
+    const h = Math.atan2(fwd.x, -fwd.z), ch = Math.cos(h), sh = Math.sin(h);
+    P = v => { const dx = v.x - ship.x, dz = v.z - ship.z, rx = dx*ch + dz*sh, rz = -dx*sh + dz*ch; return [W/2 + rx*scale, H/2 + rz*scale]; };
+    g.strokeStyle = 'rgba(227,194,126,.12)'; [0.33, 0.66, 1].forEach(k => { g.beginPath(); g.arc(W/2, H/2, R*k, 0, Math.PI*2); g.stroke(); });
+    if (big) label(Math.round(span/3*0.33*3) + L(' birim', ' units'), W/2 + R*0.33 + 3, H/2 - 3, 'rgba(142,147,163,.7)', 9.5);
+  } else {
+    const ext = G.mode === 'sol' ? 4600 : G.mode === 'Betelgeuse' ? 12000 : 4000, f = r => Math.sqrt(r/ext)*R*zoom;
+    P = v => { const r = Math.hypot(v.x, v.z) || 1e-6, k = f(r)/r; return [cx + v.x*k, cy + v.z*k]; };
+    if (G.mode === 'sol') {
+      g.strokeStyle = 'rgba(160,150,135,.18)'; g.lineWidth = Math.max(1, f(1530) - f(1230)); g.beginPath(); g.arc(cx, cy, (f(1230) + f(1530))/2, 0, Math.PI*2); g.stroke(); g.lineWidth = 1;
+      if (big && zoom < 3) label(L('Asteroit kuşağı', 'Asteroid belt'), cx, cy - (f(1230) + f(1530))/2 + 3, 'rgba(160,150,135,.75)', 9, 'center');
+      PLANETS.forEach(p => { g.strokeStyle = p.id === 'Earth' ? 'rgba(111,179,255,.4)' : 'rgba(227,194,126,.18)'; g.beginPath(); g.arc(cx, cy, f(p.orbit), 0, Math.PI*2); g.stroke(); });
+      // comet orbit and the comet itself
+      g.strokeStyle = 'rgba(160,210,255,.22)'; g.setLineDash([2, 4]); g.beginPath(); for (let k = 0; k <= 120; k++) { const [x, y] = P(cometPos(k/120)); k ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); g.setLineDash([]);
+      const [kx, ky] = P(cometPos(G.sol.comet.t)); dot(kx, ky, big ? 3 : 1.8, '#bfe3ff', true); if (big) label(L('Kuyruklu yıldız', 'Comet'), kx + 6, ky - 4, 'rgba(191,227,255,.8)', 9.5);
+    } else if (G.sunDir) {
+      // arrow toward home
+      const a = Math.atan2(G.sunDir.z, G.sunDir.x), ex = cx + Math.cos(a)*R*0.92, ey = cy + Math.sin(a)*R*0.92;
+      g.save(); g.translate(ex, ey); g.rotate(a); g.fillStyle = '#ffe9b0'; g.beginPath(); g.moveTo(7, 0); g.lineTo(-4, -5); g.lineTo(-4, 5); g.closePath(); g.fill(); g.restore();
+      label(L('Güneş', 'Sun'), ex - Math.cos(a)*14, ey - Math.sin(a)*14 + 3, '#ffe9b0', lsz, 'center');
+    }
+  }
+  // the shuttle's track
+  if (G.trail && G.trail.length > 1) { g.strokeStyle = 'rgba(126,240,194,.45)'; g.lineWidth = big ? 1.6 : 1.1; g.beginPath(); G.trail.forEach((v, i) => { const [x, y] = P(v); i ? g.lineTo(x, y) : g.moveTo(x, y); }); const [sx0, sy0] = P(ship); g.lineTo(sx0, sy0); g.stroke(); g.lineWidth = 1; }
+  // bodies
+  const sysExtra = G.mode !== 'sol' && G.sys && G.sys.grp.userData.extra ? G.sys.grp.userData.extra.map(([o, n]) => ({ name: n, obj: o, r: 10 })) : [];
+  const placedL = [];
+  bodies.concat(sysExtra).forEach(b => {
+    const isMinor = b.small || b.id === 'Moon';
+    const v = b.obj.getWorldPosition(new THREE.Vector3()), [x, y] = P(v);
+    if (V.mode === 'sys' && isMinor) { const ep = P(worldPos(G.sol.bodies.find(q => q.id === 'Earth'))); if (Math.hypot(x - ep[0], y - ep[1]) < (big ? 14 : 99)) return; }
+    const rr = V.mode === 'near' ? Math.max(b.small ? 2 : 3, b.r*scale) : b.star ? (big ? 7 : 4.5) : Math.max(big ? 2.6 : 2, Math.min(big ? 7 : 4, b.r/9 + 1.6))*(big ? Math.min(2, Math.sqrt(zoom)) : 1);
+    if (x < -rr - 40 || x > W + rr + 40 || y < -rr - 40 || y > H + rr + 40) return;
+    const col = MAPCOL[b.id] || (b.star ? '#fff1c2' : '#cfcfcf');
+    if (b.id === 'Saturn' && V.mode !== 'near') { g.strokeStyle = 'rgba(239,220,166,.7)'; g.lineWidth = 1; g.beginPath(); g.ellipse(x, y, rr*2, rr*0.7, -0.4, 0, Math.PI*2); g.stroke(); }
+    dot(x, y, rr, col, b.star);
+    if (b.id && b.id === G.target) { g.strokeStyle = '#e3c27e'; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, rr + (big ? 6 : 4), 0, Math.PI*2); g.stroke(); g.lineWidth = 1; }
+    if (b.id) picks.push({ x, y, r: Math.max(16, rr + 8), id: b.id });
+    const show = big || (V.mode === 'near' && rr > 4) || b.id === G.target;
+    if (show) { const t = b.id ? nm(b.id) + (PROG.found[b.id] ? ' ★' : '') : b.name, ly = y - rr - 4;
+      if (!placedL.some(q => Math.abs(q[0] - x) < 40 && Math.abs(q[1] - ly) < 11)) { placedL.push([x, ly]); label(t, x, ly, b.id && PROG.found[b.id] ? '#e3c27e' : 'rgba(233,228,216,.85)', lsz, 'center'); } }
+  });
+  // line to the target
+  const tb = G.target ? bodyById(G.target) : null;
+  const [sx, sy] = P(ship);
+  if (tb) { const [tx, ty] = P(worldPos(tb)); g.strokeStyle = 'rgba(227,194,126,.55)'; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(sx, sy); g.lineTo(tx, ty); g.stroke(); g.setLineDash([]); }
+  // the shuttle
+  const ang = V.mode === 'near' ? 0 : Math.atan2(fwd.x, -fwd.z), k = big ? 1.5 : 1;
+  g.save(); g.translate(sx, sy); g.rotate(ang); g.scale(k, k); g.fillStyle = '#e3c27e'; g.strokeStyle = '#14110a'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(0, -7); g.lineTo(5, 5); g.lineTo(0, 2.5); g.lineTo(-5, 5); g.closePath(); g.fill(); g.stroke(); g.restore();
+}
+function mapTitle(m) { return m === 'near' ? L('YAKIN ÇEVRE', 'NEARBY') : m === 'stars' ? L('YILDIZLAR', 'STARS') : G.mode === 'sol' ? L('GÜNEŞ SİSTEMİ', 'SOLAR SYSTEM') : nm(G.mode).toUpperCase(); }
 function drawMap(bodies) {
   const c = G.$('gkMap'), sz = c.clientWidth; if (!sz) return; const px = Math.round(sz*G.pr); if (c.width !== px) { c.width = c.height = px; }
   const g = c.getContext('2d'); g.setTransform(G.pr, 0, 0, G.pr, 0, 0); g.clearRect(0, 0, sz, sz);
-  const R = sz/2 - 8, cx = sz/2, cy = sz/2, ship = G.ship.position, fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(G.ship.quaternion);
   g.save(); g.beginPath(); g.rect(1, 1, sz - 2, sz - 2); g.clip();
-  const local = G.mapMode === 'near';
-  let P, scale = 1;
-  if (local) {
-    // nearest big body sets the zoom: it should fill about a third of the map
-    let near = null, nd = 1e9; bodies.forEach(b => { if (b.small) return; const d = worldPos(b).distanceTo(ship) - b.r; if (d < nd) { nd = d; near = b; } });
-    const span = Math.max(30, Math.min(1400, near ? (nd + near.r)*1.6 : 300)); scale = R/span;
-    const h = Math.atan2(fwd.x, -fwd.z), ch = Math.cos(h), sh = Math.sin(h);
-    P = v => { const dx = v.x - ship.x, dz = v.z - ship.z, rx = dx*ch + dz*sh, rz = -dx*sh + dz*ch; return [cx + rx*scale, cy + rz*scale]; };
-    g.strokeStyle = 'rgba(227,194,126,.15)'; g.beginPath(); g.arc(cx, cy, R*0.5, 0, Math.PI*2); g.stroke();
-  } else {
-    const ext = G.mode === 'sol' ? 4600 : G.mode === 'Betelgeuse' ? 12000 : 4000, f = r => Math.sqrt(r/ext)*R;
-    P = v => { const r = Math.hypot(v.x, v.z) || 1e-6, k = f(r)/r; return [cx + v.x*k, cy + v.z*k]; };
-    if (G.mode === 'sol') {
-      g.lineWidth = 1; PLANETS.forEach(p => { g.strokeStyle = p.id === 'Earth' ? 'rgba(111,179,255,.35)' : 'rgba(227,194,126,.16)'; g.beginPath(); g.arc(cx, cy, f(p.orbit), 0, Math.PI*2); g.stroke(); });
-      g.strokeStyle = 'rgba(160,150,135,.22)'; g.lineWidth = f(1530) - f(1230); g.beginPath(); g.arc(cx, cy, (f(1230) + f(1530))/2, 0, Math.PI*2); g.stroke(); g.lineWidth = 1;
-    }
-  }
-  bodies.forEach(b => { if (!local && (b.small || b.id === 'Moon')) return; const v = worldPos(b), [x, y] = P(v);
-    const rr = local ? Math.max(b.small ? 1.5 : 2.5, b.r*scale) : b.star ? 4.5 : Math.max(2, Math.min(4, b.r/10 + 1.6));
-    if (local && (Math.abs(x - cx) > sz/2 + rr || Math.abs(y - cy) > sz/2 + rr)) return;
-    g.fillStyle = MAPCOL[b.id] || (b.star ? '#fff1c2' : '#ccc'); g.beginPath(); g.arc(x, y, rr, 0, Math.PI*2); g.fill();
-    if (b.id === G.target) { g.strokeStyle = '#e3c27e'; g.lineWidth = 1.4; g.beginPath(); g.arc(x, y, rr + 4, 0, Math.PI*2); g.stroke(); g.lineWidth = 1; }
-    if (local && rr > 6) { g.fillStyle = 'rgba(233,228,216,.75)'; g.font = '600 9px Manrope, sans-serif'; g.textAlign = 'center'; g.fillText(nm(b.id), x, y - rr - 3); } });
-  // the shuttle: a gold arrow (heading up in the near view)
-  const [sx, sy] = local ? [cx, cy] : P(ship), ang = local ? 0 : Math.atan2(fwd.x, -fwd.z);
-  g.save(); g.translate(sx, sy); g.rotate(ang); g.fillStyle = '#e3c27e'; g.strokeStyle = '#14110a'; g.lineWidth = 1;
-  g.beginPath(); g.moveTo(0, -7); g.lineTo(5, 5); g.lineTo(0, 2.5); g.lineTo(-5, 5); g.closePath(); g.fill(); g.stroke(); g.restore();
+  drawMapCore(g, sz, sz, { mode: G.mapMode, zoom: 1, big: false }, bodies);
   g.restore();
-  g.fillStyle = 'rgba(142,147,163,.9)'; g.font = '600 8.5px Manrope, sans-serif'; g.textAlign = 'left';
-  g.fillText(local ? L('YAKIN', 'NEAR') : G.mode === 'sol' ? L('GÜNEŞ SİSTEMİ', 'SOLAR SYSTEM') : nm(G.mode).toUpperCase(), 8, 13);
+  g.fillStyle = 'rgba(142,147,163,.95)'; g.font = '600 8.5px Manrope, sans-serif'; g.textAlign = 'left'; g.fillText(mapTitle(G.mapMode), 8, 13);
+  g.fillStyle = 'rgba(227,194,126,.9)'; g.font = '700 12px Manrope, sans-serif'; g.textAlign = 'right'; g.fillText('⤢', sz - 7, 15);
+  if (G.big) drawBigMap(bodies);
+}
+// full map: tabs, drag to pan, wheel or pinch to zoom, tap a body to pick it and fly there
+function openBig() {
+  const B = G.$('gkBig'); B.hidden = false; G.big = { mode: G.mapMode === 'near' ? 'near' : G.mode === 'sol' ? 'sys' : 'sys', zoom: 1, panX: 0, panY: 0, sel: null, big: true };
+  syncBigTabs(); bigFooter();
+}
+function closeBig() { G.$('gkBig').hidden = true; G.big = null; }
+function syncBigTabs() { G.$('gkBig').querySelectorAll('[data-m]').forEach(b => b.classList.toggle('on', b.dataset.m === G.big.mode)); }
+function bigFooter() {
+  const ft = G.$('gkBigFt'), sel = G.big.sel;
+  if (!sel) { ft.innerHTML = '<span class="lg"><i style="background:#7ef0c2"></i>' + L('İzin', 'Your track') + '</span><span class="lg"><i style="background:#e3c27e"></i>' + L('Hedef', 'Target') + '</span><span class="tip">' + (G.mobile ? L('Bir cisme dokun · sürükle: kaydır · iki parmak: yakınlaştır', 'Tap a body · drag to pan · pinch to zoom') : L('Bir cisme tıkla · sürükle: kaydır · tekerlek: yakınlaştır', 'Click a body · drag to pan · wheel to zoom')) + '</span>'; return; }
+  let dist = ''; const b = bodyById(sel);
+  if (b) dist = fmtD(Math.max(0, worldPos(b).distanceTo(G.ship.position) - b.r)) + L(' birim', ' units');
+  else if (STARSYS[sel]) dist = STARSYS[sel].ly.toLocaleString(LANG === 'en' ? 'en' : 'tr') + L(' ışık yılı · hiper sürüş', ' light-years · hyperdrive');
+  else if (sel === 'Sun' || !b) dist = L('Güneş Sistemi', 'Solar System');
+  ft.innerHTML = '<div class="sel"><b>' + nm(sel) + (PROG.found[sel] ? ' ★' : '') + '</b><small>' + tx2(INFO[sel].k) + ' · ' + dist + '</small></div><button class="b on" id="gkGo2">' + L('Buraya git', 'Fly here') + '</button><button class="b" id="gkSel0">' + L('Vazgeç', 'Cancel') + '</button>';
+  G.$('gkGo2').onclick = () => { closeBig(); setTarget(sel); setAuto(true); };
+  G.$('gkSel0').onclick = () => { G.big.sel = null; bigFooter(); };
+}
+function drawBigMap(bodies) {
+  const c = G.$('gkBigC'), w = c.clientWidth, h = c.clientHeight; if (!w || !h) return;
+  if (c.width !== Math.round(w*G.pr) || c.height !== Math.round(h*G.pr)) { c.width = Math.round(w*G.pr); c.height = Math.round(h*G.pr); }
+  const g = c.getContext('2d'); g.setTransform(G.pr, 0, 0, G.pr, 0, 0); g.clearRect(0, 0, w, h);
+  drawMapCore(g, w, h, G.big, bodies); G.big.picksNow = G.big.picks;
+  if (G.big.sel) { const pk = (G.big.picks || []).find(p => p.id === G.big.sel); if (pk) { g.strokeStyle = '#7ef0c2'; g.lineWidth = 2; g.beginPath(); g.arc(pk.x, pk.y, pk.r, 0, Math.PI*2); g.stroke(); } }
+}
+function bindBig() {
+  const B = G.$('gkBig'), c = G.$('gkBigC'), pts = new Map(); let pinch = null, moved = 0;
+  G.$('gkMap').onclick = openBig; G.$('gkBigX').onclick = closeBig;
+  B.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { G.big.mode = b.dataset.m; if (b.dataset.m !== 'stars') G.mapMode = b.dataset.m; G.big.zoom = 1; G.big.panX = G.big.panY = 0; syncBigTabs(); });
+  c.addEventListener('pointerdown', e => { c.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); moved = 0;
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: G.big.zoom }; } });
+  c.addEventListener('pointermove', e => { if (!pts.has(e.pointerId) || !G.big) return; const p0 = pts.get(e.pointerId), p1 = [e.clientX, e.clientY]; pts.set(e.pointerId, p1);
+    if (pts.size === 2 && pinch) { const [a, b] = [...pts.values()]; G.big.zoom = Math.max(0.6, Math.min(40, pinch.z*Math.hypot(a[0] - b[0], a[1] - b[1])/pinch.d)); moved += 10; return; }
+    if (G.big.mode !== 'near') { G.big.panX += p1[0] - p0[0]; G.big.panY += p1[1] - p0[1]; } moved += Math.abs(p1[0] - p0[0]) + Math.abs(p1[1] - p0[1]); });
+  const up = e => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if (pts.size < 2) pinch = null;
+    if (e.type === 'pointerup' && moved < 8 && G.big) { const r = c.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      const hit = (G.big.picksNow || []).filter(p => Math.hypot(p.x - x, p.y - y) < p.r).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
+      G.big.sel = hit && INFO[hit.id] ? hit.id : null; bigFooter(); } };
+  c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+  c.addEventListener('wheel', e => { e.preventDefault(); if (!G.big) return; const z0 = G.big.zoom, z1 = Math.max(0.6, Math.min(40, z0*Math.exp(-e.deltaY*0.0015)));
+    // zoom about the cursor
+    if (G.big.mode !== 'near') { const r = c.getBoundingClientRect(), mx = e.clientX - r.left - c.clientWidth/2, my = e.clientY - r.top - c.clientHeight/2;
+      G.big.panX = mx - (mx - G.big.panX)*z1/z0; G.big.panY = my - (my - G.big.panY)*z1/z0; }
+    G.big.zoom = z1; }, { passive: false });
 }
 const fmtD = d => d < 1000 ? Math.round(d).toString() : (d/1000).toFixed(1) + 'k';
 function drawHud(bodies, tb) {
